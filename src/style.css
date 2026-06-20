@@ -78,6 +78,43 @@ canvas {
   image-rendering: pixelated;
 }
 
+.game-area {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.stats-panel {
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 0.8rem;
+}
+
+.stats-section {
+  border: 1px solid #2a2a2a;
+  background: #0d0d0d;
+  padding: 10px 12px;
+}
+
+.stats-section h2 {
+  margin: 0 0 8px 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #777;
+  font-weight: 400;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 6px;
+}
+
+.stats-section p {
+  margin: 0;
+  padding: 3px 0;
+  color: #bbb;
+}
+
 .controls {
   display: flex;
   align-items: center;

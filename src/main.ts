@@ -1,5 +1,6 @@
 import { GridRenderer } from "./render/GridRenderer";
 import { hubCellAt } from "./render/hubContent";
+import { isSolidCellKind } from "./render/palette";
 import { createInitialGameState } from "./engine/rekindle";
 import { attemptMove, type Direction } from "./engine/movement";
 import { markVisibleCellsExplored } from "./engine/exploration";
@@ -18,7 +19,24 @@ app.innerHTML = `
   <div class="shell">
     <h1>the hearth &amp; the deep</h1>
     <p class="subtitle">WASD/arrows to move &middot; F to strike rock &middot; E to repair a torch</p>
-    <canvas id="game-canvas"></canvas>
+    <div class="game-area">
+      <canvas id="game-canvas"></canvas>
+      <div class="stats-panel">
+        <div class="stats-section">
+          <h2>the dwarf</h2>
+          <p id="stat-mining">Mining 1</p>
+          <p id="stat-smithing">Smithing 1</p>
+          <p id="stat-hearthkeeping">Hearthkeeping 1</p>
+        </div>
+        <div class="stats-section">
+          <h2>carried</h2>
+          <p id="inv-ore">Ore: 0</p>
+          <p id="inv-ingot">Ingot: 0</p>
+          <p id="inv-fuel">Fuel: 0</p>
+          <p id="inv-insight">Insight: 0</p>
+        </div>
+      </div>
+    </div>
     <p class="hint" id="zone-hint"></p>
     <p class="hint" id="action-hint"></p>
     <div class="narrator-container" id="narrator-container"></div>
@@ -30,6 +48,27 @@ const zoneHint = document.querySelector<HTMLParagraphElement>("#zone-hint")!;
 const actionHint = document.querySelector<HTMLParagraphElement>("#action-hint")!;
 const narratorContainer = document.querySelector<HTMLDivElement>("#narrator-container")!;
 
+const statEls = {
+  mining: document.querySelector<HTMLParagraphElement>("#stat-mining")!,
+  smithing: document.querySelector<HTMLParagraphElement>("#stat-smithing")!,
+  hearthkeeping: document.querySelector<HTMLParagraphElement>("#stat-hearthkeeping")!,
+  ore: document.querySelector<HTMLParagraphElement>("#inv-ore")!,
+  ingot: document.querySelector<HTMLParagraphElement>("#inv-ingot")!,
+  fuel: document.querySelector<HTMLParagraphElement>("#inv-fuel")!,
+  insight: document.querySelector<HTMLParagraphElement>("#inv-insight")!,
+};
+
+function updateStatsPanel(): void {
+  const { skills, inventory } = state.vessel;
+  statEls.mining.textContent = `Mining ${skills.mining.level}`;
+  statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
+  statEls.hearthkeeping.textContent = `Hearthkeeping ${skills.hearthkeeping.level}`;
+  statEls.ore.textContent = `Ore: ${inventory.ore}`;
+  statEls.ingot.textContent = `Ingot: ${inventory.ingot}`;
+  statEls.fuel.textContent = `Fuel: ${inventory.fuel}`;
+  statEls.insight.textContent = `Insight: ${inventory.insight}`;
+}
+
 const renderer = new GridRenderer(canvas, {
   viewportCols: 25,
   viewportRows: 17,
@@ -40,7 +79,7 @@ let state = createInitialGameState(Date.now());
 
 /** Fires a narrator trigger, shows the toast if a line was returned, and persists the updated narrator state. */
 function narrate(trigger: NarratorTrigger): void {
-  const result = triggerNarration(trigger, state.narrator, Math.random());
+  const result = triggerNarration(trigger, state.narrator, Math.random(), Math.random());
   state = { ...state, narrator: result.state };
   if (result.line) showNarratorToast(narratorContainer, result.line);
 }
@@ -98,6 +137,10 @@ function updateActionHint(): void {
   actionHint.textContent = "";
 }
 
+function isSolidAt(col: number, row: number): boolean {
+  return isSolidCellKind(hubCellAt(col, row, state.world.litTorches).kind);
+}
+
 function render(): void {
   const { position } = state.vessel;
 
@@ -115,6 +158,7 @@ function render(): void {
 
   updateZoneHint();
   updateActionHint();
+  updateStatsPanel();
 }
 
 render();
@@ -189,7 +233,7 @@ window.addEventListener("keydown", (e) => {
   if (!direction) return;
   e.preventDefault();
 
-  const moveResult = attemptMove(state.vessel.position, direction, state.world);
+  const moveResult = attemptMove(state.vessel.position, direction, state.world, isSolidAt);
   if (!moveResult.moved) return; // blocked - nothing to update or redraw
 
   const newExplored = markVisibleCellsExplored(state.world.exploredCells, moveResult.position);

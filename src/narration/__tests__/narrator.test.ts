@@ -63,10 +63,10 @@ describe("triggerNarration - one-time triggers", () => {
 });
 
 describe("triggerNarration - repeatable triggers", () => {
-  it("fires every time for a repeatable trigger like mine_strike", () => {
+  it("fires every time for an unthrottled repeatable trigger like level_up", () => {
     let state = createInitialNarratorState();
     for (let i = 0; i < 5; i++) {
-      const result = triggerNarration("mine_strike", state, Math.random());
+      const result = triggerNarration("level_up", state, Math.random(), 0);
       expect(result.line).not.toBeNull();
       state = result.state;
     }
@@ -74,20 +74,51 @@ describe("triggerNarration - repeatable triggers", () => {
 
   it("tracks lastShownByTrigger so consecutive calls avoid repeating the same line", () => {
     let state = createInitialNarratorState();
-    const first = triggerNarration("mine_strike", state, 0.1);
+    const first = triggerNarration("mine_strike", state, 0.1, 0); // throttleRoll=0 guarantees it fires
     state = first.state;
-    const second = triggerNarration("mine_strike", state, 0.1); // same roll, different lastShown context
+    const second = triggerNarration("mine_strike", state, 0.1, 0); // same line roll, different lastShown context
     expect(second.line).not.toBe(first.line);
   });
 
   it("different triggers track lastShown independently - no cross-contamination", () => {
     let state = createInitialNarratorState();
-    const mineLine = triggerNarration("mine_strike", state, 0.3);
+    const mineLine = triggerNarration("mine_strike", state, 0.3, 0);
     state = mineLine.state;
-    const levelLine = triggerNarration("level_up", state, 0.3);
+    const levelLine = triggerNarration("level_up", state, 0.3, 0);
     // level_up's pool is unaffected by mine_strike's lastShown
     expect(state.lastShownByTrigger.mine_strike).toBe(mineLine.line);
     expect(levelLine.state.lastShownByTrigger.level_up).toBe(levelLine.line);
+  });
+});
+
+describe("triggerNarration - throttling", () => {
+  it("a throttled trigger stays silent when throttleRoll loses (>= chance)", () => {
+    const state = createInitialNarratorState();
+    // mine_strike's chance is 0.15 - a roll of 0.9 should lose
+    const result = triggerNarration("mine_strike", state, 0.5, 0.9);
+    expect(result.line).toBeNull();
+    expect(result.state).toEqual(state); // state genuinely unchanged, not just line=null
+  });
+
+  it("a throttled trigger fires when throttleRoll wins (< chance)", () => {
+    const state = createInitialNarratorState();
+    const result = triggerNarration("mine_strike", state, 0.5, 0.01);
+    expect(result.line).not.toBeNull();
+  });
+
+  it("an unthrottled trigger (e.g. level_up) always fires regardless of throttleRoll", () => {
+    const state = createInitialNarratorState();
+    const result = triggerNarration("level_up", state, 0.5, 0.999);
+    expect(result.line).not.toBeNull();
+  });
+
+  it("losing the throttle roll does not consume or alter lastShownByTrigger", () => {
+    let state = createInitialNarratorState();
+    const fired = triggerNarration("mine_strike", state, 0.2, 0);
+    state = fired.state;
+    const silentAttempt = triggerNarration("mine_strike", state, 0.7, 0.9); // loses throttle
+    expect(silentAttempt.line).toBeNull();
+    expect(silentAttempt.state.lastShownByTrigger.mine_strike).toBe(fired.line); // unchanged
   });
 });
 
@@ -95,7 +126,7 @@ describe("triggerNarration - purity", () => {
   it("does not mutate the input state", () => {
     const state = createInitialNarratorState();
     const before = JSON.stringify(state);
-    triggerNarration("mine_strike", state, 0.5);
+    triggerNarration("mine_strike", state, 0.5, 0);
     expect(JSON.stringify(state)).toBe(before);
   });
 });

@@ -23,6 +23,29 @@ export type CellKind =
   | "torch_broken"
   | "torch_lit";
 
+/**
+ * Which CellKinds physically block movement. Walls obviously; but also
+ * the hearth, the forge, and ore veins themselves - you interact WITH
+ * them by standing adjacent, not by standing on top of them. "dwarf" is
+ * deliberately excluded (it's the player himself, checking solidity at
+ * his own position would be nonsensical) and torches are excluded too -
+ * a torch sits in a corner of a cell, narrow enough that we treat it as
+ * passable rather than a wall-equivalent obstruction.
+ */
+export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
+  "rock_wall",
+  "hearth",
+  "forge",
+  "ore_copper",
+  "ore_iron",
+  "ore_deep",
+  "tunnel_edge",
+]);
+
+export function isSolidCellKind(kind: CellKind): boolean {
+  return SOLID_CELL_KINDS.has(kind);
+}
+
 export interface StagePalette {
   stage: number;
   background: string;

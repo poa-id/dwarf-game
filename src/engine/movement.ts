@@ -13,8 +13,18 @@ const DELTAS: Record<Direction, { dCol: number; dRow: number }> = {
 
 export interface MoveResult {
   position: Position;
-  moved: boolean; // false if blocked (locked zone or map edge) - position unchanged
+  moved: boolean; // false if blocked (locked zone, map edge, or solid terrain) - position unchanged
 }
+
+/**
+ * Reports whether a map cell is physically solid (walls, the hearth,
+ * furniture, ore veins - anything you can't walk onto). The engine
+ * itself has no concept of terrain content (that's render-layer data,
+ * see render/hubContent.ts), so this is supplied by the caller rather
+ * than imported directly - keeps the engine UI/render-agnostic while
+ * still letting movement respect real terrain.
+ */
+export type SolidityCheck = (col: number, row: number) => boolean;
 
 /**
  * Attempt to move one cell in a direction. Pure function - returns the
@@ -26,7 +36,8 @@ export interface MoveResult {
 export function attemptMove(
   current: Position,
   direction: Direction,
-  world: WorldState
+  world: WorldState,
+  isSolid: SolidityCheck
 ): MoveResult {
   const { dCol, dRow } = DELTAS[direction];
   const targetCol = current.col + dCol;
@@ -40,6 +51,10 @@ export function attemptMove(
   }
 
   if (!isCellPartOfUnlockedWorld(targetCol, targetRow, world)) {
+    return { position: current, moved: false };
+  }
+
+  if (isSolid(targetCol, targetRow)) {
     return { position: current, moved: false };
   }
 

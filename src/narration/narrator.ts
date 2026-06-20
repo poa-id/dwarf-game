@@ -2,6 +2,25 @@ import { NARRATOR_LINES } from "./lines";
 import type { NarratorTrigger, NarratorState } from "../engine/types";
 
 /**
+ * How often a trigger actually produces a line when it fires, 0-1.
+ * Rare/meaningful moments (first strike ever, level ups, color stage,
+ * torch repairs) always narrate - they're infrequent enough on their
+ * own that hearing about them every time is correct, not spammy.
+ * Frequent, repetitive actions (routine mining swings, walking into a
+ * newly lit area) narrate only SOMETIMES - the narrator comments on
+ * the grind, he doesn't provide play-by-play of every swing. Triggers
+ * not listed here default to 1.0 (always narrate).
+ */
+const NARRATION_CHANCE: Partial<Record<NarratorTrigger, number>> = {
+  mine_strike: 0.15,
+  area_revealed: 0.6,
+};
+
+function chanceFor(trigger: NarratorTrigger): number {
+  return NARRATION_CHANCE[trigger] ?? 1.0;
+}
+
+/**
  * Picks a line for a trigger, avoiding immediate repetition of the
  * last line shown FOR THAT SAME TRIGGER (repeats across different
  * triggers are fine and expected). Pure function - caller supplies the
@@ -47,25 +66,36 @@ export function hasFiredOnce(state: NarratorState, trigger: NarratorTrigger): bo
 
 export interface NarrationResult {
   state: NarratorState;
-  line: string | null; // null if this is a one-time trigger that already fired
+  line: string | null; // null if a one-time trigger already fired, OR this call lost its throttle roll
 }
 
 /**
  * The main entry point: given a trigger and current narrator state,
  * returns the line to show (or null if a one-time trigger already
- * fired and shouldn't repeat) plus the updated state to persist.
+ * fired and shouldn't repeat, or if this trigger is throttled and lost
+ * its roll this time) plus the updated state to persist.
+ *
+ * Takes TWO independent rolls - throttleRoll decides whether to speak
+ * at all, lineRoll decides which line if so - so a caller can't
+ * accidentally correlate "did it speak" with "which line" by reusing
+ * one Math.random() call for both.
  */
 export function triggerNarration(
   trigger: NarratorTrigger,
   state: NarratorState,
-  roll: number
+  lineRoll: number,
+  throttleRoll: number = Math.random()
 ): NarrationResult {
   if (ONE_TIME_TRIGGERS.includes(trigger) && hasFiredOnce(state, trigger)) {
     return { state, line: null };
   }
 
+  if (throttleRoll >= chanceFor(trigger)) {
+    return { state, line: null }; // lost the throttle roll - stays silent this time, state unchanged
+  }
+
   const lastShown = state.lastShownByTrigger[trigger] ?? null;
-  const line = pickLine(trigger, lastShown, roll);
+  const line = pickLine(trigger, lastShown, lineRoll);
 
   const newState: NarratorState = {
     lastShownByTrigger: { ...state.lastShownByTrigger, [trigger]: line },
