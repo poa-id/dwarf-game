@@ -1,4 +1,5 @@
 import type { GameState, LightSourceDefinition, ResourceBag } from "./types";
+import { canAffordMaterials, deductMaterials } from "./types";
 import { markAreaExplored } from "./exploration";
 
 /** How close the dwarf must stand to a torch to repair it - same idea as an interaction range. */
@@ -14,18 +15,8 @@ export function isNearTorch(
   return Math.abs(dx) <= TORCH_INTERACT_RANGE && Math.abs(dy) <= TORCH_INTERACT_RANGE;
 }
 
-export function canAffordRepair(inventory: ResourceBag, cost: Partial<ResourceBag>): boolean {
-  return Object.entries(cost).every(([resource, amount]) => {
-    return inventory[resource as keyof ResourceBag] >= (amount ?? 0);
-  });
-}
-
-function deductCost(inventory: ResourceBag, cost: Partial<ResourceBag>): ResourceBag {
-  const updated = { ...inventory };
-  for (const [resource, amount] of Object.entries(cost)) {
-    updated[resource as keyof ResourceBag] -= amount ?? 0;
-  }
-  return updated;
+export function canAffordRepair(inventory: ResourceBag, cost: ResourceBag): boolean {
+  return canAffordMaterials(inventory, cost);
 }
 
 export type RepairTorchOutcome =
@@ -47,11 +38,11 @@ export function repairTorch(state: GameState, torch: LightSourceDefinition): Rep
     return { ok: false, reason: "too_far" };
   }
 
-  if (!canAffordRepair(state.vessel.inventory, torch.repairCost)) {
+  if (!canAffordMaterials(state.vessel.inventory, torch.repairCost)) {
     return { ok: false, reason: "cannot_afford" };
   }
 
-  const newInventory = deductCost(state.vessel.inventory, torch.repairCost);
+  const newInventory = deductMaterials(state.vessel.inventory, torch.repairCost);
   const newExplored = markAreaExplored(
     state.world.exploredCells,
     torch.position,

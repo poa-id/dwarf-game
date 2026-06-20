@@ -1,12 +1,22 @@
-import type { SkillState, ResourceBag } from "./types";
+import type { SkillState, ResourceBag, MaterialId } from "./types";
+import { getMaterialAmount, deductMaterials, addMaterial, materialDef } from "./types";
 import { levelForXp } from "./xpCurve";
 
 export interface SmithRecipe {
   id: string;
   name: string;
   requiredLevel: number;
+  /** Which ore this recipe consumes, and how much. */
+  oreMaterialId: MaterialId;
   oreCost: number;
+  /** Which fuel this recipe consumes, and how much. */
+  fuelMaterialId: MaterialId;
+  fuelCost: number;
+  /** Minimum heatValue the chosen fuel must have - a weak fire (low heatValue) can't smith a recipe that demands real heat, regardless of how much of it you have. */
+  minHeatRequired: number;
   baseXp: number;
+  /** Which ingot this recipe produces, and how much. */
+  ingotMaterialId: MaterialId;
   ingotYield: number;
   /** 0-1, a timing/rhythm-style attempt can still fail to land cleanly. */
   baseSuccessChance: number;
@@ -17,8 +27,13 @@ export const SMITH_RECIPES: SmithRecipe[] = [
     id: "copper_ingot",
     name: "Copper Ingot",
     requiredLevel: 1,
+    oreMaterialId: "copper_ore",
     oreCost: 2,
+    fuelMaterialId: "coal",
+    fuelCost: 1,
+    minHeatRequired: 5, // coal's heatValue is 10 - comfortably enough for the easiest recipe
     baseXp: 10,
+    ingotMaterialId: "copper_ingot",
     ingotYield: 1,
     baseSuccessChance: 0.85,
   },
@@ -26,41 +41,37 @@ export const SMITH_RECIPES: SmithRecipe[] = [
     id: "iron_ingot",
     name: "Iron Ingot",
     requiredLevel: 10,
+    oreMaterialId: "iron_ore",
     oreCost: 3,
+    fuelMaterialId: "coal",
+    fuelCost: 2,
+    minHeatRequired: 10, // iron needs a proper coal fire, not a weaker future fuel substitute
     baseXp: 22,
+    ingotMaterialId: "iron_ingot",
     ingotYield: 1,
     baseSuccessChance: 0.7,
-  },
-  {
-    id: "steel_ingot",
-    name: "Steel Ingot",
-    requiredLevel: 25,
-    oreCost: 4,
-    baseXp: 50,
-    ingotYield: 1,
-    baseSuccessChance: 0.55,
   },
 ];
 
 export interface SmithAttemptResult {
   success: boolean;
   xpGained: number;
+  ingotMaterialId: MaterialId;
   ingotsGained: number;
+  oreMaterialId: MaterialId;
   oreSpent: number;
-  /** Byproduct fed to the Hearth - this is the literal fuel link in the design. */
-  fuelByproduct: number;
+  fuelMaterialId: MaterialId;
+  fuelSpent: number;
   newLevel: number;
   leveledUp: boolean;
 }
 
-/** Fuel byproduct generated per successful smith, regardless of recipe — the scrap/slag that feeds the Hearth. */
-const FUEL_BYPRODUCT_PER_SUCCESS = 3;
-
 /**
  * Attempt to smith one item. Pure function, caller supplies `roll` for
- * determinism in tests. Throws if level or ore requirements aren't met —
- * the caller (UI layer) is responsible for not offering unavailable
- * recipes in the first place, this is a defensive invariant, not UX.
+ * determinism in tests. Throws if level, ore, fuel quantity, OR fuel
+ * heat requirements aren't met — the caller (UI layer) is responsible
+ * for not offering unavailable recipes in the first place, this is a
+ * defensive invariant, not UX.
  */
 export function attemptSmith(
   recipe: SmithRecipe,
@@ -73,22 +84,40 @@ export function attemptSmith(
       `Smithing level ${smithingSkill.level} is below required ${recipe.requiredLevel} for ${recipe.id}`
     );
   }
-  if (inventory.ore < recipe.oreCost) {
-    throw new Error(`Not enough ore: have ${inventory.ore}, need ${recipe.oreCost}`);
+
+  const oreHeld = getMaterialAmount(inventory, recipe.oreMaterialId);
+  if (oreHeld < recipe.oreCost) {
+    throw new Error(`Not enough ${recipe.oreMaterialId}: have ${oreHeld}, need ${recipe.oreCost}`);
+  }
+
+  const fuelHeld = getMaterialAmount(inventory, recipe.fuelMaterialId);
+  if (fuelHeld < recipe.fuelCost) {
+    throw new Error(`Not enough ${recipe.fuelMaterialId}: have ${fuelHeld}, need ${recipe.fuelCost}`);
+  }
+
+  const fuelHeat = materialDef(recipe.fuelMaterialId).heatValue ?? 0;
+  if (fuelHeat < recipe.minHeatRequired) {
+    throw new Error(
+      `${recipe.fuelMaterialId} (heat ${fuelHeat}) does not burn hot enough for ${recipe.id} (needs ${recipe.minHeatRequired})`
+    );
   }
 
   const success = roll < recipe.baseSuccessChance;
   const oldLevel = smithingSkill.level;
 
-  // Ore is consumed on attempt regardless of success — you fed the forge,
-  // a failed strike still burns the metal. This mirrors Smithing's risk.
+  // Ore AND fuel are consumed on attempt regardless of success — you
+  // fed the forge, a failed strike still burns the metal and the coal.
+  // This mirrors Smithing's risk from before, just extended to fuel.
   if (!success) {
     return {
       success: false,
       xpGained: 0,
+      ingotMaterialId: recipe.ingotMaterialId,
       ingotsGained: 0,
+      oreMaterialId: recipe.oreMaterialId,
       oreSpent: recipe.oreCost,
-      fuelByproduct: 0,
+      fuelMaterialId: recipe.fuelMaterialId,
+      fuelSpent: recipe.fuelCost,
       newLevel: oldLevel,
       leveledUp: false,
     };
@@ -100,9 +129,12 @@ export function attemptSmith(
   return {
     success: true,
     xpGained: recipe.baseXp,
+    ingotMaterialId: recipe.ingotMaterialId,
     ingotsGained: recipe.ingotYield,
+    oreMaterialId: recipe.oreMaterialId,
     oreSpent: recipe.oreCost,
-    fuelByproduct: FUEL_BYPRODUCT_PER_SUCCESS,
+    fuelMaterialId: recipe.fuelMaterialId,
+    fuelSpent: recipe.fuelCost,
     newLevel,
     leveledUp: newLevel > oldLevel,
   };
@@ -112,12 +144,14 @@ export function applySmithResult(
   inventory: ResourceBag,
   result: SmithAttemptResult
 ): ResourceBag {
-  return {
-    ...inventory,
-    ore: inventory.ore - result.oreSpent,
-    ingot: inventory.ingot + result.ingotsGained,
-    fuel: inventory.fuel + result.fuelByproduct,
-  };
+  let updated = deductMaterials(inventory, {
+    [result.oreMaterialId]: result.oreSpent,
+    [result.fuelMaterialId]: result.fuelSpent,
+  });
+  if (result.success && result.ingotsGained > 0) {
+    updated = addMaterial(updated, result.ingotMaterialId, result.ingotsGained);
+  }
+  return updated;
 }
 
 // ---------------------------------------------------------------------------

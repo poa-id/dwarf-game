@@ -6,10 +6,16 @@ import { attemptMove, type Direction } from "./engine/movement";
 import { markVisibleCellsExplored } from "./engine/exploration";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "./engine/visibility";
 import type { NarratorTrigger } from "./engine/types";
-import { cellKey } from "./engine/types";
+import { cellKey, MATERIALS } from "./engine/types";
 import { LIGHT_SOURCES, ORE_VEINS } from "./engine/hubMap";
 import { isNearTorch, repairTorch } from "./engine/torches";
-import { attemptMineStrike, ROCK_NODES, addOreToInventory } from "./engine/mining";
+import {
+  attemptMineStrike,
+  applyMineResult,
+  ROCK_NODES,
+  createFreshDepletionState,
+  isExhausted,
+} from "./engine/mining";
 import { triggerNarration } from "./narration/narrator";
 import { showNarratorToast } from "./narration/toast";
 
@@ -30,10 +36,7 @@ app.innerHTML = `
         </div>
         <div class="stats-section">
           <h2>carried</h2>
-          <p id="inv-ore">Ore: 0</p>
-          <p id="inv-ingot">Ingot: 0</p>
-          <p id="inv-fuel">Fuel: 0</p>
-          <p id="inv-insight">Insight: 0</p>
+          <div id="inventory-list"></div>
         </div>
       </div>
     </div>
@@ -52,10 +55,7 @@ const statEls = {
   mining: document.querySelector<HTMLParagraphElement>("#stat-mining")!,
   smithing: document.querySelector<HTMLParagraphElement>("#stat-smithing")!,
   hearthkeeping: document.querySelector<HTMLParagraphElement>("#stat-hearthkeeping")!,
-  ore: document.querySelector<HTMLParagraphElement>("#inv-ore")!,
-  ingot: document.querySelector<HTMLParagraphElement>("#inv-ingot")!,
-  fuel: document.querySelector<HTMLParagraphElement>("#inv-fuel")!,
-  insight: document.querySelector<HTMLParagraphElement>("#inv-insight")!,
+  inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
 };
 
 function updateStatsPanel(): void {
@@ -63,10 +63,20 @@ function updateStatsPanel(): void {
   statEls.mining.textContent = `Mining ${skills.mining.level}`;
   statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
   statEls.hearthkeeping.textContent = `Hearthkeeping ${skills.hearthkeeping.level}`;
-  statEls.ore.textContent = `Ore: ${inventory.ore}`;
-  statEls.ingot.textContent = `Ingot: ${inventory.ingot}`;
-  statEls.fuel.textContent = `Fuel: ${inventory.fuel}`;
-  statEls.insight.textContent = `Insight: ${inventory.insight}`;
+
+  const heldEntries = Object.entries(inventory).filter(([, amount]) => (amount ?? 0) > 0);
+  if (heldEntries.length === 0) {
+    statEls.inventoryList.innerHTML = `<p class="inventory-empty">nothing yet</p>`;
+    return;
+  }
+
+  statEls.inventoryList.innerHTML = heldEntries
+    .map(([materialId, amount]) => {
+      const def = MATERIALS[materialId];
+      const label = def?.name ?? materialId;
+      return `<p>${label}: ${amount}</p>`;
+    })
+    .join("");
 }
 
 const renderer = new GridRenderer(canvas, {
@@ -113,6 +123,19 @@ function nearestUnrepairedTorch() {
 
 function nearestOreVein() {
   const { position } = state.vessel;
+  return ORE_VEINS.find((v) => {
+    const inRange =
+      Math.abs(v.position.col - position.col) <= 1 && Math.abs(v.position.row - position.row) <= 1;
+    if (!inRange) return false;
+    const rockNode = ROCK_NODES.find((n) => n.id === v.rockNodeId);
+    if (!rockNode) return false;
+    const depletion = state.world.veinDepletion[v.id] ?? createFreshDepletionState();
+    return !isExhausted(rockNode, depletion);
+  });
+}
+
+function nearestAnyVein() {
+  const { position } = state.vessel;
   return ORE_VEINS.find(
     (v) => Math.abs(v.position.col - position.col) <= 1 && Math.abs(v.position.row - position.row) <= 1
   );
@@ -134,11 +157,17 @@ function updateActionHint(): void {
     return;
   }
 
+  const anyVein = nearestAnyVein();
+  if (anyVein) {
+    actionHint.textContent = "This vein is exhausted. Nothing left to take.";
+    return;
+  }
+
   actionHint.textContent = "";
 }
 
 function isSolidAt(col: number, row: number): boolean {
-  return isSolidCellKind(hubCellAt(col, row, state.world.litTorches).kind);
+  return isSolidCellKind(hubCellAt(col, row, state.world.litTorches, state.world.veinDepletion).kind);
 }
 
 function render(): void {
@@ -147,7 +176,7 @@ function render(): void {
   renderer.render(
     (col, row) => {
       if (col === position.col && row === position.row) return { kind: "dwarf" };
-      return hubCellAt(col, row, state.world.litTorches);
+      return hubCellAt(col, row, state.world.litTorches, state.world.veinDepletion);
     },
     (col, row) =>
       cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS),
@@ -184,15 +213,34 @@ function handleMineStrike(): void {
   const miningSkill = state.vessel.skills.mining;
   if (miningSkill.level < rockNode.requiredLevel) return; // shouldn't happen for the starter vein, defensive only
 
-  const isFirstStrikeEver = !state.narrator.firedOnceTriggers.includes("mine_first_strike");
-  const result = attemptMineStrike(rockNode, miningSkill, state.world.forgeTier, Math.random());
-
-  if (!result.success) {
-    return; // a miss - no state change, no narration; the swing just didn't land
+  const depletion = state.world.veinDepletion[vein.id] ?? createFreshDepletionState();
+  if (isExhausted(rockNode, depletion)) {
+    actionHint.textContent = `The ${rockNode.name.toLowerCase()} is exhausted.`;
+    return;
   }
 
-  const newInventory = addOreToInventory(state.vessel.inventory, result.oreGained);
-  const newMiningSkill = { ...miningSkill, level: result.newLevel, xp: miningSkill.xp + result.xpGained };
+  const isFirstStrikeEver = !state.narrator.firedOnceTriggers.includes("mine_first_strike");
+  const result = attemptMineStrike(rockNode, miningSkill, state.world.forgeTier, depletion, Math.random());
+
+  state = {
+    ...state,
+    world: {
+      ...state.world,
+      veinDepletion: { ...state.world.veinDepletion, [vein.id]: result.newDepletion },
+    },
+  };
+
+  if (!result.success) {
+    render();
+    return; // a miss - no material/xp change, no narration; the swing just didn't land
+  }
+
+  const newInventory = applyMineResult(state.vessel.inventory, result);
+  const newMiningSkill = {
+    ...miningSkill,
+    level: result.newLevel,
+    xp: miningSkill.xp + result.xpGained,
+  };
 
   state = {
     ...state,

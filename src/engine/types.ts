@@ -28,12 +28,76 @@ export interface SkillState {
 }
 
 // ---------------------------------------------------------------------------
-// Resources
+// Materials - ores, fuels, and (eventually) other raw materials.
+//
+// This replaces a fixed "ore/ingot/fuel/insight" ResourceBag with a
+// flexible map so new tiers of ore or fuel can be added as pure content
+// (new MaterialDefinition entries) without touching the data model
+// again. Coal is the first FUEL material - mined directly, not a
+// smithing byproduct - and is deliberately modeled the same way as ore
+// (a MaterialCategory, a tier, a value) since later, rarer fuels are
+// expected to matter just as much as later, rarer ores: a purer fuel
+// burns hotter, which the smithing system can read off `heatValue`
+// to allow forging materials a weaker fire couldn't touch.
 // ---------------------------------------------------------------------------
 
-export type ResourceId = "ore" | "ingot" | "fuel" | "insight";
+export type MaterialId = string;
 
-export type ResourceBag = Record<ResourceId, number>;
+export type MaterialCategory = "ore" | "ingot" | "fuel" | "currency";
+
+export interface MaterialDefinition {
+  id: MaterialId;
+  name: string;
+  category: MaterialCategory;
+  /** Roughly how advanced/rare this material is within its category - higher tiers usually need deeper mine access or higher skill levels. */
+  tier: number;
+  /** Only meaningful for category "fuel" - how hot it burns, which gates which ores/ingots it can process. Purer/rarer fuels have higher values. */
+  heatValue?: number;
+}
+
+export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
+  copper_ore: { id: "copper_ore", name: "Copper Ore", category: "ore", tier: 1 },
+  iron_ore: { id: "iron_ore", name: "Iron Ore", category: "ore", tier: 2 },
+  coal: { id: "coal", name: "Coal", category: "fuel", tier: 1, heatValue: 10 },
+  copper_ingot: { id: "copper_ingot", name: "Copper Ingot", category: "ingot", tier: 1 },
+  iron_ingot: { id: "iron_ingot", name: "Iron Ingot", category: "ingot", tier: 2 },
+  insight: { id: "insight", name: "Insight", category: "currency", tier: 0 },
+};
+
+export function materialDef(id: MaterialId): MaterialDefinition {
+  const def = MATERIALS[id];
+  if (!def) throw new Error(`Unknown material id: ${id}`);
+  return def;
+}
+
+/**
+ * A flexible bag of materials - any MaterialId can appear as a key.
+ * Missing keys mean zero, not undefined - callers should use
+ * getMaterialAmount rather than direct indexing to get that default
+ * safely (plain `bag[id]` would be `undefined`, not `0`, for a
+ * material the player has never picked up).
+ */
+export type ResourceBag = Partial<Record<MaterialId, number>>;
+
+export function getMaterialAmount(bag: ResourceBag, id: MaterialId): number {
+  return bag[id] ?? 0;
+}
+
+export function addMaterial(bag: ResourceBag, id: MaterialId, amount: number): ResourceBag {
+  return { ...bag, [id]: getMaterialAmount(bag, id) + amount };
+}
+
+export function canAffordMaterials(bag: ResourceBag, cost: ResourceBag): boolean {
+  return Object.entries(cost).every(([id, amount]) => getMaterialAmount(bag, id) >= (amount ?? 0));
+}
+
+export function deductMaterials(bag: ResourceBag, cost: ResourceBag): ResourceBag {
+  const updated = { ...bag };
+  for (const [id, amount] of Object.entries(cost)) {
+    updated[id] = getMaterialAmount(updated, id) - (amount ?? 0);
+  }
+  return updated;
+}
 
 // ---------------------------------------------------------------------------
 // Hearth / Flame — the idle skill that gates color
@@ -130,7 +194,7 @@ export interface LightSourceDefinition {
   position: Position;
   radius: number;
   /** Resource cost to repair, paid from the Vessel's inventory at the moment of repair. */
-  repairCost: Partial<ResourceBag>;
+  repairCost: ResourceBag;
 }
 
 /** Which torches have been repaired - persists on WorldState, permanent once lit, like the forge. */
@@ -152,6 +216,8 @@ export interface WorldState {
   exploredCells: ExploredCellMap;
   /** Every torch any dwarf has ever repaired - persists forever, like the forge. */
   litTorches: LitTorchSet;
+  /** Depletion progress per placed ore vein instance (keyed by OreVeinPlacement.id) - the mountain remembers how worked-over a vein is, regardless of which dwarf is currently swinging the pick. */
+  veinDepletion: Record<string, { totalYielded: number }>;
 }
 
 // ---------------------------------------------------------------------------

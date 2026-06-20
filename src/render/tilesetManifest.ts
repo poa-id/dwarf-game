@@ -45,6 +45,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   ore_copper: { assetUrl: oreBaseUrl, tint: "#d4894a" },
   ore_iron: { assetUrl: oreBaseUrl, tint: "#9aa3ad" },
   ore_deep: { assetUrl: oreDeepUrl }, // unique texture, no tint needed
+  ore_exhausted: { assetUrl: rockFloorUrl }, // spent rock - same texture as plain floor
   dwarf: { assetUrl: dwarfUrl },
   hearth: { assetUrl: forgeUrl },
   forge: { assetUrl: forgeUrl },

@@ -10,63 +10,63 @@ import {
 import type { SkillState, ResourceBag } from "../types";
 
 const smithingLvl1: SkillState = { id: "smithing", level: 1, xp: 0 };
-const copperIngot = SMITH_RECIPES[0];
-const ironIngot = SMITH_RECIPES[1];
+const copperIngotRecipe = SMITH_RECIPES.find((r) => r.id === "copper_ingot")!;
+const ironIngotRecipe = SMITH_RECIPES.find((r) => r.id === "iron_ingot")!;
 
-const inventoryWithOre = (ore: number): ResourceBag => ({
-  ore,
-  ingot: 0,
-  fuel: 0,
-  insight: 0,
-});
+const inventoryWith = (overrides: ResourceBag): ResourceBag => ({ ...overrides });
 
 describe("attemptSmith", () => {
   it("throws if smithing level is below requirement", () => {
-    expect(() =>
-      attemptSmith(ironIngot, smithingLvl1, inventoryWithOre(10), 0.1)
-    ).toThrow();
+    const inv = inventoryWith({ iron_ore: 10, coal: 10 });
+    expect(() => attemptSmith(ironIngotRecipe, smithingLvl1, inv, 0.1)).toThrow();
   });
 
   it("throws if not enough ore", () => {
-    expect(() =>
-      attemptSmith(copperIngot, smithingLvl1, inventoryWithOre(0), 0.1)
-    ).toThrow();
+    const inv = inventoryWith({ copper_ore: 0, coal: 10 });
+    expect(() => attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.1)).toThrow();
   });
 
-  it("burns ore even on a failed attempt (risk is real)", () => {
-    const result = attemptSmith(copperIngot, smithingLvl1, inventoryWithOre(10), 0.99);
+  it("throws if not enough fuel", () => {
+    const inv = inventoryWith({ copper_ore: 10, coal: 0 });
+    expect(() => attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.1)).toThrow();
+  });
+
+  it("burns ore AND fuel even on a failed attempt (risk is real)", () => {
+    const inv = inventoryWith({ copper_ore: 10, coal: 10 });
+    const result = attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.99);
     expect(result.success).toBe(false);
-    expect(result.oreSpent).toBe(copperIngot.oreCost);
+    expect(result.oreSpent).toBe(copperIngotRecipe.oreCost);
+    expect(result.fuelSpent).toBe(copperIngotRecipe.fuelCost);
     expect(result.ingotsGained).toBe(0);
-    expect(result.fuelByproduct).toBe(0);
   });
 
-  it("grants ingots, xp, and fuel byproduct on success", () => {
-    const result = attemptSmith(copperIngot, smithingLvl1, inventoryWithOre(10), 0.01);
+  it("grants ingots and xp on success", () => {
+    const inv = inventoryWith({ copper_ore: 10, coal: 10 });
+    const result = attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.01);
     expect(result.success).toBe(true);
-    expect(result.ingotsGained).toBe(copperIngot.ingotYield);
-    expect(result.xpGained).toBe(copperIngot.baseXp);
-    expect(result.fuelByproduct).toBeGreaterThan(0);
+    expect(result.ingotsGained).toBe(copperIngotRecipe.ingotYield);
+    expect(result.ingotMaterialId).toBe("copper_ingot");
+    expect(result.xpGained).toBe(copperIngotRecipe.baseXp);
   });
 });
 
 describe("applySmithResult", () => {
-  it("correctly debits ore and credits ingot+fuel on success", () => {
-    const inv = inventoryWithOre(10);
-    const result = attemptSmith(copperIngot, smithingLvl1, inv, 0.01);
+  it("correctly debits ore+fuel and credits the ingot on success", () => {
+    const inv = inventoryWith({ copper_ore: 10, coal: 10 });
+    const result = attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.01);
     const newInv = applySmithResult(inv, result);
-    expect(newInv.ore).toBe(10 - copperIngot.oreCost);
-    expect(newInv.ingot).toBe(copperIngot.ingotYield);
-    expect(newInv.fuel).toBeGreaterThan(0);
+    expect(newInv.copper_ore).toBe(10 - copperIngotRecipe.oreCost);
+    expect(newInv.coal).toBe(10 - copperIngotRecipe.fuelCost);
+    expect(newInv.copper_ingot).toBe(copperIngotRecipe.ingotYield);
   });
 
-  it("on failure, still debits ore (the burn) but credits nothing else", () => {
-    const inv = inventoryWithOre(10);
-    const result = attemptSmith(copperIngot, smithingLvl1, inv, 0.99);
+  it("on failure, still debits ore+fuel (the burn) but credits no ingot", () => {
+    const inv = inventoryWith({ copper_ore: 10, coal: 10 });
+    const result = attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.99);
     const newInv = applySmithResult(inv, result);
-    expect(newInv.ore).toBe(10 - copperIngot.oreCost);
-    expect(newInv.ingot).toBe(0);
-    expect(newInv.fuel).toBe(0);
+    expect(newInv.copper_ore).toBe(10 - copperIngotRecipe.oreCost);
+    expect(newInv.coal).toBe(10 - copperIngotRecipe.fuelCost);
+    expect(newInv.copper_ingot).toBeUndefined();
   });
 });
 

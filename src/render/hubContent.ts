@@ -2,7 +2,8 @@ import { createEmptyGrid, type GridCell } from "./GridRenderer";
 import { stampSprite } from "./sprites";
 import { FORGE_BUILDING } from "./exampleSprites";
 import { HUB_WIDTH, HUB_HEIGHT, ZONES, LIGHT_SOURCES, ORE_VEINS } from "../engine/hubMap";
-import type { LitTorchSet } from "../engine/types";
+import { ROCK_NODES, isExhausted, createFreshDepletionState } from "../engine/mining";
+import type { LitTorchSet, WorldState } from "../engine/types";
 
 /**
  * Builds the Hub's static terrain content ONCE - this is hand-designed
@@ -119,7 +120,12 @@ export function getHubGrid(): GridCell[] {
   return cachedHubGrid;
 }
 
-export function hubCellAt(col: number, row: number, litTorches: LitTorchSet = {}): GridCell {
+export function hubCellAt(
+  col: number,
+  row: number,
+  litTorches: LitTorchSet = {},
+  veinDepletion: WorldState["veinDepletion"] = {}
+): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
   }
@@ -130,6 +136,15 @@ export function hubCellAt(col: number, row: number, litTorches: LitTorchSet = {}
     const torch = LIGHT_SOURCES.find((t) => t.position.col === col && t.position.row === row);
     if (torch && litTorches[torch.id]) {
       return { kind: "torch_lit" };
+    }
+  }
+
+  const vein = ORE_VEINS.find((v) => v.position.col === col && v.position.row === row);
+  if (vein) {
+    const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
+    const depletion = veinDepletion[vein.id] ?? createFreshDepletionState();
+    if (rockNode && isExhausted(rockNode, depletion)) {
+      return { kind: "ore_exhausted" };
     }
   }
 

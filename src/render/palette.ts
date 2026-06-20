@@ -16,6 +16,7 @@ export type CellKind =
   | "ore_copper"
   | "ore_iron"
   | "ore_deep"
+  | "ore_exhausted"
   | "dwarf"
   | "hearth"
   | "forge"
@@ -70,6 +71,7 @@ const STAGE_0: StagePalette = {
     ore_copper: "#9a9a9a",
     ore_iron: "#9a9a9a",
     ore_deep: "#9a9a9a",
+    ore_exhausted: "#9a9a9a",
     dwarf: "#9a9a9a",
     hearth: "#9a9a9a", // unlit - indistinguishable from stone. this is the whole point.
     forge: "#9a9a9a",
@@ -112,6 +114,7 @@ const STAGE_2: StagePalette = {
     ore_copper: "#d4894a",
     ore_iron: "#9aa3ad",
     ore_deep: "#7060c0",
+    ore_exhausted: "#3a2e22", // same as rock_floor - it's just spent rock now, nothing left to mine
     dwarf: "#f0c896",
     hearth: "#ff8c3a",
     forge: "#d4661f",
@@ -137,6 +140,7 @@ const STAGE_3: StagePalette = {
     ore_copper: "#e0884a",
     ore_iron: "#c8d2dc",
     ore_deep: "#9d6fef",
+    ore_exhausted: "#343a42",
     dwarf: "#f5dcb0",
     hearth: "#ffaa44",
     forge: "#e0701f",
@@ -160,6 +164,7 @@ export const GLYPHS: Record<CellKind, string> = {
   ore_copper: "o",
   ore_iron: "O",
   ore_deep: "◆",
+  ore_exhausted: "▫", // hollow square - the shape memory of ore that's no longer there
   dwarf: "@",
   hearth: "♥",
   forge: "n",

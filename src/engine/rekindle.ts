@@ -34,7 +34,7 @@ export function createFreshVessel(): VesselState {
       smithing: freshSkill("smithing"),
       hearthkeeping: freshSkill("hearthkeeping"),
     },
-    inventory: { ore: 0, ingot: 0, fuel: 0, insight: 0 },
+    inventory: {},
     hasRekindled: false,
     position: { ...HEARTH_SPAWN_POSITION },
   };
@@ -50,6 +50,7 @@ export function createInitialWorld(now: number): WorldState {
     loreFlags: [],
     exploredCells: {},
     litTorches: {},
+    veinDepletion: {},
   };
 }
 

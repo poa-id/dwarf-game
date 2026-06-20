@@ -115,6 +115,11 @@ canvas {
   color: #bbb;
 }
 
+.inventory-empty {
+  color: #555 !important;
+  font-style: italic;
+}
+
 .controls {
   display: flex;
   align-items: center;

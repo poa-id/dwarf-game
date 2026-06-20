@@ -9,7 +9,7 @@ const testTorch: LightSourceDefinition = {
   name: "Test Torch",
   position: { col: 10, row: 10 },
   radius: 2,
-  repairCost: { ingot: 3 },
+  repairCost: { copper_ingot: 3 },
 };
 
 describe("isNearTorch", () => {
@@ -28,19 +28,24 @@ describe("isNearTorch", () => {
 
 describe("canAffordRepair", () => {
   it("true when inventory meets or exceeds cost", () => {
-    const inv = { ore: 0, ingot: 5, fuel: 0, insight: 0 };
-    expect(canAffordRepair(inv, { ingot: 3 })).toBe(true);
+    const inv = { copper_ingot: 5 };
+    expect(canAffordRepair(inv, { copper_ingot: 3 })).toBe(true);
   });
 
   it("false when inventory is short", () => {
-    const inv = { ore: 0, ingot: 2, fuel: 0, insight: 0 };
-    expect(canAffordRepair(inv, { ingot: 3 })).toBe(false);
+    const inv = { copper_ingot: 2 };
+    expect(canAffordRepair(inv, { copper_ingot: 3 })).toBe(false);
   });
 
-  it("handles multi-resource costs, all must be satisfied", () => {
-    const inv = { ore: 5, ingot: 5, fuel: 0, insight: 0 };
-    expect(canAffordRepair(inv, { ingot: 3, ore: 10 })).toBe(false); // ore short
-    expect(canAffordRepair(inv, { ingot: 3, ore: 5 })).toBe(true);
+  it("false when the material is entirely absent from inventory (not just zero)", () => {
+    const inv = {};
+    expect(canAffordRepair(inv, { copper_ingot: 1 })).toBe(false);
+  });
+
+  it("handles multi-material costs, all must be satisfied", () => {
+    const inv = { copper_ore: 5, copper_ingot: 5 };
+    expect(canAffordRepair(inv, { copper_ingot: 3, copper_ore: 10 })).toBe(false); // ore short
+    expect(canAffordRepair(inv, { copper_ingot: 3, copper_ore: 5 })).toBe(true);
   });
 });
 
@@ -52,7 +57,7 @@ describe("repairTorch", () => {
       vessel: {
         ...state.vessel,
         position: { ...torch.position },
-        inventory: { ...state.vessel.inventory, ingot: ingots },
+        inventory: { ...state.vessel.inventory, copper_ingot: ingots },
       },
     };
   }
@@ -95,7 +100,7 @@ describe("repairTorch", () => {
     const state = stateNearTorch(testTorch, 10);
     const outcome = repairTorch(state, testTorch);
     if (outcome.ok) {
-      expect(outcome.newState.vessel.inventory.ingot).toBe(10 - 3);
+      expect(outcome.newState.vessel.inventory.copper_ingot).toBe(10 - 3);
     } else {
       throw new Error("expected success");
     }
@@ -114,9 +119,9 @@ describe("repairTorch", () => {
 
   it("does not mutate the original state (pure function)", () => {
     const state = stateNearTorch(testTorch, 10);
-    const originalIngots = state.vessel.inventory.ingot;
+    const originalIngots = state.vessel.inventory.copper_ingot;
     repairTorch(state, testTorch);
-    expect(state.vessel.inventory.ingot).toBe(originalIngots);
+    expect(state.vessel.inventory.copper_ingot).toBe(originalIngots);
   });
 
   it("real LIGHT_SOURCES content all have positive repair costs and radii", () => {

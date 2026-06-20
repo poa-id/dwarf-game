@@ -58,21 +58,21 @@ export const LIGHT_SOURCES: LightSourceDefinition[] = [
     name: "Corridor Torch (Forge Road)",
     position: { col: 44, row: 25 }, // partway along the horizontal leg toward the forge room
     radius: 2,
-    repairCost: { ingot: 3 },
+    repairCost: { copper_ingot: 3 },
   },
   {
     id: "torch_corridor_tunnel",
     name: "Corridor Torch (Tunnel Road)",
     position: { col: 25, row: 25 }, // partway along the horizontal leg toward the tunnel entrance
     radius: 2,
-    repairCost: { ingot: 3 },
+    repairCost: { copper_ingot: 3 },
   },
   {
     id: "torch_tunnel_mouth",
     name: "Tunnel Mouth Torch",
     position: { col: 25, row: 31 }, // just inside the tunnel entrance zone itself
     radius: 2,
-    repairCost: { ingot: 5 },
+    repairCost: { copper_ingot: 5 },
   },
 ];
 

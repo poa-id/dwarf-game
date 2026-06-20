@@ -16,6 +16,7 @@ function makeStateWithProgress(): GameState {
       loreFlags: ["met_the_foreman"],
       exploredCells: { "40,25": true, "41,25": true },
       litTorches: {},
+      veinDepletion: { hearth_hall_copper: { totalYielded: 30 } },
     },
     vessel: {
       skills: {
@@ -23,7 +24,7 @@ function makeStateWithProgress(): GameState {
         smithing: { id: "smithing", level: 15, xp: 30000 },
         hearthkeeping: { id: "hearthkeeping", level: 5, xp: 1000 },
       },
-      inventory: { ore: 40, ingot: 12, fuel: 8, insight: 0 },
+      inventory: { copper_ore: 40, copper_ingot: 12, coal: 8 },
       hasRekindled: false,
       position: { col: 47, row: 23 }, // dwarf wandered into the forge room before this rekindling
     },
@@ -48,13 +49,14 @@ describe("calculateRekindleInsight", () => {
 });
 
 describe("rekindle", () => {
-  it("WORLD state survives untouched: forgeTier, mineDepth, hearth, lore all persist", () => {
+  it("WORLD state survives untouched: forgeTier, mineDepth, hearth, lore, vein depletion all persist", () => {
     const state = makeStateWithProgress();
     const { newState } = rekindle(state);
     expect(newState.world.forgeTier).toBe(state.world.forgeTier);
     expect(newState.world.unlockedMineDepth).toBe(state.world.unlockedMineDepth);
     expect(newState.world.hearth).toEqual(state.world.hearth);
     expect(newState.world.loreFlags).toEqual(state.world.loreFlags);
+    expect(newState.world.veinDepletion).toEqual(state.world.veinDepletion); // a vein worked thin by one dwarf stays thin for the next
   });
 
   it("VESSEL state is fully reset: skills back to level 1, inventory emptied", () => {
@@ -63,8 +65,7 @@ describe("rekindle", () => {
     expect(newState.vessel.skills.mining.level).toBe(1);
     expect(newState.vessel.skills.mining.xp).toBe(0);
     expect(newState.vessel.skills.smithing.level).toBe(1);
-    expect(newState.vessel.inventory.ore).toBe(0);
-    expect(newState.vessel.inventory.ingot).toBe(0);
+    expect(newState.vessel.inventory).toEqual({});
     expect(newState.vessel.hasRekindled).toBe(false); // fresh dwarf hasn't rekindled himself yet
   });
 

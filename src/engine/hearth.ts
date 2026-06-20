@@ -32,9 +32,13 @@ export interface HearthTickResult {
  * this way; there is no separate "offline" code path to get out of sync
  * with the "online" one.
  *
- * Fuel must be available in `bankedFuelAvailable` (typically the world's
- * stored fuel resource, fed by Mining/Smithing byproducts) for absorption
- * to happen — the Hearth cannot tend itself out of nothing.
+ * Fuel must be available in `bankedFuelAvailable` for absorption to
+ * happen — the Hearth cannot tend itself out of nothing. As of the
+ * material-typed resource system, this is typically the dwarf's coal
+ * (or a later, purer fuel) holdings - mined directly, not a smithing
+ * byproduct. The caller decides which material(s) count and how much
+ * is "banked" for the Hearth vs. held back for Smithing's own needs;
+ * this function only cares about the resulting number.
  */
 export function tickHearth(
   hearth: HearthState,
