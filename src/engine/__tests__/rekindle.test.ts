@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { rekindle, calculateRekindleInsight, createFreshVessel } from "../rekindle";
 import { createInitialHearth } from "../hearth";
+import { HEARTH_SPAWN_POSITION } from "../hubMap";
 import type { GameState } from "../types";
 
 function makeStateWithProgress(): GameState {
@@ -13,6 +14,7 @@ function makeStateWithProgress(): GameState {
       insightBanked: 100,
       dwarfCount: 0,
       loreFlags: ["met_the_foreman"],
+      exploredCells: { "40,25": true, "41,25": true },
     },
     vessel: {
       skills: {
@@ -22,6 +24,7 @@ function makeStateWithProgress(): GameState {
       },
       inventory: { ore: 40, ingot: 12, fuel: 8, insight: 0 },
       hasRekindled: false,
+      position: { col: 47, row: 23 }, // dwarf wandered into the forge room before this rekindling
     },
   };
 }
@@ -58,6 +61,18 @@ describe("rekindle", () => {
     expect(newState.vessel.inventory.ore).toBe(0);
     expect(newState.vessel.inventory.ingot).toBe(0);
     expect(newState.vessel.hasRekindled).toBe(false); // fresh dwarf hasn't rekindled himself yet
+  });
+
+  it("the new dwarf wakes at the hearth, regardless of where the previous dwarf died", () => {
+    const state = makeStateWithProgress(); // previous dwarf was at (47, 23), the forge room
+    const { newState } = rekindle(state);
+    expect(newState.vessel.position).toEqual(HEARTH_SPAWN_POSITION);
+  });
+
+  it("exploredCells (World state) survive rekindling untouched - the mountain's map is never forgotten", () => {
+    const state = makeStateWithProgress();
+    const { newState } = rekindle(state);
+    expect(newState.world.exploredCells).toEqual(state.world.exploredCells);
   });
 
   it("Insight earned is added to world.insightBanked, not reset", () => {

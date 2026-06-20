@@ -1,4 +1,6 @@
-import type { GameState, VesselState, SkillState, SkillId } from "./types";
+import type { GameState, VesselState, WorldState, SkillState, SkillId } from "./types";
+import { HEARTH_SPAWN_POSITION } from "./hubMap";
+import { createInitialHearth } from "./hearth";
 
 /**
  * Insight earned at the moment of rekindling — separate from the slow
@@ -20,7 +22,9 @@ function freshSkill(id: SkillId): SkillState {
 /**
  * Create a brand new Vessel — a new dwarf's body. Skills and inventory
  * reset to nothing; he has not swung this pickaxe, even if the pickaxe
- * (a World object) is a fine one.
+ * (a World object) is a fine one. He wakes at the hearth, same as every
+ * dwarf before him - the heart of the mountain is where dwarven life
+ * begins, every time.
  */
 export function createFreshVessel(): VesselState {
   return {
@@ -31,6 +35,28 @@ export function createFreshVessel(): VesselState {
     },
     inventory: { ore: 0, ingot: 0, fuel: 0, insight: 0 },
     hasRekindled: false,
+    position: { ...HEARTH_SPAWN_POSITION },
+  };
+}
+
+export function createInitialWorld(now: number): WorldState {
+  return {
+    forgeTier: 0,
+    unlockedMineDepth: 0,
+    hearth: createInitialHearth(now),
+    insightBanked: 0,
+    dwarfCount: 0,
+    loreFlags: [],
+    exploredCells: {},
+  };
+}
+
+/** A brand new save: the very first dwarf, the world entirely unmade. */
+export function createInitialGameState(now: number): GameState {
+  return {
+    saveVersion: 1,
+    world: createInitialWorld(now),
+    vessel: createFreshVessel(),
   };
 }
 

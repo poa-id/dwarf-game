@@ -1,77 +1,96 @@
 import { GridRenderer } from "./render/GridRenderer";
-import { TilesetRenderer } from "./render/TilesetRenderer";
-import { buildTestScene } from "./render/testScene";
-import { STAGE_PALETTES } from "./render/palette";
+import { hubCellAt } from "./render/hubContent";
+import { createInitialGameState } from "./engine/rekindle";
+import { attemptMove, type Direction } from "./engine/movement";
+import { markVisibleCellsExplored } from "./engine/exploration";
+import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "./engine/visibility";
+import { cellKey } from "./engine/types";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 app.innerHTML = `
   <div class="shell">
     <h1>the hearth &amp; the deep</h1>
-    <p class="subtitle">renderer test scene — not real gameplay yet</p>
+    <p class="subtitle">WASD or arrow keys to move</p>
     <canvas id="game-canvas"></canvas>
-    <div class="controls">
-      <span>mode:</span>
-      <button data-mode="ascii" class="active">ascii</button>
-      <button data-mode="tileset">tileset</button>
-    </div>
-    <div class="controls" id="stage-controls">
-      <span>color stage:</span>
-      ${STAGE_PALETTES.map(
-        (p) => `<button data-stage="${p.stage}">${p.stage} — ${stageLabel(p.stage)}</button>`
-      ).join("")}
-    </div>
+    <p class="hint" id="zone-hint"></p>
   </div>
 `;
 
-function stageLabel(stage: number): string {
-  const labels = ["The Dark", "First Ember", "Hearthlight", "True Color"];
-  return labels[stage] ?? `stage ${stage}`;
-}
-
 const canvas = document.querySelector<HTMLCanvasElement>("#game-canvas")!;
-const scene = buildTestScene(40, 20);
+const zoneHint = document.querySelector<HTMLParagraphElement>("#zone-hint")!;
 
-const asciiRenderer = new GridRenderer(canvas, { cols: 40, rows: 20, cellSize: 22 });
-const tilesetRenderer = new TilesetRenderer(canvas, { cols: 40, rows: 20, cellSize: 22 });
+const renderer = new GridRenderer(canvas, {
+  viewportCols: 25,
+  viewportRows: 17,
+  cellSize: 24,
+});
 
-let mode: "ascii" | "tileset" = "ascii";
-let currentStage = 0;
-let tilesetReady = false;
+let state = createInitialGameState(Date.now());
 
-function renderCurrent() {
-  if (mode === "ascii") {
-    asciiRenderer.render(scene, currentStage);
-  } else if (tilesetReady) {
-    tilesetRenderer.render(scene);
-  }
+// Mark the dwarf's starting position explored immediately, so the very
+// first frame already shows the lit area around him rather than a
+// single empty render before any movement happens.
+state = {
+  ...state,
+  world: {
+    ...state.world,
+    exploredCells: markVisibleCellsExplored(state.world.exploredCells, state.vessel.position),
+  },
+};
+
+function updateZoneHint(): void {
+  const { position } = state.vessel;
+  const zone = zoneContaining(position.col, position.row);
+  zoneHint.textContent = zone ? zone.name : "the dark halls";
 }
 
-renderCurrent();
+function render(): void {
+  const { position } = state.vessel;
 
-// preload tileset assets in the background; re-render once ready if we're already in tileset mode
-tilesetRenderer.preload().then(() => {
-  tilesetReady = true;
-  if (mode === "tileset") renderCurrent();
-});
+  renderer.render(
+    (col, row) => {
+      if (col === position.col && row === position.row) return { kind: "dwarf" };
+      return hubCellAt(col, row);
+    },
+    (col, row) =>
+      cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS),
+    position.col,
+    position.row,
+    state.world.hearth.colorStage
+  );
 
-document.querySelectorAll<HTMLButtonElement>("button[data-stage]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    currentStage = Number(btn.dataset.stage);
-    renderCurrent();
-  });
-});
+  updateZoneHint();
+}
 
-const stageControls = document.querySelector<HTMLDivElement>("#stage-controls")!;
+render();
 
-document.querySelectorAll<HTMLButtonElement>("button[data-mode]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    mode = btn.dataset.mode as "ascii" | "tileset";
-    document
-      .querySelectorAll<HTMLButtonElement>("button[data-mode]")
-      .forEach((b) => b.classList.toggle("active", b === btn));
-    stageControls.style.display = mode === "ascii" ? "flex" : "none";
-    if (mode === "tileset" && !tilesetReady) return; // will render once preload resolves
-    renderCurrent();
-  });
+const KEY_TO_DIRECTION: Record<string, Direction> = {
+  w: "up",
+  ArrowUp: "up",
+  s: "down",
+  ArrowDown: "down",
+  a: "left",
+  ArrowLeft: "left",
+  d: "right",
+  ArrowRight: "right",
+};
+
+window.addEventListener("keydown", (e) => {
+  const direction = KEY_TO_DIRECTION[e.key];
+  if (!direction) return;
+  e.preventDefault();
+
+  const moveResult = attemptMove(state.vessel.position, direction, state.world);
+  if (!moveResult.moved) return; // blocked - nothing to update or redraw
+
+  const newExplored = markVisibleCellsExplored(state.world.exploredCells, moveResult.position);
+
+  state = {
+    ...state,
+    world: { ...state.world, exploredCells: newExplored },
+    vessel: { ...state.vessel, position: moveResult.position },
+  };
+
+  render();
 });

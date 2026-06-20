@@ -66,6 +66,54 @@ export interface HearthState {
 }
 
 // ---------------------------------------------------------------------------
+// Hub map — the single, fixed, persistent base map.
+//
+// Unlike a generated dungeon, the Hub is hand-designed: every meaningful
+// location (the Hearth, the Forge, the tunnel entrance) sits at a fixed
+// coordinate, defined once by us as content, not generated at runtime.
+// Progression unlocks pre-existing ZONES of this map rather than
+// creating new terrain - the mountain was always there in the dark, the
+// dwarf just couldn't see or reach it yet.
+// ---------------------------------------------------------------------------
+
+export type ZoneId = "hearth_hall" | "forge_room" | "tunnel_entrance";
+
+export type UnlockCondition =
+  | { type: "always" } // unlocked from the very start (e.g. the hearth hall itself)
+  | { type: "forge_tier_at_least"; tier: number }
+  | { type: "hearth_color_stage_at_least"; stage: number }
+  | { type: "lore_flag"; flag: string };
+
+export interface ZoneDefinition {
+  id: ZoneId;
+  name: string;
+  /** Top-left corner + size of this zone's bounding box on the Hub grid. */
+  bounds: { col: number; row: number; width: number; height: number };
+  unlock: UnlockCondition;
+}
+
+/**
+ * Per-cell exploration memory - persists on WorldState, since "what the
+ * dwarf has seen of his own mountain" is a property of the world, not
+ * of any one dwarf's body. A new dwarf benefits from the map his
+ * predecessors charted, same as he benefits from their forge upgrades.
+ *
+ * Stored sparse (only cells ever lit get an entry) rather than as a
+ * dense array sized to the whole map - the Hub may be much bigger than
+ * any one screen, and most cells will never be visited.
+ */
+export type ExploredCellMap = Record<string, true>; // key = `${col},${row}`
+
+export function cellKey(col: number, row: number): string {
+  return `${col},${row}`;
+}
+
+export interface Position {
+  col: number;
+  row: number;
+}
+
+// ---------------------------------------------------------------------------
 // World state — persists across every rekindling
 // ---------------------------------------------------------------------------
 
@@ -77,6 +125,8 @@ export interface WorldState {
   /** How many dwarves have lived and rekindled before the current one. */
   dwarfCount: number;
   loreFlags: string[];
+  /** Every cell any dwarf has ever lit with his presence - persists forever, like the forge. */
+  exploredCells: ExploredCellMap;
 }
 
 // ---------------------------------------------------------------------------
@@ -88,6 +138,8 @@ export interface VesselState {
   inventory: ResourceBag;
   /** Set true once this dwarf has chosen to rekindle; engine stops accepting actions from him. */
   hasRekindled: boolean;
+  /** Where this dwarf's body currently stands on the Hub map. Resets to the hearth on rekindling - the new dwarf wakes at the heart of the mountain, same as every dwarf before him. */
+  position: Position;
 }
 
 // ---------------------------------------------------------------------------
