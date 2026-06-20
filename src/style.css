@@ -73,3 +73,9 @@ canvas {
   outline: 2px solid #ff8c3a;
   outline-offset: 2px;
 }
+
+.controls button.active {
+  background: #ff8c3a;
+  color: #1a1a1a;
+  border-color: #ff8c3a;
+}

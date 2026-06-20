@@ -1,0 +1,8 @@
+{
+  "rock_wall": "tileset-assets/sliced/rock_wall.png",
+  "rock_floor": "tileset-assets/sliced/rock_floor.png",
+  "ore_base": "tileset-assets/sliced/ore_base.png",
+  "ore_deep": "tileset-assets/sliced/ore_deep.png",
+  "forge": "tileset-assets/sliced/forge.png",
+  "tunnel_edge": "tileset-assets/sliced/tunnel_edge.png"
+}
