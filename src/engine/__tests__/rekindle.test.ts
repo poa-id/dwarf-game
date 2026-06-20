@@ -15,6 +15,7 @@ function makeStateWithProgress(): GameState {
       dwarfCount: 0,
       loreFlags: ["met_the_foreman"],
       exploredCells: { "40,25": true, "41,25": true },
+      litTorches: {},
     },
     vessel: {
       skills: {
@@ -73,6 +74,16 @@ describe("rekindle", () => {
     const state = makeStateWithProgress();
     const { newState } = rekindle(state);
     expect(newState.world.exploredCells).toEqual(state.world.exploredCells);
+  });
+
+  it("litTorches (World state) survive rekindling untouched - a lit torch stays lit forever", () => {
+    const state = makeStateWithProgress();
+    const stateWithTorch = {
+      ...state,
+      world: { ...state.world, litTorches: { torch_corridor_forge: true as const } },
+    };
+    const { newState } = rekindle(stateWithTorch);
+    expect(newState.world.litTorches).toEqual({ torch_corridor_forge: true });
   });
 
   it("Insight earned is added to world.insightBanked, not reset", () => {

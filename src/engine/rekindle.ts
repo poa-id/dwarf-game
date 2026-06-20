@@ -48,6 +48,7 @@ export function createInitialWorld(now: number): WorldState {
     dwarfCount: 0,
     loreFlags: [],
     exploredCells: {},
+    litTorches: {},
   };
 }
 

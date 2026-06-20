@@ -19,7 +19,9 @@ export type CellKind =
   | "dwarf"
   | "hearth"
   | "forge"
-  | "tunnel_edge";
+  | "tunnel_edge"
+  | "torch_broken"
+  | "torch_lit";
 
 export interface StagePalette {
   stage: number;
@@ -49,6 +51,8 @@ const STAGE_0: StagePalette = {
     hearth: "#9a9a9a", // unlit - indistinguishable from stone. this is the whole point.
     forge: "#9a9a9a",
     tunnel_edge: "#9a9a9a",
+    torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
+    torch_lit: "#ff5a1a", // earned light - glows warm even in total 2-bit darkness, independent of world color stage
   },
 };
 
@@ -89,6 +93,8 @@ const STAGE_2: StagePalette = {
     hearth: "#ff8c3a",
     forge: "#d4661f",
     tunnel_edge: "#4a3a2a",
+    torch_broken: "#6b5640", // same as plain stone at this stage - inert
+    torch_lit: "#ff7a2a",
   },
 };
 
@@ -112,6 +118,8 @@ const STAGE_3: StagePalette = {
     hearth: "#ffaa44",
     forge: "#e0701f",
     tunnel_edge: "#454d56",
+    torch_broken: "#5a6472",
+    torch_lit: "#ff9a3a",
   },
 };
 
@@ -133,4 +141,6 @@ export const GLYPHS: Record<CellKind, string> = {
   hearth: "♥",
   forge: "n",
   tunnel_edge: "%",
+  torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
+  torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea
 };

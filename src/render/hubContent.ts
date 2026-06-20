@@ -1,7 +1,8 @@
 import { createEmptyGrid, type GridCell } from "./GridRenderer";
 import { stampSprite } from "./sprites";
 import { FORGE_BUILDING } from "./exampleSprites";
-import { HUB_WIDTH, HUB_HEIGHT, ZONES } from "../engine/hubMap";
+import { HUB_WIDTH, HUB_HEIGHT, ZONES, LIGHT_SOURCES } from "../engine/hubMap";
+import type { LitTorchSet } from "../engine/types";
 
 /**
  * Builds the Hub's static terrain content ONCE - this is hand-designed
@@ -13,6 +14,13 @@ import { HUB_WIDTH, HUB_HEIGHT, ZONES } from "../engine/hubMap";
  * else as wall, and connects zones with simple straight corridors so
  * movement between unlocked areas is always possible once both ends
  * are reachable.
+ *
+ * Torch positions are baked into this static grid as "torch_broken" -
+ * that's their permanent terrain identity. Whether a given torch
+ * currently reads as broken or lit is a SEPARATE, dynamic question
+ * (depends on WorldState.litTorches) answered by hubCellAt below, not
+ * by this function - same split as zones (fixed bounds vs dynamic
+ * unlock state).
  */
 function buildHubContent(): GridCell[] {
   const grid = createEmptyGrid(HUB_WIDTH, HUB_HEIGHT).map(
@@ -65,6 +73,14 @@ function buildHubContent(): GridCell[] {
   const hearthIndex = hearthCenter.row * HUB_WIDTH + hearthCenter.col;
   stamped[hearthIndex] = { kind: "hearth" };
 
+  // Place every torch's terrain marker - always "broken" in the static
+  // content; hubCellAt overrides to "torch_lit" dynamically per the
+  // current WorldState.
+  for (const torch of LIGHT_SOURCES) {
+    const idx = torch.position.row * HUB_WIDTH + torch.position.col;
+    stamped[idx] = { kind: "torch_broken" };
+  }
+
   return stamped;
 }
 
@@ -97,9 +113,19 @@ export function getHubGrid(): GridCell[] {
   return cachedHubGrid;
 }
 
-export function hubCellAt(col: number, row: number): GridCell {
+export function hubCellAt(col: number, row: number, litTorches: LitTorchSet = {}): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
   }
-  return getHubGrid()[row * HUB_WIDTH + col];
+
+  const staticCell = getHubGrid()[row * HUB_WIDTH + col];
+
+  if (staticCell.kind === "torch_broken") {
+    const torch = LIGHT_SOURCES.find((t) => t.position.col === col && t.position.row === row);
+    if (torch && litTorches[torch.id]) {
+      return { kind: "torch_lit" };
+    }
+  }
+
+  return staticCell;
 }

@@ -114,6 +114,29 @@ export interface Position {
 }
 
 // ---------------------------------------------------------------------------
+// Static light sources - torches/lamps. Fixed, hand-placed positions
+// (content, like zones), but their LIT STATE is earned through play:
+// broken until repaired, then lit forever. A torch's light is weaker
+// than the dwarf's own and doesn't move - it represents the mountain
+// itself slowly gaining permanent light, distinct from the light the
+// dwarf carries with him wherever he goes.
+// ---------------------------------------------------------------------------
+
+export type LightSourceId = string;
+
+export interface LightSourceDefinition {
+  id: LightSourceId;
+  name: string;
+  position: Position;
+  radius: number;
+  /** Resource cost to repair, paid from the Vessel's inventory at the moment of repair. */
+  repairCost: Partial<ResourceBag>;
+}
+
+/** Which torches have been repaired - persists on WorldState, permanent once lit, like the forge. */
+export type LitTorchSet = Record<LightSourceId, true>;
+
+// ---------------------------------------------------------------------------
 // World state — persists across every rekindling
 // ---------------------------------------------------------------------------
 
@@ -127,6 +150,8 @@ export interface WorldState {
   loreFlags: string[];
   /** Every cell any dwarf has ever lit with his presence - persists forever, like the forge. */
   exploredCells: ExploredCellMap;
+  /** Every torch any dwarf has ever repaired - persists forever, like the forge. */
+  litTorches: LitTorchSet;
 }
 
 // ---------------------------------------------------------------------------

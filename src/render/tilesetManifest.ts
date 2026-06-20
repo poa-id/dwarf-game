@@ -49,6 +49,12 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   hearth: { assetUrl: forgeUrl },
   forge: { assetUrl: forgeUrl },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
+  // No dedicated torch sprite sliced from the tileset yet - reusing the
+  // forge's glow art as a placeholder, tinted to distinguish broken
+  // (desaturated) from lit (warm). Swap for a real torch/lamp tile once
+  // one is sliced from the sheets.
+  torch_broken: { assetUrl: forgeUrl, tint: "#6a6a6a" },
+  torch_lit: { assetUrl: forgeUrl, tint: "#ff9a3a" },
 };
 
 export const NATIVE_TILE_SIZE = 32;

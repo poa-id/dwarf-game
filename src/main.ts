@@ -5,20 +5,24 @@ import { attemptMove, type Direction } from "./engine/movement";
 import { markVisibleCellsExplored } from "./engine/exploration";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "./engine/visibility";
 import { cellKey } from "./engine/types";
+import { LIGHT_SOURCES } from "./engine/hubMap";
+import { isNearTorch, repairTorch } from "./engine/torches";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 app.innerHTML = `
   <div class="shell">
     <h1>the hearth &amp; the deep</h1>
-    <p class="subtitle">WASD or arrow keys to move</p>
+    <p class="subtitle">WASD or arrow keys to move &middot; E to repair a nearby torch</p>
     <canvas id="game-canvas"></canvas>
     <p class="hint" id="zone-hint"></p>
+    <p class="hint" id="action-hint"></p>
   </div>
 `;
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game-canvas")!;
 const zoneHint = document.querySelector<HTMLParagraphElement>("#zone-hint")!;
+const actionHint = document.querySelector<HTMLParagraphElement>("#action-hint")!;
 
 const renderer = new GridRenderer(canvas, {
   viewportCols: 25,
@@ -45,13 +49,32 @@ function updateZoneHint(): void {
   zoneHint.textContent = zone ? zone.name : "the dark halls";
 }
 
+function nearestUnrepairedTorch() {
+  const { position } = state.vessel;
+  return LIGHT_SOURCES.find(
+    (t) => !state.world.litTorches[t.id] && isNearTorch(position.col, position.row, t)
+  );
+}
+
+function updateActionHint(): void {
+  const torch = nearestUnrepairedTorch();
+  if (!torch) {
+    actionHint.textContent = "";
+    return;
+  }
+  const costText = Object.entries(torch.repairCost)
+    .map(([res, amt]) => `${amt} ${res}`)
+    .join(", ");
+  actionHint.textContent = `Press E to repair ${torch.name} (${costText})`;
+}
+
 function render(): void {
   const { position } = state.vessel;
 
   renderer.render(
     (col, row) => {
       if (col === position.col && row === position.row) return { kind: "dwarf" };
-      return hubCellAt(col, row);
+      return hubCellAt(col, row, state.world.litTorches);
     },
     (col, row) =>
       cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS),
@@ -61,6 +84,7 @@ function render(): void {
   );
 
   updateZoneHint();
+  updateActionHint();
 }
 
 render();
@@ -77,6 +101,19 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 };
 
 window.addEventListener("keydown", (e) => {
+  if (e.key === "e" || e.key === "E") {
+    const torch = nearestUnrepairedTorch();
+    if (!torch) return;
+    const outcome = repairTorch(state, torch);
+    if (outcome.ok) {
+      state = outcome.newState;
+      render();
+    } else if (outcome.reason === "cannot_afford") {
+      actionHint.textContent = `Not enough resources to repair ${torch.name}.`;
+    }
+    return;
+  }
+
   const direction = KEY_TO_DIRECTION[e.key];
   if (!direction) return;
   e.preventDefault();

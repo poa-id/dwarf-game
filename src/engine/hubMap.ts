@@ -1,4 +1,4 @@
-import type { ZoneDefinition, Position } from "./types";
+import type { ZoneDefinition, Position, LightSourceDefinition } from "./types";
 
 /**
  * The Hub is one fixed, hand-placed map - not generated. These
@@ -42,4 +42,40 @@ export const ZONES: ZoneDefinition[] = [
 
 export function zoneById(id: string): ZoneDefinition | undefined {
   return ZONES.find((z) => z.id === id);
+}
+
+/**
+ * Torches, hand-placed along the corridors connecting the hearth hall
+ * to other zones - exactly where the player feels the dark most
+ * (the stretch between known rooms), and where a repaired torch reads
+ * as a clear, visible act of reclaiming ground. Positions follow the
+ * same L-shaped corridor paths hubContent.ts carves (horizontal leg
+ * along the hearth hall's row, then vertical leg into the target).
+ */
+export const LIGHT_SOURCES: LightSourceDefinition[] = [
+  {
+    id: "torch_corridor_forge",
+    name: "Corridor Torch (Forge Road)",
+    position: { col: 44, row: 25 }, // partway along the horizontal leg toward the forge room
+    radius: 2,
+    repairCost: { ingot: 3 },
+  },
+  {
+    id: "torch_corridor_tunnel",
+    name: "Corridor Torch (Tunnel Road)",
+    position: { col: 25, row: 25 }, // partway along the horizontal leg toward the tunnel entrance
+    radius: 2,
+    repairCost: { ingot: 3 },
+  },
+  {
+    id: "torch_tunnel_mouth",
+    name: "Tunnel Mouth Torch",
+    position: { col: 25, row: 31 }, // just inside the tunnel entrance zone itself
+    radius: 2,
+    repairCost: { ingot: 5 },
+  },
+];
+
+export function lightSourceById(id: string): LightSourceDefinition | undefined {
+  return LIGHT_SOURCES.find((l) => l.id === id);
 }

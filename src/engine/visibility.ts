@@ -1,5 +1,5 @@
 import type { WorldState, ZoneDefinition, Position, UnlockCondition } from "./types";
-import { ZONES } from "./hubMap";
+import { ZONES, LIGHT_SOURCES } from "./hubMap";
 
 // ---------------------------------------------------------------------------
 // Zone unlocking
@@ -85,6 +85,38 @@ export function isWithinLightRadius(
 }
 
 /**
+ * True if any currently-LIT torch's radius reaches this cell. Broken
+ * (unrepaired) torches contribute no light at all - they're just
+ * inert map content (the renderer can still draw them, dimly, once
+ * within the dwarf's own radius or explored memory, same as any other
+ * cell - but they don't push back the dark themselves until repaired).
+ */
+export function isWithinAnyLitTorch(col: number, row: number, world: WorldState): boolean {
+  for (const torch of LIGHT_SOURCES) {
+    if (!world.litTorches[torch.id]) continue; // broken - contributes no light
+    if (isWithinLightRadius(col, row, torch.position, torch.radius)) return true;
+  }
+  return false;
+}
+
+/**
+ * Combines the dwarf's own (larger, mobile) light with every lit
+ * torch's (smaller, fixed) light. A cell is actively lit if EITHER
+ * source reaches it - this is the full "what is lit right now"
+ * answer, used both for rendering and for marking new exploration.
+ */
+export function isActivelyLit(
+  col: number,
+  row: number,
+  dwarfPosition: Position,
+  world: WorldState,
+  dwarfRadius: number = DEFAULT_LIGHT_RADIUS
+): boolean {
+  if (isWithinLightRadius(col, row, dwarfPosition, dwarfRadius)) return true;
+  return isWithinAnyLitTorch(col, row, world);
+}
+
+/**
  * Three-state visibility for a single cell, used directly by the
  * renderer to decide what to draw:
  *
@@ -92,8 +124,8 @@ export function isWithinLightRadius(
  *   zone - draw nothing (true void).
  * - "remembered": previously explored, not currently lit - draw dim/
  *   memory version.
- * - "lit": within the dwarf's current light radius - draw at full
- *   brightness.
+ * - "lit": within the dwarf's current light radius OR a lit torch's
+ *   radius - draw at full brightness.
  *
  * Locked zones are always "hidden" regardless of explored history -
  * exploration from a PREVIOUS unlock state doesn't leak through if a
@@ -113,7 +145,7 @@ export function cellVisibility(
 ): CellVisibility {
   if (!isCellPartOfUnlockedWorld(col, row, world)) return "hidden";
 
-  if (isWithinLightRadius(col, row, dwarfPosition, radius)) return "lit";
+  if (isActivelyLit(col, row, dwarfPosition, world, radius)) return "lit";
 
   if (world.exploredCells[exploredKey]) return "remembered";
 
