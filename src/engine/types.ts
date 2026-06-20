@@ -168,12 +168,45 @@ export interface VesselState {
 }
 
 // ---------------------------------------------------------------------------
+// Narrator state - tracks what this PLAYER has already heard, separate
+// from both World (the mountain) and Vessel (this dwarf's body). See
+// the comment on GameState below for why this needs its own category.
+// ---------------------------------------------------------------------------
+
+export type NarratorTrigger =
+  | "wake_first_ever" // the very first time the game is ever started, period
+  | "wake_rekindled" // waking after a rekindling, NOT the first time
+  | "mine_first_strike" // the very first successful mining strike of the whole game
+  | "mine_strike" // routine successful mining strikes thereafter
+  | "level_up" // any skill level up
+  | "color_stage_1" // first rekindling's color reward - the biggest narrative beat
+  | "color_stage_later" // any color stage beyond the first
+  | "torch_repaired"
+  | "area_revealed" // stepping into a previously-unexplored area
+  | "stranger_arrival";
+
+export interface NarratorState {
+  lastShownByTrigger: Partial<Record<NarratorTrigger, string>>;
+  firedOnceTriggers: NarratorTrigger[];
+}
+
+// ---------------------------------------------------------------------------
 // Full save shape
+//
+// Three categories of state, not two - World (the mountain, persists
+// forever) and Vessel (this dwarf's body, resets on rekindling) were
+// always distinct, but narrator state is neither: it's "what has this
+// PLAYER already heard," independent of which dwarf is currently
+// living or what's been built. A few one-time lines (the very first
+// waking) must never replay even across many rekindlings, which rules
+// out resetting it with the Vessel; but it's not lore or world-history
+// either, so it doesn't belong on WorldState. It gets its own slot.
 // ---------------------------------------------------------------------------
 
 export interface GameState {
   world: WorldState;
   vessel: VesselState;
+  narrator: NarratorState;
   /** Schema version, so future saves can migrate old ones safely. */
   saveVersion: number;
 }

@@ -79,3 +79,24 @@ export const LIGHT_SOURCES: LightSourceDefinition[] = [
 export function lightSourceById(id: string): LightSourceDefinition | undefined {
   return LIGHT_SOURCES.find((l) => l.id === id);
 }
+
+/**
+ * Fixed ore vein placements on the Hub map. Just one for now (copper,
+ * right in the hearth hall, always reachable from spawn with zero
+ * unlock requirement) - this is intentionally the very first thing a
+ * new dwarf can interact with, mirroring "mine_first_strike" being the
+ * first narrator trigger after waking.
+ */
+export interface OreVeinPlacement {
+  id: string;
+  rockNodeId: string; // matches a RockNode.id in mining.ts
+  position: Position;
+}
+
+export const ORE_VEINS: OreVeinPlacement[] = [
+  {
+    id: "hearth_hall_copper",
+    rockNodeId: "copper_vein",
+    position: { col: 38, row: 27 },
+  },
+];

@@ -1,6 +1,7 @@
 import type { GameState, VesselState, WorldState, SkillState, SkillId } from "./types";
 import { HEARTH_SPAWN_POSITION } from "./hubMap";
 import { createInitialHearth } from "./hearth";
+import { createInitialNarratorState } from "../narration/narrator";
 
 /**
  * Insight earned at the moment of rekindling — separate from the slow
@@ -58,6 +59,7 @@ export function createInitialGameState(now: number): GameState {
     saveVersion: 1,
     world: createInitialWorld(now),
     vessel: createFreshVessel(),
+    narrator: createInitialNarratorState(),
   };
 }
 

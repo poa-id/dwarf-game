@@ -27,6 +27,10 @@ function makeStateWithProgress(): GameState {
       hasRekindled: false,
       position: { col: 47, row: 23 }, // dwarf wandered into the forge room before this rekindling
     },
+    narrator: {
+      lastShownByTrigger: { mine_strike: "Ore, this time. Small as it is, it's more than he had an hour ago." },
+      firedOnceTriggers: ["wake_first_ever", "mine_first_strike"],
+    },
   };
 }
 
@@ -84,6 +88,13 @@ describe("rekindle", () => {
     };
     const { newState } = rekindle(stateWithTorch);
     expect(newState.world.litTorches).toEqual({ torch_corridor_forge: true });
+  });
+
+  it("narrator state survives rekindling untouched - one-time lines must never replay across dwarves", () => {
+    const state = makeStateWithProgress();
+    const { newState } = rekindle(state);
+    expect(newState.narrator).toEqual(state.narrator);
+    expect(newState.narrator.firedOnceTriggers).toContain("wake_first_ever");
   });
 
   it("Insight earned is added to world.insightBanked, not reset", () => {

@@ -1,0 +1,51 @@
+/**
+ * Narrator content - the Bastion-style voice: mythic, weary, past-tense,
+ * third person. This is pure content, deliberately separate from the
+ * trigger/display logic in narrator.ts. Most triggers have a POOL of
+ * lines rather than one fixed line, so frequent events (mining strikes)
+ * don't repeat to death - see narrator.ts for the anti-repeat picking.
+ *
+ * Some triggers (waking, first rekindling, first color) intentionally
+ * have very few or single lines - they're rare, important moments
+ * where repetition isn't a risk and a fixed line carries more weight.
+ */
+
+import type { NarratorTrigger } from "../engine/types";
+
+export const NARRATOR_LINES: Record<NarratorTrigger, string[]> = {
+  wake_first_ever: ["The dwarf wakes in the dark. He does not remember falling asleep."],
+
+  wake_rekindled: [
+    "Another one wakes at the hearth. The mountain doesn't tell him which number he is.",
+    "He opens his eyes. The dark opens its eyes too, and waits to see what he'll do with it.",
+  ],
+
+  mine_first_strike: ["He picks up the stone. It feels like the first thing anyone has ever held."],
+
+  mine_strike: [
+    "The pick finds rock, and rock finds the pick. Neither of them complain.",
+    "Stone breaks the way stone has always broken. He's grateful for small mercies.",
+    "Ore, this time. Small as it is, it's more than he had an hour ago.",
+  ],
+
+  level_up: [
+    "His hands remember this now. They didn't, this morning.",
+    "Something in him settles into place, the way a tool settles into a worn grip.",
+  ],
+
+  color_stage_1: ["For the first time, the dark has a color. It is the color of him."],
+
+  color_stage_later: ["Color creeps into the world like something embarrassed to be noticed. He notices anyway."],
+
+  torch_repaired: [
+    "The torch catches. For a small distance in every direction, the mountain remembers what light was for.",
+  ],
+
+  area_revealed: [
+    "The dark steps back, reluctantly, the way it always does — just far enough to let him through.",
+  ],
+
+  stranger_arrival: [
+    "Someone else's footsteps. He'd almost forgotten that sound belonged to anyone but him.",
+  ],
+};

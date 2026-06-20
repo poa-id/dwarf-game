@@ -1,7 +1,7 @@
 import { createEmptyGrid, type GridCell } from "./GridRenderer";
 import { stampSprite } from "./sprites";
 import { FORGE_BUILDING } from "./exampleSprites";
-import { HUB_WIDTH, HUB_HEIGHT, ZONES, LIGHT_SOURCES } from "../engine/hubMap";
+import { HUB_WIDTH, HUB_HEIGHT, ZONES, LIGHT_SOURCES, ORE_VEINS } from "../engine/hubMap";
 import type { LitTorchSet } from "../engine/types";
 
 /**
@@ -79,6 +79,12 @@ function buildHubContent(): GridCell[] {
   for (const torch of LIGHT_SOURCES) {
     const idx = torch.position.row * HUB_WIDTH + torch.position.col;
     stamped[idx] = { kind: "torch_broken" };
+  }
+
+  // Place ore veins.
+  for (const vein of ORE_VEINS) {
+    const idx = vein.position.row * HUB_WIDTH + vein.position.col;
+    stamped[idx] = { kind: "ore_copper" }; // hardcoded for the one copper vein we have; revisit when more ore types appear on the map
   }
 
   return stamped;
