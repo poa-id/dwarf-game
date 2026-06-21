@@ -16,7 +16,7 @@
 // Skills
 // ---------------------------------------------------------------------------
 
-export type SkillId = "mining" | "smithing" | "hearthkeeping";
+export type SkillId = "mining" | "smithing" | "hearthkeeping" | "woodcraft";
 
 export type SkillMode = "active" | "idle";
 
@@ -43,7 +43,7 @@ export interface SkillState {
 
 export type MaterialId = string;
 
-export type MaterialCategory = "ore" | "ingot" | "fuel" | "currency";
+export type MaterialCategory = "ore" | "ingot" | "fuel" | "wood" | "currency";
 
 export interface MaterialDefinition {
   id: MaterialId;
@@ -51,7 +51,7 @@ export interface MaterialDefinition {
   category: MaterialCategory;
   /** Roughly how advanced/rare this material is within its category - higher tiers usually need deeper mine access or higher skill levels. */
   tier: number;
-  /** Only meaningful for category "fuel" - how hot it burns, which gates which ores/ingots it can process. Purer/rarer fuels have higher values. */
+  /** How hot this burns if used as fuel - gates which recipes/hearth needs it can satisfy. Purer/rarer fuels have higher values. Present on "fuel" AND "wood" (wood is real fuel, just weaker/different from coal - not exclusively a construction material). */
   heatValue?: number;
 }
 
@@ -59,6 +59,7 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   copper_ore: { id: "copper_ore", name: "Copper Ore", category: "ore", tier: 1 },
   iron_ore: { id: "iron_ore", name: "Iron Ore", category: "ore", tier: 2 },
   coal: { id: "coal", name: "Coal", category: "fuel", tier: 1, heatValue: 10 },
+  wood: { id: "wood", name: "Cave-Root Wood", category: "wood", tier: 1, heatValue: 4 }, // weaker than coal - burns, but not hot enough for serious smithing
   copper_ingot: { id: "copper_ingot", name: "Copper Ingot", category: "ingot", tier: 1 },
   iron_ingot: { id: "iron_ingot", name: "Iron Ingot", category: "ingot", tier: 2 },
   insight: { id: "insight", name: "Insight", category: "currency", tier: 0 },
@@ -218,6 +219,8 @@ export interface WorldState {
   litTorches: LitTorchSet;
   /** Depletion progress per placed ore vein instance (keyed by OreVeinPlacement.id) - the mountain remembers how worked-over a vein is, regardless of which dwarf is currently swinging the pick. */
   veinDepletion: Record<string, { totalYielded: number }>;
+  /** Same idea as veinDepletion, but for wood node placements. */
+  woodDepletion: Record<string, { totalYielded: number }>;
 }
 
 // ---------------------------------------------------------------------------

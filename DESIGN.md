@@ -65,15 +65,22 @@ mechanic, reframed as myth rather than "start over."
 
 ## 4. Skills
 
-Three skills currently defined: **Mining**, **Smithing**, **Hearthkeeping**.
+Four skills currently defined: **Mining**, **Smithing**, **Hearthkeeping**,
+**Woodcraft**.
 
-- Mining and Smithing are **active** (player-initiated strikes).
+- Mining, Smithing, and Woodcraft are **active** (player-initiated strikes).
 - Hearthkeeping is **idle** (ticks via real elapsed time, including while
   the tab is closed, capped at 24h offline catch-up).
 - XP curve is polynomial (`BASE_XP × level^EXPONENT`), not RuneScape's
   exact table — tuned to be ~400x harder at level 99 vs level 1, gentler
   than pure exponential. Dwarves are persistent, not naturally gifted;
   the curve should reward steady play over binge bursts (still tunable).
+- **Interaction feel philosophy:** early gathering actions are
+  deliberately simple - a key press, a random roll, a hit-or-miss
+  strike. Better tools, refining stations, or gathering nodes are meant
+  to eventually unlock RHYTHM/TIMING minigames rather than just better
+  numbers - upgrades change how an action *feels*, not only its odds.
+  Not yet built; noted as a real future direction.
 
 ### Mining
 Strike a `RockNode` (deterministic via injected `roll`, for testability).
@@ -89,6 +96,36 @@ is per-placed-instance (`NodeDepletionState`), stored on World
 (`veinDepletion`), persists across rekindling — a vein worked thin stays
 thin for the next dwarf.
 
+**Implementation note:** Mining is now a thin specialization of a
+generic `gathering.ts` module (`GatherableNode`, `attemptGatherStrike`,
+etc) - extracted once Woodcraft needed the identical mechanic, rather
+than duplicating it. `mining.ts` re-exports everything under its
+original names (`RockNode`, `attemptMineStrike`, etc) so nothing calling
+it needed to change.
+
+### Woodcraft
+Cuts wood from cave-root tangles and underground wood formations (there
+is no surface - the mountain is the whole world). Covers BOTH raw
+cutting AND processing into planks/lumber within this one skill, the
+same way Mining alone covers all ore types - no separate "refining"
+skill for wood specifically.
+
+Mechanically identical to Mining (same generic `gathering.ts` strike
+mechanic, axes instead of pickaxes as the tool tier). The starter
+`root_tangle` node (30 total yield, finite) sits near spawn alongside
+the copper vein - both gatherable from the very start, since the first
+Forge repair needs wood AND ore together.
+
+**Explicitly deferred:** tree/mushroom-stalk GROWING (planting,
+waiting, harvesting) is a planned future expansion, not built now -
+today's nodes are all pre-existing formations to cut, nothing is
+planted yet.
+
+**Future skill on the horizon (not started):** a **Building** skill,
+consuming outputs from multiple gathering skills at once (timber,
+metal, stone, gems) to construct decor/furniture/structures. Distinct
+from Woodcraft, which stops at raw wood + planks.
+
 ### Smithing
 Consumes ore + fuel to produce ingots. Recipes specify `minHeatRequired`
 — a fuel's `heatValue` must meet or exceed this, so weak fuels can't
@@ -103,15 +140,26 @@ Idle. Absorbs fuel from `bankedFuelAvailable` at a constant rate
 to have fed it via mining/smithing activity. `lifetimeFuel` (monotonic,
 never decreases) drives `ColorStage` thresholds.
 
+**The Hearth starts as a bare flickering ember** - not fully dark/inert
+(narratively/visually), even though mechanically `ColorStage` is still 0
+(no world color yet) until the first rekindling. This ember-state is
+personality/mood, distinct from the mechanical color-stage truth.
+
+**Multi-fuel:** the Hearth can burn both coal AND wood (see §5,
+`totalHearthFuelValue` in hearth.ts), weighted by each material's
+`heatValue` - "the hearth can be powered by other means," unlike the
+Forge, which has hard per-recipe heat minimums it won't compromise on.
+
 ## 5. Materials & Economy
 
 Flexible `MaterialId`-keyed inventory (`Partial<Record<MaterialId,
 number>>`), NOT fixed fields — supports adding new ore/fuel tiers as pure
 content. Every material has a `MaterialDefinition`: category (ore/ingot/
-fuel/currency), tier, and (for fuel) `heatValue`.
+fuel/wood/currency), tier, and (for fuel and wood) `heatValue`.
 
 Currently defined: `copper_ore`, `iron_ore`, `coal` (heatValue 10),
-`copper_ingot`, `iron_ingot`, `insight`.
+`wood` (heatValue 4 - weaker than coal, real fuel not just a
+construction material), `copper_ingot`, `iron_ingot`, `insight`.
 
 **Fuel philosophy:** coal is mined directly (not a smithing byproduct,
 which was the old design — explicitly removed). Purer, rarer fuels are
@@ -119,9 +167,25 @@ planned for later, with higher `heatValue`, unlocking recipes a weak fire
 can't touch ("super-heat metals and gems").
 
 **Coal allocation (Smithing vs. Hearthkeeping):** both systems draw from
-the same shared coal pool. Resolved in principle (see §11/§12 history) —
-initially an active "stoke the hearth" spend action; a later Hearth
-upgrade unlocks a passive %-allocation slider. Not yet implemented.
+the same shared coal pool. Resolved in principle — initially an active
+"stoke the hearth" spend action (not yet built); a later Hearth upgrade
+unlocks a passive %-allocation slider. The Hearth can ALSO burn wood
+(weighted lower than coal via heatValue), giving it fuel flexibility the
+Forge doesn't have.
+
+**Forge repair vs. Forge upgrades - a real split, not just naming:**
+- **Tier 0→1 is a REPAIR**, not an upgrade - the forge starts broken
+  (rubble), and the player invests raw materials (wood + copper ore,
+  `FORGE_REPAIR_COST`) to fix it. No Insight involved. This sidesteps
+  the chicken-and-egg problem of gating forge access behind a currency
+  the player has no early way to earn.
+- **Tiers 1→2, 2→3+ are INSIGHT-funded upgrades** (`FORGE_UPGRADES`) to
+  an already-working forge - this is where the practical/active
+  "better tools, materials, yields, speed" upgrade tree lives (see §6
+  below for how this differs philosophically from Hearth upgrades).
+- The **Forge Room itself is always reachable** (not zone-gated) - only
+  the forge OBJECT inside it starts broken. This matches the rubble
+  philosophy in §6: walk in, see what's broken, gather materials, fix it.
 
 ## 6. The Hub Map
 
@@ -237,57 +301,62 @@ narrator's `stranger_arrival` trigger exists as a placeholder hook.
 Tracked here so they don't get silently forgotten. Remove from this list
 once resolved (and reflect the resolution in the relevant section above).
 
-- **Coal contention (§5) — RESOLVED IN PRINCIPLE, not yet built:** coal
-  is one shared resource pool; the player decides where it goes.
-  Initially via an active "stoke the hearth" action (spend coal
-  deliberately, in the moment). Later, unlocking a Hearth upgrade grants
-  a passive allocation slider (% split between Hearth/Smithing,
-  auto-applied) - the slider is itself earned progression, not a
-  default feature. Not yet implemented.
-- **Idle-game bulk action multiplier (NEW, agreed, not yet built):** any
-  repeatable spend/produce action (stoking the hearth, smithing, later
-  possibly mining) should support a shared x1/x5/x10/MAX multiplier
-  selector, classic idle-game convention (Cookie Clicker's buy
-  1/10/100/max) - needed once quantities scale into the thousands+.
-  Should be built as ONE reusable mechanic, not duplicated per-feature.
-- **Hearth vs Forge upgrade trees (NEW, philosophy agreed, content not
-  written):** the Hearth may secretly BE the mountain - upgrading/
-  tending it is healing the mountain itself. Hearth upgrades are the
-  majority of "idle/bitcoin-billionaire-style" passive global upgrades.
-  Forge/Smithing upgrades are separate: better tools, materials, yields,
-  speed. Two distinct trees, two distinct meanings (mythic/passive vs
-  practical/active). No actual upgrade list exists yet for either tree
-  beyond the current placeholder FORGE_UPGRADES tiers.
-- **Mine Entrance UI (NEW, shape agreed, not built):** interacting with
-  the (currently locked) Mine Entrance zone should open a dedicated UI
-  panel (side panel leaning preferred over modal, TBD) - not a
-  walk-up-and-strike interaction like the starter vein. Depth = new
-  "floors"/nodes unlocked, gated by level, yielding better/rarer ore the
-  deeper you go (mirrors RuneScape's rock-tier-by-level model). Upgrades
-  here include cart speed (faster manual gathering) and automation
-  ("dwarven tech" - auto-collection instead of manual clicking) - this
-  is the direct bridge back to the original clicker/engine-builder pitch
-  (manual early, automated late).
-- **Torch upgrades (NEW, agreed, not built):** torches get a base repair
-  cost (current 3-5 copper_ingot, still unplaytested/placeholder), then
-  a real upgrade path afterward - more light radius, other unspecified
-  effects. Not a one-time fix-and-forget; treat similarly to Hearth/
-  Forge upgrade trees.
-- **No forge interaction in `main.ts` yet**: Smithing engine logic is
-  tested but has zero UI wiring — can't actually smith through play.
-  Likely entangled with the Mine Entrance UI work and the coal
-  allocation mechanic above, since all three touch the same resource
-  flow.
-- **Mine Entrance has no placed nodes**: `iron_vein`/`coal_seam` exist as
-  `RockNode` content but aren't placed anywhere on the actual map -
-  this is now explicitly tied to the Mine Entrance UI item above, not a
-  separate piece of work.
-- **Organic cave shape / rubble rendering (§6): agreed direction, not
-  implemented.**
-- **NPC/stranger mechanics (§10): model agreed, nothing built.**
-- ~~**Save/load: does not exist yet.**~~ **RESOLVED** — see §12.
+- **Coal/wood contention (§5) — RESOLVED IN PRINCIPLE, partially built:**
+  the Hearth can now burn EITHER coal or wood (weighted by heat value,
+  see `totalHearthFuelValue`), and Smithing draws from the same shared
+  pool. The "stoke the hearth" active-spend UI action and the later
+  passive %-allocation-slider Hearth upgrade are STILL NOT BUILT - only
+  the underlying fuel-value math exists so far, not the player-facing
+  mechanic for actually feeding the Hearth deliberately.
+- **Idle-game bulk action multiplier (agreed, not yet built):** any
+  repeatable spend/produce action should support a shared x1/x5/x10/MAX
+  multiplier selector (Cookie Clicker convention) - needed once
+  quantities scale into the thousands+. Should be ONE reusable
+  mechanic, not duplicated per-feature. Still not built.
+- **Hearth vs Forge upgrade trees (philosophy agreed, content mostly
+  unwritten):** the Hearth secretly IS the mountain - tending it heals
+  the mountain itself. Hearth upgrades = mythic/passive/global tree.
+  Forge/Smithing upgrades = practical/active/personal tree. The forge's
+  tier 0→1 transition is now a MATERIALS REPAIR (wood + copper ore, see
+  §4/§12), not an Insight purchase - tiers 2+ remain Insight-funded
+  (`FORGE_UPGRADES`). No real Hearth upgrade list exists yet at all.
+- **Mine Entrance UI (shape agreed, not built):** interacting with the
+  Mine Entrance zone should open a dedicated panel - depth-gated nodes,
+  cart speed + auto-collection upgrades. Still not built. The Tunnel
+  Entrance zone itself is currently gated on `hearth_color_stage_at_least(1)`
+  - worth revisiting given the forge_room precedent of "always reachable,
+  contents start broken/rubble" might fit better here too.
+- **Torch upgrades beyond initial repair (agreed, not built):** more
+  light radius, other unspecified effects, after the base repair.
+- **Organic cave shape / rubble rendering (§6):** PARTIALLY done - the
+  forge now genuinely renders as broken/rubble (`forge_broken`) until
+  repaired, proving the rubble-state pattern works. The broader organic/
+  irregular CAVE SHAPE (vs. the current rectangular zone bounds) is
+  still not implemented - this was specifically about wall geometry,
+  not the rubble-vs-built rendering, which is now real for the forge.
+- **NPC/stranger mechanics (§10):** model agreed, nothing built.
 - **Torch repair cost balance**: current costs (3-5 copper_ingot) are
   placeholder guesses, unplaytested against real ingot production rate.
+  NOTE: this previously created a circular dependency (torches needed
+  ingots, ingots needed the forge, the forge room was gated behind
+  forge tier) - resolved by making forge_room always-reachable (§6) so
+  the materials-repair path doesn't require anything zone-gated first.
+- **Woodcraft has no narrator voice yet:** `handleWoodGather` in
+  `main.ts` deliberately narrates nothing for routine gathers (Mining's
+  "the pick finds rock" lines would be wrong for cutting wood) - needs
+  its own line pool once Woodcraft's narrative identity is decided.
+
+### Resolved this session (kept for history, remove once stale)
+- ~~Save/load: does not exist yet.~~ **RESOLVED** — see §12.
+- ~~No forge interaction in `main.ts`.~~ **RESOLVED** — forge starts
+  broken (`forge_broken`), repaired via wood+copper ore (R key near
+  the forge), then usable. Smithing recipes themselves (turning ore
+  into ingots) still have no dedicated UI key/action yet, though the
+  engine logic (`attemptSmith`) is fully tested - this is now the
+  more precise remaining gap, distinct from "no forge access at all."
+- ~~Mine Entrance has no placed nodes~~ — unchanged/still true, kept
+  bundled with the Mine Entrance UI item above rather than tracked
+  separately.
 
 ## 12. Persistence
 

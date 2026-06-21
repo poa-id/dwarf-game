@@ -57,16 +57,22 @@ describe("zoneContaining / isZoneUnlocked / unlockedZones", () => {
     expect(isZoneUnlocked(hearthHall, world)).toBe(true);
   });
 
-  it("forge_room is locked on a fresh world", () => {
+  it("forge_room is unlocked on a fresh world (the ROOM is always reachable - the forge inside it starts broken/rubble instead)", () => {
     const world = createInitialWorld(0);
     const forgeRoom = ZONES.find((z) => z.id === "forge_room")!;
-    expect(isZoneUnlocked(forgeRoom, world)).toBe(false);
+    expect(isZoneUnlocked(forgeRoom, world)).toBe(true);
   });
 
-  it("forge_room unlocks once forgeTier reaches its requirement", () => {
-    const world = worldWith({ forgeTier: 1 });
-    const forgeRoom = ZONES.find((z) => z.id === "forge_room")!;
-    expect(isZoneUnlocked(forgeRoom, world)).toBe(true);
+  it("tunnel_entrance is locked on a fresh world", () => {
+    const world = createInitialWorld(0);
+    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    expect(isZoneUnlocked(tunnelEntrance, world)).toBe(false);
+  });
+
+  it("tunnel_entrance unlocks once hearth colorStage reaches its requirement", () => {
+    const world = worldWith({ hearth: { ...createInitialWorld(0).hearth, colorStage: 1 } });
+    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    expect(isZoneUnlocked(tunnelEntrance, world)).toBe(true);
   });
 
   it("zoneContaining finds the correct zone for a coordinate inside it", () => {
@@ -84,7 +90,7 @@ describe("zoneContaining / isZoneUnlocked / unlockedZones", () => {
     const world = createInitialWorld(0);
     const ids = unlockedZones(world).map((z) => z.id);
     expect(ids).toContain("hearth_hall");
-    expect(ids).not.toContain("forge_room");
+    expect(ids).toContain("forge_room"); // always unlocked now - the forge itself, not the room, is what's broken
     expect(ids).not.toContain("tunnel_entrance");
   });
 });
@@ -95,11 +101,11 @@ describe("isCellPartOfUnlockedWorld", () => {
     expect(isCellPartOfUnlockedWorld(0, 0, world)).toBe(true);
   });
 
-  it("cells inside a locked zone are NOT part of the unlocked world", () => {
+  it("cells inside a locked zone (tunnel_entrance) are NOT part of the unlocked world", () => {
     const world = createInitialWorld(0);
-    const forgeRoom = ZONES.find((z) => z.id === "forge_room")!;
+    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
     expect(
-      isCellPartOfUnlockedWorld(forgeRoom.bounds.col, forgeRoom.bounds.row, world)
+      isCellPartOfUnlockedWorld(tunnelEntrance.bounds.col, tunnelEntrance.bounds.row, world)
     ).toBe(false);
   });
 
@@ -154,9 +160,9 @@ describe("cellVisibility", () => {
   });
 
   it("returns 'hidden' for a cell in a locked zone, even if somehow marked explored", () => {
-    const forgeRoom = ZONES.find((z) => z.id === "forge_room")!;
-    const col = forgeRoom.bounds.col;
-    const row = forgeRoom.bounds.row;
+    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    const col = tunnelEntrance.bounds.col;
+    const row = tunnelEntrance.bounds.row;
     const world = worldWith({ exploredCells: { [cellKey(col, row)]: true } });
     // dwarf standing right on top of it, normally would be "lit", but the zone is locked
     const result = cellVisibility(col, row, { col, row }, world, cellKey(col, row));

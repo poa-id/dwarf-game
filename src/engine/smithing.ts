@@ -1,5 +1,5 @@
 import type { SkillState, ResourceBag, MaterialId } from "./types";
-import { getMaterialAmount, deductMaterials, addMaterial, materialDef } from "./types";
+import { getMaterialAmount, deductMaterials, canAffordMaterials, addMaterial, materialDef } from "./types";
 import { levelForXp } from "./xpCurve";
 
 export interface SmithRecipe {
@@ -155,7 +155,31 @@ export function applySmithResult(
 }
 
 // ---------------------------------------------------------------------------
-// Forge upgrades - spent in Insight, this is the World-persistent payoff
+// Forge repair - tier 0 -> 1 specifically. The forge starts broken, not
+// merely "not yet upgraded" - this is a one-time REPAIR paid in raw
+// materials (wood + ore), not Insight. Insight-funded upgrades (see
+// FORGE_UPGRADES below) only make sense once the forge already works;
+// repairing it from nothing is a different kind of act - hands-on
+// reconstruction, not a purchased improvement.
+// ---------------------------------------------------------------------------
+
+export const FORGE_REPAIR_COST: ResourceBag = {
+  wood: 15,
+  copper_ore: 10,
+};
+
+export function canAffordForgeRepair(inventory: ResourceBag): boolean {
+  return canAffordMaterials(inventory, FORGE_REPAIR_COST);
+}
+
+export function applyForgeRepair(inventory: ResourceBag): ResourceBag {
+  return deductMaterials(inventory, FORGE_REPAIR_COST);
+}
+
+// ---------------------------------------------------------------------------
+// Forge upgrades - tiers BEYOND the initial repair (1->2, 2->3, ...),
+// spent in Insight. This is the World-persistent payoff once the forge
+// already works at all.
 // ---------------------------------------------------------------------------
 
 export interface ForgeUpgrade {
@@ -165,7 +189,6 @@ export interface ForgeUpgrade {
 }
 
 export const FORGE_UPGRADES: ForgeUpgrade[] = [
-  { tier: 1, insightCost: 50, name: "Banked Coals" },
   { tier: 2, insightCost: 250, name: "Bellows of the Deep" },
   { tier: 3, insightCost: 1000, name: "Heartfire-Tempered Anvil" },
 ];

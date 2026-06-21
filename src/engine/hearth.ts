@@ -1,5 +1,38 @@
-import type { HearthState } from "./types";
+import type { HearthState, ResourceBag, MaterialId } from "./types";
+import { getMaterialAmount, materialDef } from "./types";
 import { colorStageForLifetimeFuel } from "./colorStages";
+
+/**
+ * Which materials the Hearth can burn, and how much each contributes
+ * per unit - weighted by the material's own heatValue, so coal (hot)
+ * contributes more per-unit than wood (weaker). This is intentionally
+ * separate from Smithing's fuel logic (which checks a hard
+ * minHeatRequired threshold per recipe) - the Hearth doesn't reject
+ * weak fuel, it just burns through it faster for the same effect,
+ * since "the hearth can be powered by other means" - it's not picky
+ * the way a forge demanding real heat is.
+ */
+export const HEARTH_FUEL_MATERIALS: MaterialId[] = ["coal", "wood"];
+
+/**
+ * Computes total available fuel VALUE (not raw quantity) the Hearth
+ * could draw from right now, across every material it accepts,
+ * weighted by each material's heatValue. A caller typically passes
+ * this as tickHearth's `bankedFuelAvailable` - though note this
+ * reports what's AVAILABLE, not what gets consumed; actual consumption
+ * accounting (deciding which specific material to deduct, and how
+ * much, as the Hearth burns through its allocated share) is the
+ * caller's responsibility, not modeled here yet (see DESIGN.md §11 -
+ * coal/wood allocation between Hearth and Smithing is still an open
+ * mechanic, this only answers "how much could the hearth use").
+ */
+export function totalHearthFuelValue(inventory: ResourceBag): number {
+  return HEARTH_FUEL_MATERIALS.reduce((total, materialId) => {
+    const amount = getMaterialAmount(inventory, materialId);
+    const heat = materialDef(materialId).heatValue ?? 1;
+    return total + amount * heat;
+  }, 0);
+}
 
 /**
  * How much fuel the Hearth absorbs per second of real time, assuming it

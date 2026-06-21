@@ -17,9 +17,12 @@ export type CellKind =
   | "ore_iron"
   | "ore_deep"
   | "ore_exhausted"
+  | "wood_node"
+  | "wood_exhausted"
   | "dwarf"
   | "hearth"
   | "forge"
+  | "forge_broken"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -37,9 +40,11 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "rock_wall",
   "hearth",
   "forge",
+  "forge_broken",
   "ore_copper",
   "ore_iron",
   "ore_deep",
+  "wood_node",
   "tunnel_edge",
 ]);
 
@@ -72,9 +77,12 @@ const STAGE_0: StagePalette = {
     ore_iron: "#9a9a9a",
     ore_deep: "#9a9a9a",
     ore_exhausted: "#9a9a9a",
+    wood_node: "#9a9a9a",
+    wood_exhausted: "#9a9a9a",
     dwarf: "#9a9a9a",
     hearth: "#9a9a9a", // unlit - indistinguishable from stone. this is the whole point.
     forge: "#9a9a9a",
+    forge_broken: "#9a9a9a",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     torch_lit: "#ff5a1a", // earned light - glows warm even in total 2-bit darkness, independent of world color stage
@@ -115,9 +123,12 @@ const STAGE_2: StagePalette = {
     ore_iron: "#9aa3ad",
     ore_deep: "#7060c0",
     ore_exhausted: "#3a2e22", // same as rock_floor - it's just spent rock now, nothing left to mine
+    wood_node: "#8a6a3a",
+    wood_exhausted: "#3a2e22",
     dwarf: "#f0c896",
     hearth: "#ff8c3a",
     forge: "#d4661f",
+    forge_broken: "#5a4a3a", // dull, cold - the forge that hasn't caught yet, distinct from the live forge's orange
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -141,9 +152,12 @@ const STAGE_3: StagePalette = {
     ore_iron: "#c8d2dc",
     ore_deep: "#9d6fef",
     ore_exhausted: "#343a42",
+    wood_node: "#9a7a4a",
+    wood_exhausted: "#343a42",
     dwarf: "#f5dcb0",
     hearth: "#ffaa44",
     forge: "#e0701f",
+    forge_broken: "#6a5a48",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -165,9 +179,12 @@ export const GLYPHS: Record<CellKind, string> = {
   ore_iron: "O",
   ore_deep: "◆",
   ore_exhausted: "▫", // hollow square - the shape memory of ore that's no longer there
+  wood_node: "♣", // root tangle - the closest plain glyph to "something organic growing"
+  wood_exhausted: "▫", // same hollow-square language as exhausted ore - consistent "spent resource" signal
   dwarf: "@",
   hearth: "♥",
   forge: "n",
+  forge_broken: "ñ", // a near-miss of the working forge's glyph - recognizably related, visibly wrong/incomplete
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea

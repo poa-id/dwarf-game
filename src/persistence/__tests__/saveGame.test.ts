@@ -89,6 +89,42 @@ describe("loadGame - corruption handling", () => {
   });
 });
 
+describe("loadGame - backfilling additive fields from older saves", () => {
+  it("backfills a missing woodDepletion field without discarding the save", () => {
+    const original = createInitialGameState(1000);
+    const oldShaped: any = { ...original, world: { ...original.world } };
+    delete oldShaped.world.woodDepletion;
+    localStorage.setItem("dwarf-game-save", JSON.stringify(oldShaped));
+
+    const result = loadGame(2000);
+    expect(result.isFreshState).toBe(false); // NOT discarded - backfilled instead
+    expect(result.state.world.woodDepletion).toEqual({});
+  });
+
+  it("backfills a missing woodcraft skill on the vessel", () => {
+    const original = createInitialGameState(1000);
+    const oldShaped: any = {
+      ...original,
+      vessel: { ...original.vessel, skills: { ...original.vessel.skills } },
+    };
+    delete oldShaped.vessel.skills.woodcraft;
+    localStorage.setItem("dwarf-game-save", JSON.stringify(oldShaped));
+
+    const result = loadGame(2000);
+    expect(result.state.vessel.skills.woodcraft).toEqual({ id: "woodcraft", level: 1, xp: 0 });
+  });
+
+  it("preserves all OTHER existing data while backfilling - it's additive, not a reset", () => {
+    const original = createInitialGameState(1000);
+    const oldShaped: any = { ...original, world: { ...original.world, forgeTier: 3 } };
+    delete oldShaped.world.woodDepletion;
+    localStorage.setItem("dwarf-game-save", JSON.stringify(oldShaped));
+
+    const result = loadGame(2000);
+    expect(result.state.world.forgeTier).toBe(3); // untouched by the backfill
+  });
+});
+
 describe("clearSave", () => {
   it("removes the save so a subsequent load returns fresh state", () => {
     const original = createInitialGameState(1000);

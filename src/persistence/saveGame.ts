@@ -31,6 +31,28 @@ export interface LoadResult {
 }
 
 /**
+ * Backfills fields that were added to GameState ADDITIVELY after some
+ * saves may have already been created, without bumping
+ * CURRENT_SAVE_VERSION - these are non-breaking additions (a save
+ * missing them is still structurally a valid GameState, just from
+ * before the field existed), so a full version-migration step felt
+ * heavier than necessary. Bumping the save version is reserved for
+ * actually incompatible shape changes (renamed/restructured fields);
+ * purely-additive ones get backfilled here instead, every load, cheaply.
+ */
+function backfillMissingFields(state: any): any {
+  if (state.world) {
+    if (state.world.litTorches === undefined) state.world.litTorches = {};
+    if (state.world.veinDepletion === undefined) state.world.veinDepletion = {};
+    if (state.world.woodDepletion === undefined) state.world.woodDepletion = {};
+  }
+  if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
+    state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };
+  }
+  return state;
+}
+
+/**
  * Migrate an older save forward to the current shape. Each case should
  * mutate `raw` (a parsed-JSON blob, not yet typed as GameState) toward
  * the next version's shape, then fall through to the next case - this
@@ -38,9 +60,10 @@ export interface LoadResult {
  * than version-to-version special cases for every possible jump.
  *
  * Currently a no-op (CURRENT_SAVE_VERSION is still 1, nothing to
- * migrate FROM yet) - this exists now so the FIRST real schema change
- * has an obvious place to add a case, rather than requiring this
- * function to be invented under pressure later.
+ * migrate FROM yet) - this exists now so the FIRST real BREAKING
+ * schema change has an obvious place to add a case, rather than
+ * requiring this function to be invented under pressure later. Purely
+ * additive changes go through backfillMissingFields above instead.
  */
 function migrate(raw: any, fromVersion: number): any {
   let migrated = raw;
@@ -116,9 +139,10 @@ export function loadGame(now: number): LoadResult {
 
   const migrated =
     parsed.saveVersion < CURRENT_SAVE_VERSION ? migrate(parsed, parsed.saveVersion) : parsed;
+  const backfilled = backfillMissingFields(migrated);
 
   return {
-    state: migrated as GameState,
+    state: backfilled as GameState,
     isFreshState: false,
     discardedIncompatibleSave: false,
   };

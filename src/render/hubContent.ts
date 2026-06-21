@@ -1,8 +1,16 @@
 import { createEmptyGrid, type GridCell } from "./GridRenderer";
 import { stampSprite } from "./sprites";
 import { FORGE_BUILDING } from "./exampleSprites";
-import { HUB_WIDTH, HUB_HEIGHT, ZONES, LIGHT_SOURCES, ORE_VEINS } from "../engine/hubMap";
-import { ROCK_NODES, isExhausted, createFreshDepletionState } from "../engine/mining";
+import {
+  HUB_WIDTH,
+  HUB_HEIGHT,
+  ZONES,
+  LIGHT_SOURCES,
+  ORE_VEINS,
+  WOOD_NODE_PLACEMENTS,
+} from "../engine/hubMap";
+import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
+import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
 import type { LitTorchSet, WorldState } from "../engine/types";
 
 /**
@@ -74,6 +82,20 @@ function buildHubContent(): GridCell[] {
   const hearthIndex = hearthCenter.row * HUB_WIDTH + hearthCenter.col;
   stamped[hearthIndex] = { kind: "hearth" };
 
+  // The forge building's CENTER cells start as forge_broken - hubCellAt
+  // overrides to "forge" once World.forgeTier >= 1 (repaired). The
+  // surrounding wall-frame cells of FORGE_BUILDING stay rock_wall as-is.
+  const forgeCenterOffsets = [
+    { dc: 1, dr: 1 },
+    { dc: 2, dr: 1 },
+    { dc: 1, dr: 2 },
+    { dc: 2, dr: 2 },
+  ];
+  for (const { dc, dr } of forgeCenterOffsets) {
+    const idx = (forgeOriginRow + dr) * HUB_WIDTH + (forgeOriginCol + dc);
+    stamped[idx] = { kind: "forge_broken" };
+  }
+
   // Place every torch's terrain marker - always "broken" in the static
   // content; hubCellAt overrides to "torch_lit" dynamically per the
   // current WorldState.
@@ -86,6 +108,12 @@ function buildHubContent(): GridCell[] {
   for (const vein of ORE_VEINS) {
     const idx = vein.position.row * HUB_WIDTH + vein.position.col;
     stamped[idx] = { kind: "ore_copper" }; // hardcoded for the one copper vein we have; revisit when more ore types appear on the map
+  }
+
+  // Place wood nodes.
+  for (const woodPlacement of WOOD_NODE_PLACEMENTS) {
+    const idx = woodPlacement.position.row * HUB_WIDTH + woodPlacement.position.col;
+    stamped[idx] = { kind: "wood_node" };
   }
 
   return stamped;
@@ -124,7 +152,9 @@ export function hubCellAt(
   col: number,
   row: number,
   litTorches: LitTorchSet = {},
-  veinDepletion: WorldState["veinDepletion"] = {}
+  veinDepletion: WorldState["veinDepletion"] = {},
+  woodDepletion: WorldState["veinDepletion"] = {},
+  forgeTier: number = 0
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -139,12 +169,27 @@ export function hubCellAt(
     }
   }
 
+  if (staticCell.kind === "forge_broken" && forgeTier >= 1) {
+    return { kind: "forge" };
+  }
+
   const vein = ORE_VEINS.find((v) => v.position.col === col && v.position.row === row);
   if (vein) {
     const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
     const depletion = veinDepletion[vein.id] ?? createFreshDepletionState();
-    if (rockNode && isExhausted(rockNode, depletion)) {
+    if (rockNode && isOreExhausted(rockNode, depletion)) {
       return { kind: "ore_exhausted" };
+    }
+  }
+
+  const woodPlacement = WOOD_NODE_PLACEMENTS.find(
+    (w) => w.position.col === col && w.position.row === row
+  );
+  if (woodPlacement) {
+    const woodNode = WOOD_NODES.find((n) => n.id === woodPlacement.woodNodeId);
+    const depletion = woodDepletion[woodPlacement.id] ?? createFreshDepletionState();
+    if (woodNode && isWoodExhausted(woodNode, depletion)) {
+      return { kind: "wood_exhausted" };
     }
   }
 

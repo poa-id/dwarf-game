@@ -46,9 +46,14 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   ore_iron: { assetUrl: oreBaseUrl, tint: "#9aa3ad" },
   ore_deep: { assetUrl: oreDeepUrl }, // unique texture, no tint needed
   ore_exhausted: { assetUrl: rockFloorUrl }, // spent rock - same texture as plain floor
+  // No dedicated wood sprite sliced yet either - reusing the ore vein
+  // texture, tinted toward a woody brown-green, as a placeholder.
+  wood_node: { assetUrl: oreBaseUrl, tint: "#7a8a4a" },
+  wood_exhausted: { assetUrl: rockFloorUrl },
   dwarf: { assetUrl: dwarfUrl },
   hearth: { assetUrl: forgeUrl },
   forge: { assetUrl: forgeUrl },
+  forge_broken: { assetUrl: forgeUrl, tint: "#5a4a3a" }, // same forge art, cold/dull tint - the unrepaired state
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   // No dedicated torch sprite sliced from the tileset yet - reusing the
   // forge's glow art as a placeholder, tinted to distinguish broken

@@ -6,6 +6,9 @@ import {
   nextForgeUpgrade,
   canAffordForgeUpgrade,
   FORGE_UPGRADES,
+  canAffordForgeRepair,
+  applyForgeRepair,
+  FORGE_REPAIR_COST,
 } from "../smithing";
 import type { SkillState, ResourceBag } from "../types";
 
@@ -70,9 +73,30 @@ describe("applySmithResult", () => {
   });
 });
 
-describe("forge upgrades", () => {
-  it("nextForgeUpgrade returns tier 1 from tier 0", () => {
-    expect(nextForgeUpgrade(0)?.tier).toBe(1);
+describe("forge repair (tier 0 -> 1, materials-based)", () => {
+  it("canAffordForgeRepair is false when missing required materials", () => {
+    expect(canAffordForgeRepair({ wood: 5, copper_ore: 5 })).toBe(false); // needs 15 wood, 10 ore
+  });
+
+  it("canAffordForgeRepair is true when the cost is met exactly", () => {
+    expect(canAffordForgeRepair({ ...FORGE_REPAIR_COST })).toBe(true);
+  });
+
+  it("applyForgeRepair deducts exactly the repair cost", () => {
+    const inv = { wood: 20, copper_ore: 15 };
+    const result = applyForgeRepair(inv);
+    expect(result.wood).toBe(20 - FORGE_REPAIR_COST.wood!);
+    expect(result.copper_ore).toBe(15 - FORGE_REPAIR_COST.copper_ore!);
+  });
+});
+
+describe("forge upgrades (tier 1+, insight-based)", () => {
+  it("nextForgeUpgrade from tier 1 (just repaired) returns tier 2, NOT a tier-1 insight cost", () => {
+    expect(nextForgeUpgrade(1)?.tier).toBe(2);
+  });
+
+  it("nextForgeUpgrade(0) returns null - there is no insight-funded tier 1, it's the materials repair instead", () => {
+    expect(nextForgeUpgrade(0)).toBeNull();
   });
 
   it("returns null once all upgrades are exhausted", () => {
@@ -80,9 +104,9 @@ describe("forge upgrades", () => {
     expect(nextForgeUpgrade(maxTier)).toBeNull();
   });
 
-  it("canAffordForgeUpgrade respects insight cost", () => {
-    expect(canAffordForgeUpgrade(10, 0)).toBe(false); // costs 50
-    expect(canAffordForgeUpgrade(50, 0)).toBe(true);
+  it("canAffordForgeUpgrade respects insight cost for the first real upgrade (tier 2)", () => {
+    expect(canAffordForgeUpgrade(100, 1)).toBe(false); // tier 2 costs 250
+    expect(canAffordForgeUpgrade(250, 1)).toBe(true);
   });
 
   it("cannot afford an upgrade that doesn't exist (max tier reached)", () => {

@@ -27,6 +27,7 @@ describe("attemptMove", () => {
     const result = attemptMove(topLeft, "up", world, neverSolid);
     expect(result.moved).toBe(false);
     expect(result.position).toEqual(topLeft);
+    expect(result.blockedReason).toBe("out_of_bounds");
   });
 
   it("blocks movement past the bottom-right edge too", () => {
@@ -35,31 +36,35 @@ describe("attemptMove", () => {
     const result = attemptMove(bottomRight, "right", world, neverSolid);
     expect(result.moved).toBe(false);
     expect(result.position).toEqual(bottomRight);
+    expect(result.blockedReason).toBe("out_of_bounds");
   });
 
-  it("blocks movement INTO a locked zone", () => {
-    const world = createInitialWorld(0); // forge_room is locked here
-    const forgeRoom = ZONES.find((z) => z.id === "forge_room")!;
+  it("blocks movement INTO a locked zone, reporting blockedReason='locked_zone'", () => {
+    const world = createInitialWorld(0); // tunnel_entrance is locked here
+    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
     // approach from just outside its left edge
-    const justOutside = { col: forgeRoom.bounds.col - 1, row: forgeRoom.bounds.row };
+    const justOutside = { col: tunnelEntrance.bounds.col - 1, row: tunnelEntrance.bounds.row };
     const result = attemptMove(justOutside, "right", world, neverSolid);
     expect(result.moved).toBe(false);
     expect(result.position).toEqual(justOutside);
+    expect(result.blockedReason).toBe("locked_zone");
   });
 
   it("allows movement freely within the hearth hall (always unlocked) from spawn", () => {
     const world = createInitialWorld(0);
     const result = attemptMove(HEARTH_SPAWN_POSITION, "right", world, neverSolid);
     expect(result.moved).toBe(true);
+    expect(result.blockedReason).toBeNull();
   });
 
-  it("blocks movement into a solid cell (wall, hearth, ore vein, etc), even if the zone is unlocked", () => {
+  it("blocks movement into a solid cell (wall, hearth, ore vein, etc), reporting blockedReason='solid_terrain'", () => {
     const world = createInitialWorld(0);
     const start = HEARTH_SPAWN_POSITION;
     const alwaysSolid: SolidityCheck = () => true;
     const result = attemptMove(start, "right", world, alwaysSolid);
     expect(result.moved).toBe(false);
     expect(result.position).toEqual(start);
+    expect(result.blockedReason).toBe("solid_terrain");
   });
 
   it("only checks solidity at the TARGET cell, not the current one", () => {

@@ -115,6 +115,27 @@ canvas {
   color: #bbb;
 }
 
+.skill-row {
+  margin-bottom: 6px;
+}
+
+.skill-row p {
+  padding-bottom: 2px;
+}
+
+.skill-bar {
+  height: 4px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+}
+
+.skill-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: #6a5a3a;
+  transition: width 0.4s ease;
+}
+
 .inventory-empty {
   color: #555 !important;
   font-style: italic;

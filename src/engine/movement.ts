@@ -11,9 +11,13 @@ const DELTAS: Record<Direction, { dCol: number; dRow: number }> = {
   right: { dCol: 1, dRow: 0 },
 };
 
+export type BlockedReason = "out_of_bounds" | "locked_zone" | "solid_terrain" | null;
+
 export interface MoveResult {
   position: Position;
   moved: boolean; // false if blocked (locked zone, map edge, or solid terrain) - position unchanged
+  /** Why the move failed, or null if it succeeded. Lets callers react differently to "that's a wall" vs "that area is locked" rather than treating every block identically. */
+  blockedReason: BlockedReason;
 }
 
 /**
@@ -30,8 +34,8 @@ export type SolidityCheck = (col: number, row: number) => boolean;
  * Attempt to move one cell in a direction. Pure function - returns the
  * resulting position whether or not the move succeeded, so callers can
  * always just take `.position` without branching, and check `.moved`
- * only if they care to react to a blocked attempt (e.g. a "the way is
- * dark and unknown" flavor message, bumping-into-wall feedback, etc).
+ * (or `.blockedReason` for WHY) only if they care to react to a
+ * blocked attempt.
  */
 export function attemptMove(
   current: Position,
@@ -47,16 +51,16 @@ export function attemptMove(
     targetCol >= 0 && targetCol < HUB_WIDTH && targetRow >= 0 && targetRow < HUB_HEIGHT;
 
   if (!withinBounds) {
-    return { position: current, moved: false };
+    return { position: current, moved: false, blockedReason: "out_of_bounds" };
   }
 
   if (!isCellPartOfUnlockedWorld(targetCol, targetRow, world)) {
-    return { position: current, moved: false };
+    return { position: current, moved: false, blockedReason: "locked_zone" };
   }
 
   if (isSolid(targetCol, targetRow)) {
-    return { position: current, moved: false };
+    return { position: current, moved: false, blockedReason: "solid_terrain" };
   }
 
-  return { position: { col: targetCol, row: targetRow }, moved: true };
+  return { position: { col: targetCol, row: targetRow }, moved: true, blockedReason: null };
 }

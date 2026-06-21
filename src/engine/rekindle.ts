@@ -33,6 +33,7 @@ export function createFreshVessel(): VesselState {
       mining: freshSkill("mining"),
       smithing: freshSkill("smithing"),
       hearthkeeping: freshSkill("hearthkeeping"),
+      woodcraft: freshSkill("woodcraft"),
     },
     inventory: {},
     hasRekindled: false,
@@ -51,6 +52,7 @@ export function createInitialWorld(now: number): WorldState {
     exploredCells: {},
     litTorches: {},
     veinDepletion: {},
+    woodDepletion: {},
   };
 }
 

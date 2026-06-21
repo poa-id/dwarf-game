@@ -30,7 +30,7 @@ export const ZONES: ZoneDefinition[] = [
     id: "forge_room",
     name: "Forge Room",
     bounds: { col: 46, row: 21, width: 8, height: 7 },
-    unlock: { type: "forge_tier_at_least", tier: 1 },
+    unlock: { type: "always" }, // the ROOM is always reachable - the forge inside it starts broken/rubble, repaired via materials, not a zone-unlock gate
   },
   {
     id: "tunnel_entrance",
@@ -98,5 +98,26 @@ export const ORE_VEINS: OreVeinPlacement[] = [
     id: "hearth_hall_copper",
     rockNodeId: "copper_vein",
     position: { col: 38, row: 27 },
+  },
+];
+
+/**
+ * Fixed wood node placements - cave-root tangles, alongside the ore
+ * vein near spawn. Both gatherable from the very start, since the
+ * first forge repair needs BOTH wood and ore together - the player
+ * shouldn't have to fully unlock one before discovering the other
+ * exists.
+ */
+export interface WoodNodePlacement {
+  id: string;
+  woodNodeId: string; // matches a WoodNode.id in woodcraft.ts
+  position: Position;
+}
+
+export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
+  {
+    id: "hearth_hall_roots",
+    woodNodeId: "root_tangle",
+    position: { col: 42, row: 27 },
   },
 ];

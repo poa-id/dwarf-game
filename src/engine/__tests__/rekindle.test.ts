@@ -17,12 +17,14 @@ function makeStateWithProgress(): GameState {
       exploredCells: { "40,25": true, "41,25": true },
       litTorches: {},
       veinDepletion: { hearth_hall_copper: { totalYielded: 30 } },
+      woodDepletion: { hearth_hall_roots: { totalYielded: 12 } },
     },
     vessel: {
       skills: {
         mining: { id: "mining", level: 20, xp: 50000 },
         smithing: { id: "smithing", level: 15, xp: 30000 },
         hearthkeeping: { id: "hearthkeeping", level: 5, xp: 1000 },
+        woodcraft: { id: "woodcraft", level: 3, xp: 200 },
       },
       inventory: { copper_ore: 40, copper_ingot: 12, coal: 8 },
       hasRekindled: false,
@@ -38,13 +40,13 @@ function makeStateWithProgress(): GameState {
 describe("calculateRekindleInsight", () => {
   it("scales with total levels across all skills", () => {
     const state = makeStateWithProgress();
-    // mining 20 + smithing 15 + hearthkeeping 5 = 40 total levels * 5 = 200
-    expect(calculateRekindleInsight(state.vessel)).toBe(200);
+    // mining 20 + smithing 15 + hearthkeeping 5 + woodcraft 3 = 43 total levels * 5 = 215
+    expect(calculateRekindleInsight(state.vessel)).toBe(215);
   });
 
-  it("is 0 for a fresh vessel (all skills at level 1 -> total 3 -> 15 insight)", () => {
+  it("is 0 for a fresh vessel (all 4 skills at level 1 -> total 4 -> 20 insight)", () => {
     const fresh = createFreshVessel();
-    expect(calculateRekindleInsight(fresh)).toBe(15); // 1+1+1=3 levels * 5
+    expect(calculateRekindleInsight(fresh)).toBe(20); // 1+1+1+1=4 levels * 5
   });
 });
 
@@ -57,6 +59,7 @@ describe("rekindle", () => {
     expect(newState.world.hearth).toEqual(state.world.hearth);
     expect(newState.world.loreFlags).toEqual(state.world.loreFlags);
     expect(newState.world.veinDepletion).toEqual(state.world.veinDepletion); // a vein worked thin by one dwarf stays thin for the next
+    expect(newState.world.woodDepletion).toEqual(state.world.woodDepletion); // same for wood
   });
 
   it("VESSEL state is fully reset: skills back to level 1, inventory emptied", () => {
@@ -65,6 +68,7 @@ describe("rekindle", () => {
     expect(newState.vessel.skills.mining.level).toBe(1);
     expect(newState.vessel.skills.mining.xp).toBe(0);
     expect(newState.vessel.skills.smithing.level).toBe(1);
+    expect(newState.vessel.skills.woodcraft.level).toBe(1); // catches any future skill silently missed from the reset
     expect(newState.vessel.inventory).toEqual({});
     expect(newState.vessel.hasRekindled).toBe(false); // fresh dwarf hasn't rekindled himself yet
   });
@@ -101,8 +105,8 @@ describe("rekindle", () => {
   it("Insight earned is added to world.insightBanked, not reset", () => {
     const state = makeStateWithProgress();
     const { newState, insightEarned } = rekindle(state);
-    expect(insightEarned).toBe(200);
-    expect(newState.world.insightBanked).toBe(100 + 200);
+    expect(insightEarned).toBe(215);
+    expect(newState.world.insightBanked).toBe(100 + 215);
   });
 
   it("dwarfCount increments by exactly 1", () => {
