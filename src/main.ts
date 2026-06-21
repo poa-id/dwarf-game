@@ -1,7 +1,6 @@
 import { GridRenderer } from "./render/GridRenderer";
 import { hubCellAt } from "./render/hubContent";
 import { isSolidCellKind } from "./render/palette";
-import { createInitialGameState } from "./engine/rekindle";
 import { attemptMove, type Direction } from "./engine/movement";
 import { markVisibleCellsExplored } from "./engine/exploration";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "./engine/visibility";
@@ -18,6 +17,7 @@ import {
 } from "./engine/mining";
 import { triggerNarration } from "./narration/narrator";
 import { showNarratorToast } from "./narration/toast";
+import { loadGame, saveGame, clearSave } from "./persistence/saveGame";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -43,6 +43,7 @@ app.innerHTML = `
     <p class="hint" id="zone-hint"></p>
     <p class="hint" id="action-hint"></p>
     <div class="narrator-container" id="narrator-container"></div>
+    <button id="reset-save-btn" class="reset-btn">reset save</button>
   </div>
 `;
 
@@ -85,7 +86,8 @@ const renderer = new GridRenderer(canvas, {
   cellSize: 24,
 });
 
-let state = createInitialGameState(Date.now());
+const loadResult = loadGame(Date.now());
+let state = loadResult.state;
 
 /** Fires a narrator trigger, shows the toast if a line was returned, and persists the updated narrator state. */
 function narrate(trigger: NarratorTrigger): void {
@@ -94,19 +96,35 @@ function narrate(trigger: NarratorTrigger): void {
   if (result.line) showNarratorToast(narratorContainer, result.line);
 }
 
-// The very first thing that happens, ever.
-narrate("wake_first_ever");
+if (loadResult.discardedIncompatibleSave) {
+  actionHint.textContent = "An old save could not be read and was reset.";
+}
 
-// Mark the dwarf's starting position explored immediately, so the very
-// first frame already shows the lit area around him rather than a
-// single empty render before any movement happens.
-state = {
-  ...state,
-  world: {
-    ...state.world,
-    exploredCells: markVisibleCellsExplored(state.world.exploredCells, state.vessel.position),
-  },
-};
+if (loadResult.isFreshState) {
+  // True first boot ever - no save existed at all.
+  narrate("wake_first_ever");
+  // Mark the dwarf's starting position explored immediately, so the
+  // very first frame already shows the lit area around him rather
+  // than a single empty render before any movement happens.
+  state = {
+    ...state,
+    world: {
+      ...state.world,
+      exploredCells: markVisibleCellsExplored(state.world.exploredCells, state.vessel.position),
+    },
+  };
+} else {
+  // A save existed - this is a returning player reopening the game,
+  // NOT a rekindling (that's a deliberate in-game action, not "the
+  // page reloaded"). Nothing narrates here; waking after a normal
+  // reload isn't a meaningful enough moment to comment on, and we
+  // don't want wake_rekindled firing every time someone refreshes the
+  // tab - that trigger is reserved for the actual rekindle() action.
+}
+
+function persist(): void {
+  saveGame(state);
+}
 
 function updateZoneHint(): void {
   const { position } = state.vessel;
@@ -188,6 +206,7 @@ function render(): void {
   updateZoneHint();
   updateActionHint();
   updateStatsPanel();
+  persist();
 }
 
 render();
@@ -304,4 +323,14 @@ window.addEventListener("keydown", (e) => {
   if (isFirstVisitToThisZone) narrate("area_revealed");
 
   render();
+});
+
+const resetButton = document.querySelector<HTMLButtonElement>("#reset-save-btn")!;
+resetButton.addEventListener("click", () => {
+  const confirmed = window.confirm(
+    "This will permanently erase the current save - the mountain, every dwarf's progress, all of it. Are you sure?"
+  );
+  if (!confirmed) return;
+  clearSave();
+  window.location.reload();
 });

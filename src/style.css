@@ -120,6 +120,22 @@ canvas {
   font-style: italic;
 }
 
+.reset-btn {
+  margin-top: 8px;
+  font-family: inherit;
+  font-size: 0.65rem;
+  background: transparent;
+  color: #444;
+  border: 1px solid #2a2a2a;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.reset-btn:hover {
+  color: #888;
+  border-color: #555;
+}
+
 .controls {
   display: flex;
   align-items: center;

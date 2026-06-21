@@ -118,9 +118,10 @@ which was the old design — explicitly removed). Purer, rarer fuels are
 planned for later, with higher `heatValue`, unlocking recipes a weak fire
 can't touch ("super-heat metals and gems").
 
-**OPEN QUESTION (unresolved):** coal is wanted by both Smithing (as forge
-fuel) and Hearthkeeping (as hearth fuel) — they currently compete for the
-same pool with no resolved allocation logic or UI. Needs a decision.
+**Coal allocation (Smithing vs. Hearthkeeping):** both systems draw from
+the same shared coal pool. Resolved in principle (see §11/§12 history) —
+initially an active "stoke the hearth" spend action; a later Hearth
+upgrade unlocks a passive %-allocation slider. Not yet implemented.
 
 ## 6. The Hub Map
 
@@ -236,16 +237,80 @@ narrator's `stranger_arrival` trigger exists as a placeholder hook.
 Tracked here so they don't get silently forgotten. Remove from this list
 once resolved (and reflect the resolution in the relevant section above).
 
-- **Coal contention** (§5): Smithing and Hearthkeeping both want coal,
-  no resolved split logic.
+- **Coal contention (§5) — RESOLVED IN PRINCIPLE, not yet built:** coal
+  is one shared resource pool; the player decides where it goes.
+  Initially via an active "stoke the hearth" action (spend coal
+  deliberately, in the moment). Later, unlocking a Hearth upgrade grants
+  a passive allocation slider (% split between Hearth/Smithing,
+  auto-applied) - the slider is itself earned progression, not a
+  default feature. Not yet implemented.
+- **Idle-game bulk action multiplier (NEW, agreed, not yet built):** any
+  repeatable spend/produce action (stoking the hearth, smithing, later
+  possibly mining) should support a shared x1/x5/x10/MAX multiplier
+  selector, classic idle-game convention (Cookie Clicker's buy
+  1/10/100/max) - needed once quantities scale into the thousands+.
+  Should be built as ONE reusable mechanic, not duplicated per-feature.
+- **Hearth vs Forge upgrade trees (NEW, philosophy agreed, content not
+  written):** the Hearth may secretly BE the mountain - upgrading/
+  tending it is healing the mountain itself. Hearth upgrades are the
+  majority of "idle/bitcoin-billionaire-style" passive global upgrades.
+  Forge/Smithing upgrades are separate: better tools, materials, yields,
+  speed. Two distinct trees, two distinct meanings (mythic/passive vs
+  practical/active). No actual upgrade list exists yet for either tree
+  beyond the current placeholder FORGE_UPGRADES tiers.
+- **Mine Entrance UI (NEW, shape agreed, not built):** interacting with
+  the (currently locked) Mine Entrance zone should open a dedicated UI
+  panel (side panel leaning preferred over modal, TBD) - not a
+  walk-up-and-strike interaction like the starter vein. Depth = new
+  "floors"/nodes unlocked, gated by level, yielding better/rarer ore the
+  deeper you go (mirrors RuneScape's rock-tier-by-level model). Upgrades
+  here include cart speed (faster manual gathering) and automation
+  ("dwarven tech" - auto-collection instead of manual clicking) - this
+  is the direct bridge back to the original clicker/engine-builder pitch
+  (manual early, automated late).
+- **Torch upgrades (NEW, agreed, not built):** torches get a base repair
+  cost (current 3-5 copper_ingot, still unplaytested/placeholder), then
+  a real upgrade path afterward - more light radius, other unspecified
+  effects. Not a one-time fix-and-forget; treat similarly to Hearth/
+  Forge upgrade trees.
 - **No forge interaction in `main.ts` yet**: Smithing engine logic is
   tested but has zero UI wiring — can't actually smith through play.
+  Likely entangled with the Mine Entrance UI work and the coal
+  allocation mechanic above, since all three touch the same resource
+  flow.
 - **Mine Entrance has no placed nodes**: `iron_vein`/`coal_seam` exist as
-  `RockNode` content but aren't placed anywhere on the actual map.
-- **Organic cave shape / rubble rendering** (§6): agreed direction, not
-  implemented.
-- **NPC/stranger mechanics** (§10): model agreed, nothing built.
-- **Save/load**: does not exist yet. Refreshing the page restarts fresh
-  every time.
+  `RockNode` content but aren't placed anywhere on the actual map -
+  this is now explicitly tied to the Mine Entrance UI item above, not a
+  separate piece of work.
+- **Organic cave shape / rubble rendering (§6): agreed direction, not
+  implemented.**
+- **NPC/stranger mechanics (§10): model agreed, nothing built.**
+- ~~**Save/load: does not exist yet.**~~ **RESOLVED** — see §12.
 - **Torch repair cost balance**: current costs (3-5 copper_ingot) are
   placeholder guesses, unplaytested against real ingot production rate.
+
+## 12. Persistence
+
+Save/load via `localStorage`, JSON-serialized `GameState` (deliberately
+plain-data: no functions, Map, or Set anywhere in the state tree, so
+this stays simple). Saves after every render-triggering action — render()
+itself calls persist() as a guaranteed side effect, rather than scattering
+save calls across every individual action site.
+
+`saveVersion` exists for forward migration (`CURRENT_SAVE_VERSION`,
+currently 1) — a ladder-style migration function exists as a documented
+no-op scaffold, ready for the first real schema change. Corrupted or
+unrecognized saves are discarded in favor of a fresh state rather than
+risking a crash or silently-wrong partial load; the player sees a small
+notice when this happens.
+
+A manual "reset save" button exists (with a confirm step) for
+testing/starting over - this is a meta/debug action, explicitly NOT the
+same thing as in-game rekindling.
+
+**Deliberate non-trigger:** reloading the page does NOT fire
+`wake_rekindled` — that narrator trigger is reserved for the actual
+in-game rekindle() action (which doesn't have a player-facing trigger
+yet either). A page refresh is treated as "the player came back," not
+"a new dwarf began."
+
