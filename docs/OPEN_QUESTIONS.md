@@ -7,6 +7,18 @@
 Tracked here so they don't get silently forgotten. Remove from this list
 once resolved (and reflect the resolution in the relevant section above).
 
+- **PROJECT NOT YET PUSHED TO GITHUB - blocks fresh-session resume.**
+  DESIGN.md's "Starting a new conversation" section assumes a real
+  GitHub remote a fresh Claude can `git clone`. As of this writing
+  that remote doesn't exist yet (discovered when a new conversation
+  was started per the old instructions and found no repo on disk -
+  conversations run in disposable sandboxes, nothing persists without
+  an external remote). Needs: project owner creates a public GitHub
+  repo, pushes this history to it, then replaces
+  `REPLACE_WITH_ACTUAL_URL` in DESIGN.md with the real URL. Until that
+  URL is filled in, treat DESIGN.md's clone instructions as
+  aspirational, not yet functional - fall back to asking the user to
+  upload the project zip instead.
 - **Idle-game bulk action multiplier (agreed, not yet built):** any
   repeatable spend/produce action (stoking, smithing) should support a
   shared x1/x5/x10/MAX multiplier selector (Cookie Clicker convention) -
@@ -37,36 +49,18 @@ once resolved (and reflect the resolution in the relevant section above).
   from Narag-Bund (§10a), which IS built.
 - **Torch repair cost balance**: current costs (3-5 copper_ingot) are
   placeholder guesses, unplaytested against real ingot production rate.
-- **Woodcraft has no narrator voice yet:** `handleWoodGather` in
-  `main.ts` deliberately narrates nothing for routine gathers (Mining's
-  "the pick finds rock" lines would be wrong for cutting wood) - needs
-  its own line pool once Woodcraft's narrative identity is decided.
+- **Woodcraft has no narrator voice yet:** `handleWoodGather` deliberately
+  narrates nothing for routine gathers (Mining's "the pick finds rock"
+  lines would be wrong for cutting wood) - needs its own line pool once
+  Woodcraft's narrative identity is decided.
 - **Repeat-key guard doesn't cover the new contextual panel clicks:**
-  the `e.repeat` fix (movement/main.ts) only applies to keyboard
-  shortcuts (F/E/R) - the Smithing/Hearth panel buttons are mouse
-  clicks with no analogous "don't double-fire" guard. Probably fine
-  (mouse click-spam isn't the same failure mode as a held key) but
-  worth a deliberate look once played with a mouse for real.
+  the `e.repeat` fix only applies to keyboard shortcuts (F/E/R) - the
+  Smithing/Hearth panel buttons are mouse clicks with no analogous
+  "don't double-fire" guard. Probably fine (mouse click-spam isn't the
+  same failure mode as a held key) but worth a deliberate look once
+  played with a mouse for real.
 - **Narag-Bund's haul interval/amount are unplaytested guesses:**
   `HAUL_INTERVAL_MS=10000`, `HAUL_AMOUNT_PER_TRIP=1` were picked to
   "feel like a creature on its own schedule" per the design discussion,
   but have not been tuned against real play.
 
-### Resolved this session (kept for history, remove once stale)
-- ~~Save/load: does not exist yet.~~ **RESOLVED** — see §12.
-- ~~No forge interaction in `main.ts`.~~ **RESOLVED** — forge starts
-  broken (`forge_broken`), repaired via wood+copper ore (R key near
-  the forge), then usable.
-- ~~Smithing has no UI.~~ **RESOLVED** — contextual recipe panel
-  (`ui/smithingPanel.ts`) appears when standing near a repaired forge.
-- ~~No way to actually feed the Hearth deliberately.~~ **RESOLVED** —
-  dual stoke targets (fire directly / reserve), contextual Hearth panel
-  (`ui/hearthPanel.ts`), see §5/§10a.
-- ~~Hearth never actually ticked during play.~~ **RESOLVED** — found
-  and fixed: `tickHearth` was fully built/tested but nothing in
-  `main.ts` ever called it. A real `setInterval` game-tick loop now
-  drives both `tickHearth` and Narag-Bund's hauling, every 1s.
-- ~~Contextual UI panel pattern undecided.~~ **RESOLVED** — one
-  reserved panel area, populated by proximity to known interactive
-  objects, collapses to empty otherwise. Confirmed pattern for future
-  discoverable UI sections.

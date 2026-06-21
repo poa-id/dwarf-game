@@ -52,18 +52,39 @@ Conversation length, not file size, is the main cost driver for an
 ongoing chat with Claude - every prior message stays "in the room"
 for the rest of that thread. The fix is starting fresh conversations
 periodically (e.g. after a milestone/commit lands cleanly) rather than
-extending one thread indefinitely. Nothing is lost by doing this - the
-code, commits, and these docs ARE the persistent memory; a new
-conversation just needs pointing at them.
+extending one thread indefinitely.
+
+**IMPORTANT - this actually requires a real GitHub repo, not just this
+file existing.** Each conversation with Claude runs in its own fresh,
+disposable sandbox - nothing on disk persists between conversations.
+A previous version of this doc wrongly implied "the repo is just
+there" for a fresh session to read, which sent a new conversation
+looking for a `dwarf-game/` folder that didn't exist in its container.
+The fix: this project's history is pushed to a real GitHub repo
+(persists outside any one conversation), and a fresh Claude clones it
+at the start of each new session - `git clone` works from Claude's
+sandbox with zero credentials needed for a public repo.
+
+**Repo URL: `https://github.com/REPLACE_WITH_ACTUAL_URL/dwarf-game.git`**
+(fill this in once the repo is created - see the project owner if this
+still says REPLACE_WITH_ACTUAL_URL, the repo may not be pushed yet)
 
 **Paste this as the opening message of a new conversation:**
 
 > This is an ongoing project: a dwarf-themed idle/RPG game called "The
-> Hearth & The Deep." Read DESIGN.md at the repo root first (it's a
-> short index), then docs/OPEN_QUESTIONS.md to see what's
+> Hearth & The Deep." Clone https://github.com/REPLACE_WITH_ACTUAL_URL/dwarf-game.git
+> into your working directory first. Then read DESIGN.md at the repo
+> root (it's a short index), then docs/OPEN_QUESTIONS.md to see what's
 > unresolved/in-progress. Only read docs/LORE.md or docs/MECHANICS.md
 > if the task actually needs that depth. Once you've oriented, ask me
 > what I want to work on - don't start building yet.
+
+**Workflow for ending a session that made real progress:** commit
+locally (already standard practice in this project), then `git push`
+to the GitHub remote before the conversation ends - a local-only
+commit inside that conversation's sandbox is just as lost as an
+unzipped file once the session closes. Pushing is what actually
+survives.
 
 **Standing instruction for Claude, every session, not just the first:**
 keep DESIGN.md/docs/ current as part of doing the work, not as a
@@ -84,4 +105,7 @@ separate step that has to be remembered or asked for. Concretely:
   needs to know, it belongs in the same commit as the code change -
   docs and code drifting apart is exactly the failure mode this
   structure exists to prevent.
+- **Push to the GitHub remote before the conversation ends**, not just
+  commit locally - see above, this is the step that actually makes
+  the next session's clone work.
 
