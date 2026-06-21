@@ -44,6 +44,9 @@ export function createFreshVessel(): VesselState {
 export function createInitialWorld(now: number): WorldState {
   return {
     forgeTier: 0,
+    hearthTier: 0,
+    fuelReserve: {},
+    companion: { befriended: false, lastHaulAt: now },
     unlockedMineDepth: 0,
     hearth: createInitialHearth(now),
     insightBanked: 0,

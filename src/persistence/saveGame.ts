@@ -45,6 +45,11 @@ function backfillMissingFields(state: any): any {
     if (state.world.litTorches === undefined) state.world.litTorches = {};
     if (state.world.veinDepletion === undefined) state.world.veinDepletion = {};
     if (state.world.woodDepletion === undefined) state.world.woodDepletion = {};
+    if (state.world.hearthTier === undefined) state.world.hearthTier = 0;
+    if (state.world.fuelReserve === undefined) state.world.fuelReserve = {};
+    if (state.world.companion === undefined) {
+      state.world.companion = { befriended: false, lastHaulAt: Date.now() };
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

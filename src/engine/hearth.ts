@@ -1,5 +1,5 @@
 import type { HearthState, ResourceBag, MaterialId } from "./types";
-import { getMaterialAmount, materialDef } from "./types";
+import { getMaterialAmount, deductMaterials, addMaterial, materialDef } from "./types";
 import { colorStageForLifetimeFuel } from "./colorStages";
 
 /**
@@ -32,6 +32,111 @@ export function totalHearthFuelValue(inventory: ResourceBag): number {
     const heat = materialDef(materialId).heatValue ?? 1;
     return total + amount * heat;
   }, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Stoking - the EARLY, manual way to feed the Hearth, and ALSO the
+// permanent way to bank fuel for later even once automation exists
+// (per the project owner: manual stoking always works, it's a
+// different action from automation, not superseded by it). Two
+// distinct targets:
+//
+// - stokeFireDirectly: burns material immediately, adds straight to
+//   lifetimeFuel/colorStage progress right now.
+// - stokeReserve: moves material into WorldState.fuelReserve instead -
+//   banked for later, either for the player to draw on by choice, or
+//   for Narag-Bund (once befriended) to find already waiting.
+// ---------------------------------------------------------------------------
+
+export interface StokeFireResult {
+  hearth: HearthState;
+  inventory: ResourceBag;
+  fuelAdded: number;
+  colorStageIncreased: boolean;
+}
+
+/**
+ * Stoke the Hearth's FIRE directly with a specific amount of a specific
+ * fuel material - immediate progress, consumed from personal inventory.
+ * Pure function - throws if the material isn't a recognized hearth
+ * fuel, or if the player doesn't have enough of it. The caller is
+ * responsible for offering only valid (affordable, real-fuel) choices
+ * in the UI - this is a defensive invariant, not UX, same pattern as
+ * the rest of the engine.
+ */
+export function stokeFireDirectly(
+  hearth: HearthState,
+  inventory: ResourceBag,
+  materialId: MaterialId,
+  amount: number,
+  now: number
+): StokeFireResult {
+  if (!HEARTH_FUEL_MATERIALS.includes(materialId)) {
+    throw new Error(`${materialId} cannot fuel the Hearth`);
+  }
+  if (amount <= 0) {
+    throw new Error(`Stoke amount must be positive, got ${amount}`);
+  }
+  const held = getMaterialAmount(inventory, materialId);
+  if (held < amount) {
+    throw new Error(`Not enough ${materialId} to stoke: have ${held}, need ${amount}`);
+  }
+
+  const heat = materialDef(materialId).heatValue ?? 1;
+  const fuelAdded = amount * heat;
+
+  const newLifetimeFuel = hearth.lifetimeFuel + fuelAdded;
+  const newColorStage = colorStageForLifetimeFuel(newLifetimeFuel).stage;
+
+  const newHearth: HearthState = {
+    fuel: hearth.fuel + fuelAdded,
+    lifetimeFuel: newLifetimeFuel,
+    colorStage: newColorStage,
+    lastUpdated: now, // stoking also "counts" as tending - resets the tick clock so a subsequent tickHearth doesn't double-count this moment
+  };
+
+  const newInventory = deductMaterials(inventory, { [materialId]: amount });
+
+  return {
+    hearth: newHearth,
+    inventory: newInventory,
+    fuelAdded,
+    colorStageIncreased: newColorStage > hearth.colorStage,
+  };
+}
+
+export interface StokeReserveResult {
+  inventory: ResourceBag;
+  fuelReserve: ResourceBag;
+}
+
+/**
+ * Move material from personal inventory into the Hearth's fuel
+ * Reserve - banking it, not burning it yet. Throws under the same
+ * conditions as stokeFireDirectly (unrecognized material, insufficient
+ * held amount).
+ */
+export function stokeReserve(
+  inventory: ResourceBag,
+  fuelReserve: ResourceBag,
+  materialId: MaterialId,
+  amount: number
+): StokeReserveResult {
+  if (!HEARTH_FUEL_MATERIALS.includes(materialId)) {
+    throw new Error(`${materialId} cannot fuel the Hearth`);
+  }
+  if (amount <= 0) {
+    throw new Error(`Stoke amount must be positive, got ${amount}`);
+  }
+  const held = getMaterialAmount(inventory, materialId);
+  if (held < amount) {
+    throw new Error(`Not enough ${materialId} to bank: have ${held}, need ${amount}`);
+  }
+
+  return {
+    inventory: deductMaterials(inventory, { [materialId]: amount }),
+    fuelReserve: addMaterial(fuelReserve, materialId, amount),
+  };
 }
 
 /**
@@ -67,11 +172,11 @@ export interface HearthTickResult {
  *
  * Fuel must be available in `bankedFuelAvailable` for absorption to
  * happen — the Hearth cannot tend itself out of nothing. As of the
- * material-typed resource system, this is typically the dwarf's coal
- * (or a later, purer fuel) holdings - mined directly, not a smithing
- * byproduct. The caller decides which material(s) count and how much
- * is "banked" for the Hearth vs. held back for Smithing's own needs;
- * this function only cares about the resulting number.
+ * fuel-Reserve system, this is specifically `totalHearthFuelValue(world.
+ * fuelReserve)` — the Hearth's OWN stockpile, never the dwarf's personal
+ * inventory directly. Only called at all once `isAutoTendingUnlocked`
+ * is true (hearthTier >= 1) - before that, stokeFireDirectly is the
+ * entire mechanic, by design.
  */
 export function tickHearth(
   hearth: HearthState,
@@ -102,11 +207,172 @@ export function tickHearth(
   };
 }
 
+/**
+ * Given a fuel VALUE that's been absorbed (e.g. tickHearth's
+ * fuelAbsorbed), deduct the equivalent in actual materials from the
+ * Reserve. Burns the highest-heat fuel FIRST (coal before wood) - this
+ * is an arbitrary but reasonable choice (burn the efficient fuel while
+ * it lasts, fall back to weaker fuel once it runs out) rather than a
+ * proportional blend, which would be harder to reason about and not
+ * obviously better. Returns the updated reserve; if the reserve didn't
+ * actually have enough material to cover the requested value (a
+ * mismatch with what totalHearthFuelValue reported - shouldn't happen
+ * if called correctly, but defensively handled), deducts as much as
+ * it can rather than going negative.
+ */
+export function deductFuelValueFromReserve(
+  fuelReserve: ResourceBag,
+  valueToDeduct: number
+): ResourceBag {
+  let remaining = valueToDeduct;
+  let updated = fuelReserve;
+
+  // Sort by heatValue descending so we burn through the best fuel first.
+  const sortedMaterials = [...HEARTH_FUEL_MATERIALS].sort((a, b) => {
+    return (materialDef(b).heatValue ?? 1) - (materialDef(a).heatValue ?? 1);
+  });
+
+  for (const materialId of sortedMaterials) {
+    if (remaining <= 0) break;
+    const held = getMaterialAmount(updated, materialId);
+    if (held <= 0) continue;
+
+    const heat = materialDef(materialId).heatValue ?? 1;
+    const unitsNeeded = remaining / heat;
+    const unitsToDeduct = Math.min(held, unitsNeeded);
+
+    updated = deductMaterials(updated, { [materialId]: unitsToDeduct });
+    remaining -= unitsToDeduct * heat;
+  }
+
+  return updated;
+}
+
 export function createInitialHearth(now: number): HearthState {
   return {
     fuel: 0,
     lifetimeFuel: 0,
     colorStage: 0,
     lastUpdated: now,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Hearth upgrades - Insight-funded, World-persistent, like FORGE_UPGRADES
+// in smithing.ts but philosophically distinct: these are upgrades to the
+// MOUNTAIN ITSELF (per DESIGN.md - the Hearth secretly IS the mountain),
+// mythic/passive/global rather than the Forge's practical/active/
+// personal tools-and-yields track.
+//
+// Tier 1, "Friend of Burden," is the moment the dwarf befriends
+// Narag-Bund ("black head" in the dwarves' secret tongue) - a coal-
+// beetle hauling-beast found in the dark, not built or player-named.
+// This is the gate for BOTH tickHearth's passive continuous draw AND
+// Narag-Bund's own hauling (see haulFuelToReserve below) - before this
+// tier, manual stoking is the entire mechanic, by design.
+// ---------------------------------------------------------------------------
+
+export interface HearthUpgrade {
+  tier: number;
+  insightCost: number;
+  name: string;
+  description: string;
+}
+
+export const HEARTH_UPGRADES: HearthUpgrade[] = [
+  {
+    tier: 1,
+    insightCost: 30,
+    name: "Friend of Burden",
+    description: "Narag-Bund - found in the dark, coal-backed, willing to carry what you can't.",
+  },
+  {
+    tier: 2,
+    insightCost: 150,
+    name: "Deepened Hearth",
+    description: "The hearth burns fuel more efficiently - less is lost to the dark.",
+  },
+];
+
+export function nextHearthUpgrade(currentTier: number): HearthUpgrade | null {
+  return HEARTH_UPGRADES.find((u) => u.tier === currentTier + 1) ?? null;
+}
+
+export function canAffordHearthUpgrade(insightBanked: number, currentTier: number): boolean {
+  const next = nextHearthUpgrade(currentTier);
+  if (!next) return false;
+  return insightBanked >= next.insightCost;
+}
+
+/** Whether tickHearth's passive continuous draw should run at all - false until Friend of Burden (tier 1) is bought. */
+export function isAutoTendingUnlocked(hearthTier: number): boolean {
+  return hearthTier >= 1;
+}
+
+// ---------------------------------------------------------------------------
+// Narag-Bund's hauling - real-time interval pacing (not tied to player
+// actions), feels like a creature on his own schedule rather than a
+// mechanical multiplier. He moves a FIXED AMOUNT of whichever fuel
+// material the player currently holds most of, every HAUL_INTERVAL_MS,
+// from personal inventory into the Reserve. He only ever hauls
+// materials the player has ALREADY discovered (i.e. that appear in
+// inventory at all) - he shares the dwarf's knowledge, not an
+// outsider's.
+// ---------------------------------------------------------------------------
+
+export const HAUL_INTERVAL_MS = 10_000;
+export const HAUL_AMOUNT_PER_TRIP = 1;
+
+export interface HaulResult {
+  inventory: ResourceBag;
+  fuelReserve: ResourceBag;
+  lastHaulAt: number;
+  hauled: boolean; // false if not enough time has passed yet, or the dwarf carries no fuel for him to find
+}
+
+/**
+ * Advance Narag-Bund's hauling by elapsed real time. Pure function,
+ * same offline-catchup-friendly shape as tickHearth - safe to call with
+ * a large time gap (a closed tab) without it doing dozens of individual
+ * trips; it computes how many trips elapsed and applies them in one
+ * step, capped by what the dwarf actually carries.
+ */
+export function advanceCompanionHauling(
+  inventory: ResourceBag,
+  fuelReserve: ResourceBag,
+  lastHaulAt: number,
+  now: number
+): HaulResult {
+  const elapsedMs = Math.max(0, now - lastHaulAt);
+  const tripsElapsed = Math.floor(elapsedMs / HAUL_INTERVAL_MS);
+
+  if (tripsElapsed <= 0) {
+    return { inventory, fuelReserve, lastHaulAt, hauled: false };
+  }
+
+  // Pick whichever fuel material the dwarf currently holds the most of -
+  // Narag-Bund grabs what's abundant, not a fixed preference order.
+  const materialId = HEARTH_FUEL_MATERIALS.reduce<MaterialId | null>((best, candidate) => {
+    const candidateAmount = getMaterialAmount(inventory, candidate);
+    if (candidateAmount <= 0) return best;
+    if (best === null) return candidate;
+    return candidateAmount > getMaterialAmount(inventory, best) ? candidate : best;
+  }, null);
+
+  if (materialId === null) {
+    // Nothing for him to haul this time, but time still passed - advance
+    // the clock anyway so we don't owe a huge backlog of trips once the
+    // player finally has fuel again.
+    return { inventory, fuelReserve, lastHaulAt: lastHaulAt + tripsElapsed * HAUL_INTERVAL_MS, hauled: false };
+  }
+
+  const available = getMaterialAmount(inventory, materialId);
+  const amountToHaul = Math.min(available, tripsElapsed * HAUL_AMOUNT_PER_TRIP);
+
+  return {
+    inventory: deductMaterials(inventory, { [materialId]: amountToHaul }),
+    fuelReserve: addMaterial(fuelReserve, materialId, amountToHaul),
+    lastHaulAt: lastHaulAt + tripsElapsed * HAUL_INTERVAL_MS,
+    hauled: amountToHaul > 0,
   };
 }

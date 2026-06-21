@@ -6,7 +6,7 @@ import { markVisibleCellsExplored } from "./engine/exploration";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "./engine/visibility";
 import type { NarratorTrigger } from "./engine/types";
 import { cellKey, MATERIALS } from "./engine/types";
-import { LIGHT_SOURCES, ORE_VEINS, WOOD_NODE_PLACEMENTS, ZONES } from "./engine/hubMap";
+import { LIGHT_SOURCES, ORE_VEINS, WOOD_NODE_PLACEMENTS, ZONES, HEARTH_SPAWN_POSITION } from "./engine/hubMap";
 import { isNearTorch, repairTorch } from "./engine/torches";
 import {
   attemptMineStrike,
@@ -22,10 +22,19 @@ import {
   isExhausted as isWoodExhausted,
 } from "./engine/woodcraft";
 import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "./engine/smithing";
+import {
+  tickHearth,
+  totalHearthFuelValue,
+  isAutoTendingUnlocked,
+  deductFuelValueFromReserve,
+  advanceCompanionHauling,
+} from "./engine/hearth";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "./engine/xpCurve";
 import { triggerNarration } from "./narration/narrator";
 import { showNarratorToast } from "./narration/toast";
 import { loadGame, saveGame, clearSave } from "./persistence/saveGame";
+import { renderSmithingPanel, performSmith } from "./ui/smithingPanel";
+import { renderHearthPanel, performStoke, performHearthUpgrade } from "./ui/hearthPanel";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -59,6 +68,7 @@ app.innerHTML = `
           <h2>carried</h2>
           <div id="inventory-list"></div>
         </div>
+        <div class="stats-section contextual-panel" id="contextual-panel"></div>
       </div>
     </div>
     <p class="hint" id="zone-hint"></p>
@@ -72,6 +82,7 @@ const canvas = document.querySelector<HTMLCanvasElement>("#game-canvas")!;
 const zoneHint = document.querySelector<HTMLParagraphElement>("#zone-hint")!;
 const actionHint = document.querySelector<HTMLParagraphElement>("#action-hint")!;
 const narratorContainer = document.querySelector<HTMLDivElement>("#narrator-container")!;
+const contextualPanel = document.querySelector<HTMLDivElement>("#contextual-panel")!;
 
 const statEls = {
   mining: document.querySelector<HTMLParagraphElement>("#stat-mining")!,
@@ -243,6 +254,14 @@ function isForgeRepaired(): boolean {
   return state.world.forgeTier >= 1;
 }
 
+function isNearHearth(): boolean {
+  const { position } = state.vessel;
+  return (
+    Math.abs(position.col - HEARTH_SPAWN_POSITION.col) <= 2 &&
+    Math.abs(position.row - HEARTH_SPAWN_POSITION.row) <= 2
+  );
+}
+
 function updateActionHint(): void {
   const torch = nearestUnrepairedTorch();
   if (torch) {
@@ -301,6 +320,54 @@ function isSolidAt(col: number, row: number): boolean {
   );
 }
 
+/**
+ * Decides which contextual panel (if any) applies given the dwarf's
+ * current position, and renders it into the reserved panel space.
+ * Forge takes priority over Hearth if somehow both ranges overlapped
+ * (they don't, given the map layout, but the priority order is
+ * explicit rather than accidental). Shows nothing - panel collapses
+ * to empty - when neither is nearby, per the "reserved space, not a
+ * popup" UI philosophy: the layout never jumps, the panel area is
+ * just sometimes empty.
+ */
+function updateContextualPanel(): void {
+  if (isNearForge() && isForgeRepaired()) {
+    renderSmithingPanel(state, contextualPanel, (recipe) => {
+      const outcome = performSmith(state, recipe);
+      state = outcome.newState;
+      if (outcome.leveledUp) narrate("level_up");
+      render();
+    });
+    return;
+  }
+
+  if (isNearHearth()) {
+    renderHearthPanel(
+      state,
+      contextualPanel,
+      (materialId, target) => {
+        const outcome = performStoke(state, materialId, target);
+        state = outcome.newState;
+        if (outcome.colorStageIncreased) {
+          narrate(state.narrator.firedOnceTriggers.includes("color_stage_1") ? "color_stage_later" : "color_stage_1");
+        }
+        render();
+      },
+      () => {
+        const wasBefriendedBefore = state.world.companion.befriended;
+        state = performHearthUpgrade(state);
+        if (!wasBefriendedBefore && state.world.companion.befriended) {
+          narrate("companion_befriended");
+        }
+        render();
+      }
+    );
+    return;
+  }
+
+  contextualPanel.innerHTML = "";
+}
+
 function render(): void {
   const { position } = state.vessel;
 
@@ -326,10 +393,72 @@ function render(): void {
   updateZoneHint();
   updateActionHint();
   updateStatsPanel();
+  updateContextualPanel();
   persist();
 }
 
 render();
+
+/**
+ * The game's only real-time loop. Runs every TICK_INTERVAL_MS,
+ * independent of player input - this is what makes auto-tending and
+ * Narag-Bund's hauling feel like things happening on their OWN
+ * schedule, not reactions to keypresses. Both tickHearth and
+ * advanceCompanionHauling are individually gated (isAutoTendingUnlocked,
+ * companion.befriended) and both are safe to call with large elapsed
+ * gaps - same offline-catchup-friendly design as everything else in
+ * the engine, so this loop doesn't need special handling for "the tab
+ * was in the background" vs "running normally."
+ */
+const TICK_INTERVAL_MS = 1000;
+
+function gameTick(): void {
+  let changed = false;
+  const now = Date.now();
+
+  if (isAutoTendingUnlocked(state.world.hearthTier)) {
+    const fuelAvailable = totalHearthFuelValue(state.world.fuelReserve);
+    const result = tickHearth(state.world.hearth, now, fuelAvailable);
+    if (result.fuelAbsorbed > 0) {
+      const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
+      state = { ...state, world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve } };
+      changed = true;
+      if (result.colorStageIncreased) {
+        narrate(state.narrator.firedOnceTriggers.includes("color_stage_1") ? "color_stage_later" : "color_stage_1");
+      }
+    } else if (result.hearth.lastUpdated !== state.world.hearth.lastUpdated) {
+      // Time advanced but nothing was absorbed (empty reserve) - still
+      // commit the new lastUpdated so we don't replay this same empty
+      // window again next tick.
+      state = { ...state, world: { ...state.world, hearth: result.hearth } };
+    }
+  }
+
+  if (state.world.companion.befriended) {
+    const haul = advanceCompanionHauling(
+      state.vessel.inventory,
+      state.world.fuelReserve,
+      state.world.companion.lastHaulAt,
+      now
+    );
+    if (haul.lastHaulAt !== state.world.companion.lastHaulAt) {
+      state = {
+        ...state,
+        world: {
+          ...state.world,
+          fuelReserve: haul.fuelReserve,
+          companion: { ...state.world.companion, lastHaulAt: haul.lastHaulAt },
+        },
+        vessel: { ...state.vessel, inventory: haul.inventory },
+      };
+      changed = true;
+    }
+  }
+
+  if (changed) render();
+}
+
+setInterval(gameTick, TICK_INTERVAL_MS);
 
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   w: "up",

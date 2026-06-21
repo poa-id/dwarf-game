@@ -202,11 +202,34 @@ export interface LightSourceDefinition {
 export type LitTorchSet = Record<LightSourceId, true>;
 
 // ---------------------------------------------------------------------------
+// Narag-Bund - "black head" in the dwarves' secret tongue. A coal-beetle
+// hauling-beast, found and befriended (not built, not player-named) in
+// the dark of the mountain. Once befriended (granted by the Hearth's
+// "Friend of Burden" upgrade), he passively hauls a portion of newly-
+// gathered fuel materials into the Hearth's reserve, on his own
+// real-time rhythm - not tied to player actions, a living creature's
+// schedule rather than a mechanical multiplier. He only helps with
+// materials/nodes the player has already discovered themselves; he
+// shares the dwarf's knowledge of the mountain, not an outsider's.
+// ---------------------------------------------------------------------------
+
+export interface CompanionState {
+  /** True once the "Friend of Burden" Hearth upgrade has been bought and Narag-Bund is actively helping. */
+  befriended: boolean;
+  /** Timestamp (ms epoch) of his last haul - needed for real-time interval pacing, same offline-catch-up pattern as the Hearth itself. */
+  lastHaulAt: number;
+}
+
+// ---------------------------------------------------------------------------
 // World state — persists across every rekindling
 // ---------------------------------------------------------------------------
 
 export interface WorldState {
   forgeTier: number;
+  /** Mirrors forgeTier's pattern - tier 0 is "tended by hand only" (manual stoking, see hearth.ts stokeHearth), tier 1+ unlocks passive auto-tending (tickHearth's continuous draw) and beyond that, real Hearth upgrades. Unlike the Forge, there is no "broken/rubble" state to repair first - the Hearth already burns as a bare ember from the start (see DESIGN.md §4), this tier only gates AUTOMATION, not basic function. */
+  hearthTier: number;
+  /** The mountain's own fuel stockpile - distinct from the dwarf's personal inventory. The player can manually stoke material INTO this reserve (banking it for later/for Narag-Bund) as an alternative to stoking the fire directly. Once Narag-Bund is befriended (hearthTier >= 1), he hauls a portion of newly-gathered fuel here automatically. The Hearth's passive tick draws from THIS pool, never directly from personal inventory. */
+  fuelReserve: ResourceBag;
   unlockedMineDepth: number;
   hearth: HearthState;
   insightBanked: number;
@@ -221,6 +244,8 @@ export interface WorldState {
   veinDepletion: Record<string, { totalYielded: number }>;
   /** Same idea as veinDepletion, but for wood node placements. */
   woodDepletion: Record<string, { totalYielded: number }>;
+  /** Narag-Bund's own state - see CompanionState above. */
+  companion: CompanionState;
 }
 
 // ---------------------------------------------------------------------------
@@ -252,7 +277,8 @@ export type NarratorTrigger =
   | "color_stage_later" // any color stage beyond the first
   | "torch_repaired"
   | "area_revealed" // stepping into a previously-unexplored area
-  | "stranger_arrival";
+  | "stranger_arrival"
+  | "companion_befriended"; // Narag-Bund - the first and only thing in this world that chooses to stay
 
 export interface NarratorState {
   lastShownByTrigger: Partial<Record<NarratorTrigger, string>>;

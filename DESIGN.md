@@ -166,12 +166,30 @@ which was the old design — explicitly removed). Purer, rarer fuels are
 planned for later, with higher `heatValue`, unlocking recipes a weak fire
 can't touch ("super-heat metals and gems").
 
-**Coal allocation (Smithing vs. Hearthkeeping):** both systems draw from
-the same shared coal pool. Resolved in principle — initially an active
-"stoke the hearth" spend action (not yet built); a later Hearth upgrade
-unlocks a passive %-allocation slider. The Hearth can ALSO burn wood
-(weighted lower than coal via heatValue), giving it fuel flexibility the
-Forge doesn't have.
+**Coal/wood allocation (Smithing vs. Hearthkeeping) — RESOLVED AND
+BUILT:** the Hearth has its OWN fuel stockpile, `WorldState.fuelReserve`
+- a separate `ResourceBag`, distinct from the dwarf's personal
+inventory (which Smithing draws from directly). The player has two
+ways to feed the Hearth, both always available regardless of upgrades:
+- **Stoke the fire directly** (`stokeFireDirectly`) - burns material
+  from personal inventory immediately, instant lifetimeFuel/colorStage
+  progress.
+- **Bank in the reserve** (`stokeReserve`) - moves material from
+  personal inventory into `fuelReserve`, saved for later (either for
+  the player to draw on by choice, or for Narag-Bund to find waiting).
+
+`tickHearth`'s passive continuous draw (only active once
+`isAutoTendingUnlocked`, hearthTier >= 1) consumes ONLY from
+`fuelReserve`, never personal inventory directly -
+`deductFuelValueFromReserve` converts an absorbed fuel-VALUE back into
+actual material deductions, burning the highest-heat fuel (coal) first,
+falling back to wood once coal runs out.
+
+This means Smithing and Hearthkeeping never actually compete for the
+same held materials in real time - Smithing always has full access to
+whatever's in personal inventory; the Hearth only ever touches what's
+been deliberately set aside for it. See §10a for Narag-Bund, who
+automates the "setting aside" step once befriended.
 
 **Forge repair vs. Forge upgrades - a real split, not just naming:**
 - **Tier 0→1 is a REPAIR**, not an upgrade - the forge starts broken
@@ -186,6 +204,16 @@ Forge doesn't have.
 - The **Forge Room itself is always reachable** (not zone-gated) - only
   the forge OBJECT inside it starts broken. This matches the rubble
   philosophy in §6: walk in, see what's broken, gather materials, fix it.
+
+**Hearth upgrades (`HEARTH_UPGRADES` in hearth.ts) - built, real
+content now, not just placeholder tiers:**
+- **Tier 1, "Friend of Burden" (30 Insight):** befriends Narag-Bund
+  (§10a) AND unlocks `tickHearth`'s passive continuous draw. Before
+  this tier, the Hearth does NOTHING passively - manual stoking is the
+  entire mechanic, by deliberate design choice.
+- **Tier 2, "Deepened Hearth" (150 Insight):** the hearth burns fuel
+  more efficiently (described in content, not yet mechanically wired
+  to an actual efficiency multiplier - flagged in §11).
 
 ## 6. The Hub Map
 
@@ -288,38 +316,72 @@ narrating the player's actions back to them. This is the primary
 ## 10. NPCs / Other Characters
 
 **Decided model:** rare wandering strangers who can offer concrete base
-improvements (trade, lore, etc.), then leave. NOT a roster, NOT
-recurring named companions (that was considered and not chosen). Most
-"social" content is actually the Narrator (see §9), not NPC dialogue —
-NPCs are the rare exception to an otherwise solitary game.
+improvements (trade, lore, etc.), then leave. NOT a roster, NOT a
+managed population. Most "social" content is actually the Narrator
+(see §9), not NPC dialogue — strangers are the rare exception to an
+otherwise solitary game.
 
-**STATUS: not yet designed mechanically or implemented.** Only the
-narrator's `stranger_arrival` trigger exists as a placeholder hook.
+**CORRECTION:** an earlier draft of this doc said recurring named
+companions were "considered and not chosen" - that's now superseded.
+See §10a below: Narag-Bund is exactly that, a deliberate, considered
+exception to the lone-dwarf premise, not a contradiction of it.
+
+**STATUS: wandering strangers not yet designed mechanically or
+implemented.** Only the narrator's `stranger_arrival` trigger exists as
+a placeholder hook.
+
+## 10a. Narag-Bund — the Companion
+
+A coal-beetle hauling-beast, found and befriended in the dark of the
+mountain - NOT built (he's not a construct/automaton), NOT player-named
+(he has a fixed lore name the player discovers). "Narag-Bund" is plain
+ASCII (not "Nar\u00e2g-Bund") deliberately - the special character risked
+encoding issues across saves/fonts/systems.
+
+This is a genuine, considered exception to the game's lone-dwarf
+premise: the first and only thing in the world that chooses to stay.
+Treated with narrative weight accordingly - `companion_befriended` is a
+ONE-TIME narrator trigger (never replays, same category as
+`wake_first_ever`), and the line is deliberately understated rather
+than sentimental ("he doesn't tell it to leave," not "finally, he's not
+alone") to stay consistent with the established weary/mythic voice.
+
+**Mechanically**, befriending him is the effect of the Hearth's tier-1
+upgrade, "Friend of Burden" (30 Insight) - NOT a separate creature-taming
+mechanic. Once befriended:
+- He hauls a FIXED AMOUNT (`HAUL_AMOUNT_PER_TRIP`, currently 1) of
+  whichever fuel material (coal or wood) the player currently holds in
+  greater quantity, every `HAUL_INTERVAL_MS` (currently 10s) of real
+  time, from personal inventory into the Hearth's `fuelReserve`.
+- He only ever hauls materials that already appear in the player's
+  inventory - he shares the dwarf's discoveries, not an outsider's
+  omniscience. If the player carries nothing haulable, time still
+  advances (no backlog accumulates) but nothing is moved.
+- Pacing uses the same offline-catch-up-safe pattern as `tickHearth` -
+  `advanceCompanionHauling` computes elapsed whole intervals and
+  applies them in one step, safe to call after a closed tab.
+- **Deliberately abstracted, no visible sprite on the map** - a felt
+  presence (fuel quietly arriving) rather than a seen one. This was a
+  scope choice (no new art needed) that also fit the tone - something
+  unseen attending to you in the dark.
 
 ## 11. Open Questions / Explicit Gaps
 
 Tracked here so they don't get silently forgotten. Remove from this list
 once resolved (and reflect the resolution in the relevant section above).
 
-- **Coal/wood contention (§5) — RESOLVED IN PRINCIPLE, partially built:**
-  the Hearth can now burn EITHER coal or wood (weighted by heat value,
-  see `totalHearthFuelValue`), and Smithing draws from the same shared
-  pool. The "stoke the hearth" active-spend UI action and the later
-  passive %-allocation-slider Hearth upgrade are STILL NOT BUILT - only
-  the underlying fuel-value math exists so far, not the player-facing
-  mechanic for actually feeding the Hearth deliberately.
 - **Idle-game bulk action multiplier (agreed, not yet built):** any
-  repeatable spend/produce action should support a shared x1/x5/x10/MAX
-  multiplier selector (Cookie Clicker convention) - needed once
-  quantities scale into the thousands+. Should be ONE reusable
-  mechanic, not duplicated per-feature. Still not built.
-- **Hearth vs Forge upgrade trees (philosophy agreed, content mostly
-  unwritten):** the Hearth secretly IS the mountain - tending it heals
-  the mountain itself. Hearth upgrades = mythic/passive/global tree.
-  Forge/Smithing upgrades = practical/active/personal tree. The forge's
-  tier 0→1 transition is now a MATERIALS REPAIR (wood + copper ore, see
-  §4/§12), not an Insight purchase - tiers 2+ remain Insight-funded
-  (`FORGE_UPGRADES`). No real Hearth upgrade list exists yet at all.
+  repeatable spend/produce action (stoking, smithing) should support a
+  shared x1/x5/x10/MAX multiplier selector (Cookie Clicker convention) -
+  needed once quantities scale into the thousands+. Should be ONE
+  reusable mechanic, not duplicated per-feature. Still not built -
+  current stoke/smith actions are all fixed at quantity 1 per click.
+- **"Deepened Hearth" (tier 2) has no actual mechanical effect yet:**
+  its description promises fuel efficiency, but nothing in `tickHearth`
+  or `deductFuelValueFromReserve` currently reads `hearthTier` to apply
+  any multiplier - buying it right now would cost 150 Insight for
+  flavor text only. Needs either a real efficiency calculation or
+  honest removal until one exists.
 - **Mine Entrance UI (shape agreed, not built):** interacting with the
   Mine Entrance zone should open a dedicated panel - depth-gated nodes,
   cart speed + auto-collection upgrades. Still not built. The Tunnel
@@ -334,29 +396,43 @@ once resolved (and reflect the resolution in the relevant section above).
   irregular CAVE SHAPE (vs. the current rectangular zone bounds) is
   still not implemented - this was specifically about wall geometry,
   not the rubble-vs-built rendering, which is now real for the forge.
-- **NPC/stranger mechanics (§10):** model agreed, nothing built.
+- **Wandering strangers (§10):** model agreed, nothing built - distinct
+  from Narag-Bund (§10a), which IS built.
 - **Torch repair cost balance**: current costs (3-5 copper_ingot) are
   placeholder guesses, unplaytested against real ingot production rate.
-  NOTE: this previously created a circular dependency (torches needed
-  ingots, ingots needed the forge, the forge room was gated behind
-  forge tier) - resolved by making forge_room always-reachable (§6) so
-  the materials-repair path doesn't require anything zone-gated first.
 - **Woodcraft has no narrator voice yet:** `handleWoodGather` in
   `main.ts` deliberately narrates nothing for routine gathers (Mining's
   "the pick finds rock" lines would be wrong for cutting wood) - needs
   its own line pool once Woodcraft's narrative identity is decided.
+- **Repeat-key guard doesn't cover the new contextual panel clicks:**
+  the `e.repeat` fix (movement/main.ts) only applies to keyboard
+  shortcuts (F/E/R) - the Smithing/Hearth panel buttons are mouse
+  clicks with no analogous "don't double-fire" guard. Probably fine
+  (mouse click-spam isn't the same failure mode as a held key) but
+  worth a deliberate look once played with a mouse for real.
+- **Narag-Bund's haul interval/amount are unplaytested guesses:**
+  `HAUL_INTERVAL_MS=10000`, `HAUL_AMOUNT_PER_TRIP=1` were picked to
+  "feel like a creature on its own schedule" per the design discussion,
+  but have not been tuned against real play.
 
 ### Resolved this session (kept for history, remove once stale)
 - ~~Save/load: does not exist yet.~~ **RESOLVED** — see §12.
 - ~~No forge interaction in `main.ts`.~~ **RESOLVED** — forge starts
   broken (`forge_broken`), repaired via wood+copper ore (R key near
-  the forge), then usable. Smithing recipes themselves (turning ore
-  into ingots) still have no dedicated UI key/action yet, though the
-  engine logic (`attemptSmith`) is fully tested - this is now the
-  more precise remaining gap, distinct from "no forge access at all."
-- ~~Mine Entrance has no placed nodes~~ — unchanged/still true, kept
-  bundled with the Mine Entrance UI item above rather than tracked
-  separately.
+  the forge), then usable.
+- ~~Smithing has no UI.~~ **RESOLVED** — contextual recipe panel
+  (`ui/smithingPanel.ts`) appears when standing near a repaired forge.
+- ~~No way to actually feed the Hearth deliberately.~~ **RESOLVED** —
+  dual stoke targets (fire directly / reserve), contextual Hearth panel
+  (`ui/hearthPanel.ts`), see §5/§10a.
+- ~~Hearth never actually ticked during play.~~ **RESOLVED** — found
+  and fixed: `tickHearth` was fully built/tested but nothing in
+  `main.ts` ever called it. A real `setInterval` game-tick loop now
+  drives both `tickHearth` and Narag-Bund's hauling, every 1s.
+- ~~Contextual UI panel pattern undecided.~~ **RESOLVED** — one
+  reserved panel area, populated by proximity to known interactive
+  objects, collapses to empty otherwise. Confirmed pattern for future
+  discoverable UI sections.
 
 ## 12. Persistence
 

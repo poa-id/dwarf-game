@@ -9,6 +9,9 @@ function makeStateWithProgress(): GameState {
     saveVersion: 1,
     world: {
       forgeTier: 2,
+      hearthTier: 1,
+      fuelReserve: { coal: 5 },
+      companion: { befriended: true, lastHaulAt: 0 },
       unlockedMineDepth: 1,
       hearth: createInitialHearth(0),
       insightBanked: 100,
@@ -93,6 +96,13 @@ describe("rekindle", () => {
     };
     const { newState } = rekindle(stateWithTorch);
     expect(newState.world.litTorches).toEqual({ torch_corridor_forge: true });
+  });
+
+  it("fuelReserve and companion (World state) survive rekindling untouched - Narag-Bund doesn't forget the next dwarf either", () => {
+    const state = makeStateWithProgress();
+    const { newState } = rekindle(state);
+    expect(newState.world.fuelReserve).toEqual(state.world.fuelReserve);
+    expect(newState.world.companion).toEqual(state.world.companion);
   });
 
   it("narrator state survives rekindling untouched - one-time lines must never replay across dwarves", () => {

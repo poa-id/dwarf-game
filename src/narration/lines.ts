@@ -48,4 +48,8 @@ export const NARRATOR_LINES: Record<NarratorTrigger, string[]> = {
   stranger_arrival: [
     "Someone else's footsteps. He'd almost forgotten that sound belonged to anyone but him.",
   ],
+
+  companion_befriended: [
+    "Something small and coal-backed follows him now, uninvited and unbothered by that. He doesn't tell it to leave.",
+  ],
 };

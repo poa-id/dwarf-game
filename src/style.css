@@ -191,3 +191,52 @@ canvas {
   color: #1a1a1a;
   border-color: #ff8c3a;
 }
+
+.contextual-panel {
+  min-height: 60px;
+}
+
+.contextual-panel:empty {
+  display: none;
+}
+
+.recipe-row {
+  padding: 6px 0;
+  border-bottom: 1px solid #1a1a1a;
+  cursor: pointer;
+}
+
+.recipe-row:last-of-type {
+  border-bottom: none;
+}
+
+.recipe-row:hover {
+  background: #161616;
+}
+
+.recipe-name {
+  color: #ddd;
+  font-size: 0.78rem;
+}
+
+.recipe-status {
+  color: #888;
+  font-size: 0.68rem;
+}
+
+.recipe-row-disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.recipe-row-disabled:hover {
+  background: none;
+}
+
+.reserve-status {
+  margin: 8px 0 0 0;
+  font-size: 0.68rem;
+  color: #777;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 6px;
+}

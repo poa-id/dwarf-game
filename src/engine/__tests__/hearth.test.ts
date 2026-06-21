@@ -4,8 +4,19 @@ import {
   createInitialHearth,
   FUEL_ABSORPTION_RATE_PER_SEC,
   MAX_OFFLINE_CATCHUP_MS,
+  stokeFireDirectly,
+  stokeReserve,
+  deductFuelValueFromReserve,
+  advanceCompanionHauling,
+  HAUL_INTERVAL_MS,
+  HAUL_AMOUNT_PER_TRIP,
+  nextHearthUpgrade,
+  canAffordHearthUpgrade,
+  isAutoTendingUnlocked,
+  HEARTH_UPGRADES,
 } from "../hearth";
 import { COLOR_STAGES } from "../colorStages";
+import type { ResourceBag } from "../types";
 
 describe("tickHearth - basic absorption", () => {
   it("absorbs nothing when no time has passed", () => {
@@ -92,5 +103,202 @@ describe("tickHearth - color stage progression", () => {
       expect(result.hearth.lifetimeFuel).toBeGreaterThanOrEqual(hearth.lifetimeFuel);
       hearth = result.hearth;
     }
+  });
+});
+
+describe("stokeFireDirectly", () => {
+  it("throws for a material that isn't a recognized hearth fuel", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { copper_ore: 10 };
+    expect(() => stokeFireDirectly(hearth, inv, "copper_ore", 1, 1000)).toThrow();
+  });
+
+  it("throws if amount is not positive", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { coal: 10 };
+    expect(() => stokeFireDirectly(hearth, inv, "coal", 0, 1000)).toThrow();
+  });
+
+  it("throws if there isn't enough of the material held", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { coal: 2 };
+    expect(() => stokeFireDirectly(hearth, inv, "coal", 5, 1000)).toThrow();
+  });
+
+  it("adds fuelAdded weighted by the material's heatValue (coal=10)", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { coal: 5 };
+    const result = stokeFireDirectly(hearth, inv, "coal", 3, 1000);
+    expect(result.fuelAdded).toBe(30); // 3 * 10
+  });
+
+  it("adds fuelAdded weighted by wood's lower heatValue (wood=4)", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { wood: 5 };
+    const result = stokeFireDirectly(hearth, inv, "wood", 3, 1000);
+    expect(result.fuelAdded).toBe(12); // 3 * 4
+  });
+
+  it("deducts exactly the stoked amount from inventory", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { coal: 10 };
+    const result = stokeFireDirectly(hearth, inv, "coal", 4, 1000);
+    expect(result.inventory.coal).toBe(6);
+  });
+
+  it("increases lifetimeFuel and updates lastUpdated to `now`", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { coal: 10 };
+    const result = stokeFireDirectly(hearth, inv, "coal", 2, 5000);
+    expect(result.hearth.lifetimeFuel).toBe(20);
+    expect(result.hearth.lastUpdated).toBe(5000);
+  });
+
+  it("reports colorStageIncreased when stoking crosses a threshold", () => {
+    const hearth = createInitialHearth(0);
+    const threshold = COLOR_STAGES[1].fuelThreshold; // 500
+    const coalNeeded = Math.ceil(threshold / 10); // heatValue 10 per coal
+    const inv: ResourceBag = { coal: coalNeeded };
+    const result = stokeFireDirectly(hearth, inv, "coal", coalNeeded, 1000);
+    expect(result.colorStageIncreased).toBe(true);
+  });
+
+  it("does not mutate the input hearth or inventory (pure function)", () => {
+    const hearth = createInitialHearth(0);
+    const inv: ResourceBag = { coal: 10 };
+    stokeFireDirectly(hearth, inv, "coal", 3, 1000);
+    expect(hearth.lifetimeFuel).toBe(0);
+    expect(inv.coal).toBe(10);
+  });
+});
+
+describe("hearth upgrades", () => {
+  it("nextHearthUpgrade(0) returns tier 1 (Friend of Burden)", () => {
+    expect(nextHearthUpgrade(0)?.name).toBe("Friend of Burden");
+  });
+
+  it("returns null once all upgrades are exhausted", () => {
+    const maxTier = HEARTH_UPGRADES[HEARTH_UPGRADES.length - 1].tier;
+    expect(nextHearthUpgrade(maxTier)).toBeNull();
+  });
+
+  it("canAffordHearthUpgrade respects insight cost for tier 1", () => {
+    expect(canAffordHearthUpgrade(10, 0)).toBe(false); // costs 30
+    expect(canAffordHearthUpgrade(30, 0)).toBe(true);
+  });
+
+  it("isAutoTendingUnlocked is false below tier 1, true at tier 1+", () => {
+    expect(isAutoTendingUnlocked(0)).toBe(false);
+    expect(isAutoTendingUnlocked(1)).toBe(true);
+    expect(isAutoTendingUnlocked(2)).toBe(true);
+  });
+});
+
+describe("stokeReserve", () => {
+  it("moves material from inventory into the reserve, not the fire", () => {
+    const inv: ResourceBag = { coal: 10 };
+    const reserve: ResourceBag = {};
+    const result = stokeReserve(inv, reserve, "coal", 4);
+    expect(result.inventory.coal).toBe(6);
+    expect(result.fuelReserve.coal).toBe(4);
+  });
+
+  it("throws for a non-fuel material", () => {
+    const inv: ResourceBag = { copper_ore: 10 };
+    expect(() => stokeReserve(inv, {}, "copper_ore", 1)).toThrow();
+  });
+
+  it("throws if not enough held", () => {
+    const inv: ResourceBag = { coal: 2 };
+    expect(() => stokeReserve(inv, {}, "coal", 5)).toThrow();
+  });
+
+  it("accumulates correctly across multiple bankings", () => {
+    let inv: ResourceBag = { coal: 10 };
+    let reserve: ResourceBag = {};
+    let result = stokeReserve(inv, reserve, "coal", 3);
+    inv = result.inventory;
+    reserve = result.fuelReserve;
+    result = stokeReserve(inv, reserve, "coal", 2);
+    expect(result.fuelReserve.coal).toBe(5);
+  });
+});
+
+describe("deductFuelValueFromReserve", () => {
+  it("deducts coal (highest heat) before wood when both are present", () => {
+    const reserve: ResourceBag = { coal: 5, wood: 5 }; // coal heat=10, wood heat=4
+    const result = deductFuelValueFromReserve(reserve, 30); // should consume 3 coal (30 value), leave wood untouched
+    expect(result.coal).toBe(2);
+    expect(result.wood).toBe(5);
+  });
+
+  it("falls back to wood once coal runs out", () => {
+    const reserve: ResourceBag = { coal: 2, wood: 5 }; // 2 coal = 20 value
+    const result = deductFuelValueFromReserve(reserve, 30); // needs 10 more value -> 2.5 wood
+    expect(result.coal).toBe(0);
+    expect(result.wood).toBeCloseTo(2.5, 5);
+  });
+
+  it("never goes negative if the reserve has less than requested", () => {
+    const reserve: ResourceBag = { coal: 1 };
+    const result = deductFuelValueFromReserve(reserve, 1000);
+    expect(result.coal).toBe(0);
+  });
+
+  it("does not mutate the input reserve", () => {
+    const reserve: ResourceBag = { coal: 5 };
+    deductFuelValueFromReserve(reserve, 10);
+    expect(reserve.coal).toBe(5);
+  });
+});
+
+describe("advanceCompanionHauling", () => {
+  it("hauls nothing if less than one full interval has elapsed", () => {
+    const inv: ResourceBag = { coal: 10 };
+    const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS - 1);
+    expect(result.hauled).toBe(false);
+    expect(result.inventory).toEqual(inv);
+  });
+
+  it("hauls HAUL_AMOUNT_PER_TRIP once exactly one interval has elapsed", () => {
+    const inv: ResourceBag = { coal: 10 };
+    const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS);
+    expect(result.hauled).toBe(true);
+    expect(result.fuelReserve.coal).toBe(HAUL_AMOUNT_PER_TRIP);
+    expect(result.inventory.coal).toBe(10 - HAUL_AMOUNT_PER_TRIP);
+  });
+
+  it("hauls multiple trips worth if a large time gap elapsed (offline catch-up)", () => {
+    const inv: ResourceBag = { coal: 10 };
+    const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3);
+    expect(result.fuelReserve.coal).toBe(HAUL_AMOUNT_PER_TRIP * 3);
+  });
+
+  it("picks whichever fuel material is currently held in greater quantity", () => {
+    const inv: ResourceBag = { coal: 2, wood: 50 };
+    const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS);
+    expect(result.fuelReserve.wood).toBe(HAUL_AMOUNT_PER_TRIP);
+    expect(result.fuelReserve.coal).toBeUndefined();
+  });
+
+  it("caps hauled amount at what's actually held, even across many elapsed trips", () => {
+    const inv: ResourceBag = { coal: 2 };
+    const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 10); // would want 10 trips worth, only 2 coal exists
+    expect(result.fuelReserve.coal).toBe(2);
+    expect(result.inventory.coal).toBe(0);
+  });
+
+  it("still advances the clock even with nothing to haul, to avoid a backlog once fuel exists again", () => {
+    const result = advanceCompanionHauling({}, {}, 0, HAUL_INTERVAL_MS * 3);
+    expect(result.hauled).toBe(false);
+    expect(result.lastHaulAt).toBe(HAUL_INTERVAL_MS * 3);
+  });
+
+  it("does not mutate inputs", () => {
+    const inv: ResourceBag = { coal: 10 };
+    const reserve: ResourceBag = {};
+    advanceCompanionHauling(inv, reserve, 0, HAUL_INTERVAL_MS);
+    expect(inv.coal).toBe(10);
+    expect(reserve).toEqual({});
   });
 });

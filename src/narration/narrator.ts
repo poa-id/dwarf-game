@@ -58,7 +58,12 @@ export function createInitialNarratorState(): NarratorState {
   return { lastShownByTrigger: {}, firedOnceTriggers: [] };
 }
 
-const ONE_TIME_TRIGGERS: NarratorTrigger[] = ["wake_first_ever", "mine_first_strike", "color_stage_1"];
+const ONE_TIME_TRIGGERS: NarratorTrigger[] = [
+  "wake_first_ever",
+  "mine_first_strike",
+  "color_stage_1",
+  "companion_befriended",
+];
 
 export function hasFiredOnce(state: NarratorState, trigger: NarratorTrigger): boolean {
   return state.firedOnceTriggers.includes(trigger);
