@@ -1,40 +1,11 @@
 import { GridRenderer } from "./render/GridRenderer";
-import { hubCellAt } from "./render/hubContent";
-import { isSolidCellKind } from "./render/palette";
-import { attemptMove, type Direction } from "./engine/movement";
-import { markVisibleCellsExplored } from "./engine/exploration";
-import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "./engine/visibility";
-import type { NarratorTrigger } from "./engine/types";
-import { cellKey, MATERIALS } from "./engine/types";
-import { LIGHT_SOURCES, ORE_VEINS, WOOD_NODE_PLACEMENTS, ZONES, HEARTH_SPAWN_POSITION } from "./engine/hubMap";
-import { isNearTorch, repairTorch } from "./engine/torches";
-import {
-  attemptMineStrike,
-  applyMineResult,
-  ROCK_NODES,
-  createFreshDepletionState,
-  isExhausted as isOreExhausted,
-} from "./engine/mining";
-import {
-  attemptWoodGather,
-  applyWoodGatherResult,
-  WOOD_NODES,
-  isExhausted as isWoodExhausted,
-} from "./engine/woodcraft";
-import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "./engine/smithing";
-import {
-  tickHearth,
-  totalHearthFuelValue,
-  isAutoTendingUnlocked,
-  deductFuelValueFromReserve,
-  advanceCompanionHauling,
-} from "./engine/hearth";
-import { xpIntoCurrentLevel, xpNeededForNextLevel } from "./engine/xpCurve";
-import { triggerNarration } from "./narration/narrator";
-import { showNarratorToast } from "./narration/toast";
-import { loadGame, saveGame, clearSave } from "./persistence/saveGame";
-import { renderSmithingPanel, performSmith } from "./ui/smithingPanel";
-import { renderHearthPanel, performStoke, performHearthUpgrade } from "./ui/hearthPanel";
+import { clearSave } from "./persistence/saveGame";
+import { initGameState } from "./game/gameState";
+import { initRenderRefs, render } from "./game/render";
+import { startGameLoop } from "./game/loop";
+import { handlePlayerMove, KEY_TO_DIRECTION } from "./game/movement";
+import { handleMineStrike, handleWoodGather, handleForgeRepair, handleTorchRepair } from "./game/actions";
+import { nearestOreVein, nearestWoodNode } from "./game/proximity";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -84,567 +55,62 @@ const actionHint = document.querySelector<HTMLParagraphElement>("#action-hint")!
 const narratorContainer = document.querySelector<HTMLDivElement>("#narrator-container")!;
 const contextualPanel = document.querySelector<HTMLDivElement>("#contextual-panel")!;
 
-const statEls = {
-  mining: document.querySelector<HTMLParagraphElement>("#stat-mining")!,
-  smithing: document.querySelector<HTMLParagraphElement>("#stat-smithing")!,
-  hearthkeeping: document.querySelector<HTMLParagraphElement>("#stat-hearthkeeping")!,
-  woodcraft: document.querySelector<HTMLParagraphElement>("#stat-woodcraft")!,
-  barMining: document.querySelector<HTMLDivElement>("#bar-mining")!,
-  barSmithing: document.querySelector<HTMLDivElement>("#bar-smithing")!,
-  barHearthkeeping: document.querySelector<HTMLDivElement>("#bar-hearthkeeping")!,
-  barWoodcraft: document.querySelector<HTMLDivElement>("#bar-woodcraft")!,
-  inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
-};
-
-/**
- * Returns a 0-100 fill percentage for a skill's progress toward its
- * next level. Deliberately the ONLY thing exposed to the UI - never
- * the raw xpIntoCurrentLevel/xpNeededForNextLevel numbers themselves.
- * The player should feel "I'm getting close" without ever seeing an
- * exact XP curve - that opacity is intentional (see DESIGN.md §4).
- */
-function levelProgressPercent(totalXp: number): number {
-  const needed = xpNeededForNextLevel(totalXp);
-  if (needed === 0) return 100; // max level - bar reads full, nothing more to chase
-  const into = xpIntoCurrentLevel(totalXp);
-  return Math.min(100, (into / needed) * 100);
-}
-
-function updateStatsPanel(): void {
-  const { skills, inventory } = state.vessel;
-  statEls.mining.textContent = `Mining ${skills.mining.level}`;
-  statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
-  statEls.hearthkeeping.textContent = `Hearthkeeping ${skills.hearthkeeping.level}`;
-  statEls.woodcraft.textContent = `Woodcraft ${skills.woodcraft.level}`;
-
-  statEls.barMining.style.width = `${levelProgressPercent(skills.mining.xp)}%`;
-  statEls.barSmithing.style.width = `${levelProgressPercent(skills.smithing.xp)}%`;
-  statEls.barHearthkeeping.style.width = `${levelProgressPercent(skills.hearthkeeping.xp)}%`;
-  statEls.barWoodcraft.style.width = `${levelProgressPercent(skills.woodcraft.xp)}%`;
-
-  const heldEntries = Object.entries(inventory).filter(([, amount]) => (amount ?? 0) > 0);
-  if (heldEntries.length === 0) {
-    statEls.inventoryList.innerHTML = `<p class="inventory-empty">nothing yet</p>`;
-    return;
-  }
-
-  statEls.inventoryList.innerHTML = heldEntries
-    .map(([materialId, amount]) => {
-      const def = MATERIALS[materialId];
-      const label = def?.name ?? materialId;
-      return `<p>${label}: ${amount}</p>`;
-    })
-    .join("");
-}
-
 const renderer = new GridRenderer(canvas, {
   viewportCols: 25,
   viewportRows: 17,
   cellSize: 24,
 });
 
-const loadResult = loadGame(Date.now());
-let state = loadResult.state;
+initRenderRefs({
+  renderer,
+  zoneHint,
+  actionHint,
+  contextualPanel,
+  statEls: {
+    mining: document.querySelector<HTMLParagraphElement>("#stat-mining")!,
+    smithing: document.querySelector<HTMLParagraphElement>("#stat-smithing")!,
+    hearthkeeping: document.querySelector<HTMLParagraphElement>("#stat-hearthkeeping")!,
+    woodcraft: document.querySelector<HTMLParagraphElement>("#stat-woodcraft")!,
+    barMining: document.querySelector<HTMLDivElement>("#bar-mining")!,
+    barSmithing: document.querySelector<HTMLDivElement>("#bar-smithing")!,
+    barHearthkeeping: document.querySelector<HTMLDivElement>("#bar-hearthkeeping")!,
+    barWoodcraft: document.querySelector<HTMLDivElement>("#bar-woodcraft")!,
+    inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
+  },
+});
 
-/** Fires a narrator trigger, shows the toast if a line was returned, and persists the updated narrator state. */
-function narrate(trigger: NarratorTrigger): void {
-  const result = triggerNarration(trigger, state.narrator, Math.random(), Math.random());
-  state = { ...state, narrator: result.state };
-  if (result.line) showNarratorToast(narratorContainer, result.line);
-}
-
+const loadResult = initGameState(narratorContainer);
 if (loadResult.discardedIncompatibleSave) {
   actionHint.textContent = "An old save could not be read and was reset.";
 }
 
-if (loadResult.isFreshState) {
-  // True first boot ever - no save existed at all.
-  narrate("wake_first_ever");
-  // Mark the dwarf's starting position explored immediately, so the
-  // very first frame already shows the lit area around him rather
-  // than a single empty render before any movement happens.
-  state = {
-    ...state,
-    world: {
-      ...state.world,
-      exploredCells: markVisibleCellsExplored(state.world.exploredCells, state.vessel.position),
-    },
-  };
-} else {
-  // A save existed - this is a returning player reopening the game,
-  // NOT a rekindling (that's a deliberate in-game action, not "the
-  // page reloaded"). Nothing narrates here; waking after a normal
-  // reload isn't a meaningful enough moment to comment on, and we
-  // don't want wake_rekindled firing every time someone refreshes the
-  // tab - that trigger is reserved for the actual rekindle() action.
-}
-
-function persist(): void {
-  saveGame(state);
-}
-
-function updateZoneHint(): void {
-  const { position } = state.vessel;
-  const zone = zoneContaining(position.col, position.row);
-  zoneHint.textContent = zone ? zone.name : "the dark halls";
-}
-
-function nearestUnrepairedTorch() {
-  const { position } = state.vessel;
-  return LIGHT_SOURCES.find(
-    (t) => !state.world.litTorches[t.id] && isNearTorch(position.col, position.row, t)
-  );
-}
-
-function nearestOreVein() {
-  const { position } = state.vessel;
-  return ORE_VEINS.find((v) => {
-    const inRange =
-      Math.abs(v.position.col - position.col) <= 1 && Math.abs(v.position.row - position.row) <= 1;
-    if (!inRange) return false;
-    const rockNode = ROCK_NODES.find((n) => n.id === v.rockNodeId);
-    if (!rockNode) return false;
-    const depletion = state.world.veinDepletion[v.id] ?? createFreshDepletionState();
-    return !isOreExhausted(rockNode, depletion);
-  });
-}
-
-function nearestAnyVein() {
-  const { position } = state.vessel;
-  return ORE_VEINS.find(
-    (v) => Math.abs(v.position.col - position.col) <= 1 && Math.abs(v.position.row - position.row) <= 1
-  );
-}
-
-function nearestWoodNode() {
-  const { position } = state.vessel;
-  return WOOD_NODE_PLACEMENTS.find((w) => {
-    const inRange =
-      Math.abs(w.position.col - position.col) <= 1 && Math.abs(w.position.row - position.row) <= 1;
-    if (!inRange) return false;
-    const woodNode = WOOD_NODES.find((n) => n.id === w.woodNodeId);
-    if (!woodNode) return false;
-    const depletion = state.world.woodDepletion[w.id] ?? createFreshDepletionState();
-    return !isWoodExhausted(woodNode, depletion);
-  });
-}
-
-function nearestAnyWoodNode() {
-  const { position } = state.vessel;
-  return WOOD_NODE_PLACEMENTS.find(
-    (w) => Math.abs(w.position.col - position.col) <= 1 && Math.abs(w.position.row - position.row) <= 1
-  );
-}
-
-/** The forge room's center, where the broken/working forge sits - used to check proximity for repair. */
-const FORGE_ROOM = ZONES.find((z) => z.id === "forge_room")!;
-const FORGE_CENTER = {
-  col: FORGE_ROOM.bounds.col + Math.floor(FORGE_ROOM.bounds.width / 2),
-  row: FORGE_ROOM.bounds.row + Math.floor(FORGE_ROOM.bounds.height / 2),
-};
-
-function isNearForge(): boolean {
-  const { position } = state.vessel;
-  return (
-    Math.abs(position.col - FORGE_CENTER.col) <= 2 && Math.abs(position.row - FORGE_CENTER.row) <= 2
-  );
-}
-
-function isForgeRepaired(): boolean {
-  return state.world.forgeTier >= 1;
-}
-
-function isNearHearth(): boolean {
-  const { position } = state.vessel;
-  return (
-    Math.abs(position.col - HEARTH_SPAWN_POSITION.col) <= 2 &&
-    Math.abs(position.row - HEARTH_SPAWN_POSITION.row) <= 2
-  );
-}
-
-function updateActionHint(): void {
-  const torch = nearestUnrepairedTorch();
-  if (torch) {
-    const costText = Object.entries(torch.repairCost)
-      .map(([res, amt]) => `${amt} ${res}`)
-      .join(", ");
-    actionHint.textContent = `Press E to repair ${torch.name} (${costText})`;
-    return;
-  }
-
-  if (isNearForge() && !isForgeRepaired()) {
-    const costText = Object.entries(FORGE_REPAIR_COST)
-      .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
-      .join(", ");
-    actionHint.textContent = `Press R to repair the forge (${costText})`;
-    return;
-  }
-
-  const vein = nearestOreVein();
-  if (vein) {
-    actionHint.textContent = "Press F to strike the vein";
-    return;
-  }
-
-  const woodNode = nearestWoodNode();
-  if (woodNode) {
-    actionHint.textContent = "Press F to cut the root tangle";
-    return;
-  }
-
-  const anyVein = nearestAnyVein();
-  if (anyVein) {
-    actionHint.textContent = "This vein is exhausted. Nothing left to take.";
-    return;
-  }
-
-  const anyWoodNode = nearestAnyWoodNode();
-  if (anyWoodNode) {
-    actionHint.textContent = "This root tangle is exhausted. Nothing left to cut.";
-    return;
-  }
-
-  actionHint.textContent = "";
-}
-
-function isSolidAt(col: number, row: number): boolean {
-  return isSolidCellKind(
-    hubCellAt(
-      col,
-      row,
-      state.world.litTorches,
-      state.world.veinDepletion,
-      state.world.woodDepletion,
-      state.world.forgeTier
-    ).kind
-  );
-}
-
-/**
- * Decides which contextual panel (if any) applies given the dwarf's
- * current position, and renders it into the reserved panel space.
- * Forge takes priority over Hearth if somehow both ranges overlapped
- * (they don't, given the map layout, but the priority order is
- * explicit rather than accidental). Shows nothing - panel collapses
- * to empty - when neither is nearby, per the "reserved space, not a
- * popup" UI philosophy: the layout never jumps, the panel area is
- * just sometimes empty.
- */
-function updateContextualPanel(): void {
-  if (isNearForge() && isForgeRepaired()) {
-    renderSmithingPanel(state, contextualPanel, (recipe) => {
-      const outcome = performSmith(state, recipe);
-      state = outcome.newState;
-      if (outcome.leveledUp) narrate("level_up");
-      render();
-    });
-    return;
-  }
-
-  if (isNearHearth()) {
-    renderHearthPanel(
-      state,
-      contextualPanel,
-      (materialId, target) => {
-        const outcome = performStoke(state, materialId, target);
-        state = outcome.newState;
-        if (outcome.colorStageIncreased) {
-          narrate(state.narrator.firedOnceTriggers.includes("color_stage_1") ? "color_stage_later" : "color_stage_1");
-        }
-        render();
-      },
-      () => {
-        const wasBefriendedBefore = state.world.companion.befriended;
-        state = performHearthUpgrade(state);
-        if (!wasBefriendedBefore && state.world.companion.befriended) {
-          narrate("companion_befriended");
-        }
-        render();
-      }
-    );
-    return;
-  }
-
-  contextualPanel.innerHTML = "";
-}
-
-function render(): void {
-  const { position } = state.vessel;
-
-  renderer.render(
-    (col, row) => {
-      if (col === position.col && row === position.row) return { kind: "dwarf" };
-      return hubCellAt(
-        col,
-        row,
-        state.world.litTorches,
-        state.world.veinDepletion,
-        state.world.woodDepletion,
-        state.world.forgeTier
-      );
-    },
-    (col, row) =>
-      cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS),
-    position.col,
-    position.row,
-    state.world.hearth.colorStage
-  );
-
-  updateZoneHint();
-  updateActionHint();
-  updateStatsPanel();
-  updateContextualPanel();
-  persist();
-}
-
 render();
-
-/**
- * The game's only real-time loop. Runs every TICK_INTERVAL_MS,
- * independent of player input - this is what makes auto-tending and
- * Narag-Bund's hauling feel like things happening on their OWN
- * schedule, not reactions to keypresses. Both tickHearth and
- * advanceCompanionHauling are individually gated (isAutoTendingUnlocked,
- * companion.befriended) and both are safe to call with large elapsed
- * gaps - same offline-catchup-friendly design as everything else in
- * the engine, so this loop doesn't need special handling for "the tab
- * was in the background" vs "running normally."
- */
-const TICK_INTERVAL_MS = 1000;
-
-function gameTick(): void {
-  let changed = false;
-  const now = Date.now();
-
-  if (isAutoTendingUnlocked(state.world.hearthTier)) {
-    const fuelAvailable = totalHearthFuelValue(state.world.fuelReserve);
-    const result = tickHearth(state.world.hearth, now, fuelAvailable);
-    if (result.fuelAbsorbed > 0) {
-      const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
-      state = { ...state, world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve } };
-      changed = true;
-      if (result.colorStageIncreased) {
-        narrate(state.narrator.firedOnceTriggers.includes("color_stage_1") ? "color_stage_later" : "color_stage_1");
-      }
-    } else if (result.hearth.lastUpdated !== state.world.hearth.lastUpdated) {
-      // Time advanced but nothing was absorbed (empty reserve) - still
-      // commit the new lastUpdated so we don't replay this same empty
-      // window again next tick.
-      state = { ...state, world: { ...state.world, hearth: result.hearth } };
-    }
-  }
-
-  if (state.world.companion.befriended) {
-    const haul = advanceCompanionHauling(
-      state.vessel.inventory,
-      state.world.fuelReserve,
-      state.world.companion.lastHaulAt,
-      now
-    );
-    if (haul.lastHaulAt !== state.world.companion.lastHaulAt) {
-      state = {
-        ...state,
-        world: {
-          ...state.world,
-          fuelReserve: haul.fuelReserve,
-          companion: { ...state.world.companion, lastHaulAt: haul.lastHaulAt },
-        },
-        vessel: { ...state.vessel, inventory: haul.inventory },
-      };
-      changed = true;
-    }
-  }
-
-  if (changed) render();
-}
-
-setInterval(gameTick, TICK_INTERVAL_MS);
-
-const KEY_TO_DIRECTION: Record<string, Direction> = {
-  w: "up",
-  ArrowUp: "up",
-  s: "down",
-  ArrowDown: "down",
-  a: "left",
-  ArrowLeft: "left",
-  d: "right",
-  ArrowRight: "right",
-};
-
-function handleMineStrike(): void {
-  const vein = nearestOreVein();
-  if (!vein) return;
-
-  const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
-  if (!rockNode) return;
-
-  const miningSkill = state.vessel.skills.mining;
-  if (miningSkill.level < rockNode.requiredLevel) return; // shouldn't happen for the starter vein, defensive only
-
-  const depletion = state.world.veinDepletion[vein.id] ?? createFreshDepletionState();
-  if (isOreExhausted(rockNode, depletion)) {
-    actionHint.textContent = `The ${rockNode.name.toLowerCase()} is exhausted.`;
-    return;
-  }
-
-  const isFirstStrikeEver = !state.narrator.firedOnceTriggers.includes("mine_first_strike");
-  const result = attemptMineStrike(rockNode, miningSkill, state.world.forgeTier, depletion, Math.random());
-
-  state = {
-    ...state,
-    world: {
-      ...state.world,
-      veinDepletion: { ...state.world.veinDepletion, [vein.id]: result.newDepletion },
-    },
-  };
-
-  if (!result.success) {
-    render();
-    return; // a miss - no material/xp change, no narration; the swing just didn't land
-  }
-
-  const newInventory = applyMineResult(state.vessel.inventory, result);
-  const newMiningSkill = {
-    ...miningSkill,
-    level: result.newLevel,
-    xp: miningSkill.xp + result.xpGained,
-  };
-
-  state = {
-    ...state,
-    vessel: {
-      ...state.vessel,
-      inventory: newInventory,
-      skills: { ...state.vessel.skills, mining: newMiningSkill },
-    },
-  };
-
-  narrate(isFirstStrikeEver ? "mine_first_strike" : "mine_strike");
-  if (result.leveledUp) narrate("level_up");
-
-  render();
-}
-
-function handleWoodGather(): void {
-  const woodPlacement = nearestWoodNode();
-  if (!woodPlacement) return;
-
-  const woodNode = WOOD_NODES.find((n) => n.id === woodPlacement.woodNodeId);
-  if (!woodNode) return;
-
-  const woodcraftSkill = state.vessel.skills.woodcraft;
-  if (woodcraftSkill.level < woodNode.requiredLevel) return; // defensive, shouldn't happen for the starter node
-
-  const depletion = state.world.woodDepletion[woodPlacement.id] ?? createFreshDepletionState();
-  if (isWoodExhausted(woodNode, depletion)) {
-    actionHint.textContent = `The ${woodNode.name.toLowerCase()} is exhausted.`;
-    return;
-  }
-
-  const result = attemptWoodGather(woodNode, woodcraftSkill, state.world.forgeTier, depletion, Math.random());
-
-  state = {
-    ...state,
-    world: {
-      ...state.world,
-      woodDepletion: { ...state.world.woodDepletion, [woodPlacement.id]: result.newDepletion },
-    },
-  };
-
-  if (!result.success) {
-    render();
-    return;
-  }
-
-  const newInventory = applyWoodGatherResult(state.vessel.inventory, result);
-  const newWoodcraftSkill = {
-    ...woodcraftSkill,
-    level: result.newLevel,
-    xp: woodcraftSkill.xp + result.xpGained,
-  };
-
-  state = {
-    ...state,
-    vessel: {
-      ...state.vessel,
-      inventory: newInventory,
-      skills: { ...state.vessel.skills, woodcraft: newWoodcraftSkill },
-    },
-  };
-
-  // Reuses the mining narration triggers for now rather than adding a
-  // parallel wood_first_gather/wood_gather pair - see DESIGN.md if/when
-  // Woodcraft earns its own distinct narrator voice; for now "the pick
-  // finds rock" lines would be wrong for wood, so this deliberately
-  // narrates nothing rather than show a mismatched line. Worth a real
-  // pass once Woodcraft's narrative identity is settled.
-  if (result.leveledUp) narrate("level_up");
-
-  render();
-}
-
-function handleForgeRepair(): void {
-  if (!isNearForge() || isForgeRepaired()) return;
-
-  if (!canAffordForgeRepair(state.vessel.inventory)) {
-    const costText = Object.entries(FORGE_REPAIR_COST)
-      .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
-      .join(", ");
-    actionHint.textContent = `Not enough materials to repair the forge (need ${costText}).`;
-    return;
-  }
-
-  const newInventory = applyForgeRepair(state.vessel.inventory);
-  state = {
-    ...state,
-    world: { ...state.world, forgeTier: 1 },
-    vessel: { ...state.vessel, inventory: newInventory },
-  };
-
-  showNarratorToast(
-    narratorContainer,
-    "The forge catches. Cold iron remembers, even after all this time, what it's for."
-  );
-
-  render();
-}
+startGameLoop();
 
 window.addEventListener("keydown", (e) => {
-  // Browsers fire repeated keydown events (e.repeat=true) while a key
-  // is held - without this guard, holding F would mine every few
-  // milliseconds for as long as the key stayed down. Mining and
-  // repairing are meant to be deliberate, one-press-one-action moments,
-  // not something a held key can spam. Movement is exempted below -
-  // holding an arrow key to walk a long corridor is normal and fine.
   if (e.repeat && "fFeErR".includes(e.key)) {
     return;
   }
 
   if (e.key === "f" || e.key === "F") {
     if (nearestOreVein()) {
-      handleMineStrike();
+      handleMineStrike(actionHint);
     } else if (nearestWoodNode()) {
       handleWoodGather();
     }
+    render();
     return;
   }
 
   if (e.key === "r" || e.key === "R") {
-    handleForgeRepair();
+    handleForgeRepair(narratorContainer, actionHint);
+    render();
     return;
   }
 
   if (e.key === "e" || e.key === "E") {
-    const torch = nearestUnrepairedTorch();
-    if (!torch) return;
-    const outcome = repairTorch(state, torch);
-    if (outcome.ok) {
-      state = outcome.newState;
-      narrate("torch_repaired");
-      render();
-    } else if (outcome.reason === "cannot_afford") {
-      actionHint.textContent = `Not enough resources to repair ${torch.name}.`;
-    }
+    handleTorchRepair(actionHint);
+    render();
     return;
   }
 
@@ -652,32 +118,11 @@ window.addEventListener("keydown", (e) => {
   if (!direction) return;
   e.preventDefault();
 
-  const moveResult = attemptMove(state.vessel.position, direction, state.world, isSolidAt);
-  if (!moveResult.moved) {
-    if (moveResult.blockedReason === "locked_zone") {
-      actionHint.textContent = "Something blocks the way - not yet rebuilt, not yet open to him.";
-    }
-    return; // blocked - no state change, no render/save needed
+  const outcome = handlePlayerMove(direction);
+  if (!outcome.moved) {
+    if (outcome.blockedMessage) actionHint.textContent = outcome.blockedMessage;
+    return;
   }
-
-  const newExplored = markVisibleCellsExplored(state.world.exploredCells, moveResult.position);
-  const enteredZone = zoneContaining(moveResult.position.col, moveResult.position.row);
-  const isFirstVisitToThisZone =
-    enteredZone !== null && !state.world.loreFlags.includes(`visited_${enteredZone.id}`);
-
-  state = {
-    ...state,
-    world: {
-      ...state.world,
-      exploredCells: newExplored,
-      loreFlags: isFirstVisitToThisZone
-        ? [...state.world.loreFlags, `visited_${enteredZone!.id}`]
-        : state.world.loreFlags,
-    },
-    vessel: { ...state.vessel, position: moveResult.position },
-  };
-
-  if (isFirstVisitToThisZone) narrate("area_revealed");
 
   render();
 });
