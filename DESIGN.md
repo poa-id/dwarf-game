@@ -45,3 +45,43 @@ produced it:
    changelog - commit messages in this repo explain *why*, not just
    *what*, specifically so they're useful context later without
    re-reading the original conversation.
+
+## Starting a new conversation
+
+Conversation length, not file size, is the main cost driver for an
+ongoing chat with Claude - every prior message stays "in the room"
+for the rest of that thread. The fix is starting fresh conversations
+periodically (e.g. after a milestone/commit lands cleanly) rather than
+extending one thread indefinitely. Nothing is lost by doing this - the
+code, commits, and these docs ARE the persistent memory; a new
+conversation just needs pointing at them.
+
+**Paste this as the opening message of a new conversation:**
+
+> This is an ongoing project: a dwarf-themed idle/RPG game called "The
+> Hearth & The Deep." Read DESIGN.md at the repo root first (it's a
+> short index), then docs/OPEN_QUESTIONS.md to see what's
+> unresolved/in-progress. Only read docs/LORE.md or docs/MECHANICS.md
+> if the task actually needs that depth. Once you've oriented, ask me
+> what I want to work on - don't start building yet.
+
+**Standing instruction for Claude, every session, not just the first:**
+keep DESIGN.md/docs/ current as part of doing the work, not as a
+separate step that has to be remembered or asked for. Concretely:
+- Any new decision, mechanic, or piece of lore settled during a
+  session belongs in the relevant doc (LORE vs MECHANICS) before that
+  session's work is considered done - not deferred to "later."
+- Any gap, placeholder, or known-rough edge introduced or discovered
+  gets a line in OPEN_QUESTIONS.md, in the same commit as the code
+  that introduced or discovered it.
+- When an open question gets resolved, move it OUT of
+  OPEN_QUESTIONS.md and INTO the relevant doc as settled fact, rather
+  than leaving a stale "resolved!" note sitting in the questions file
+  indefinitely (a few resolved items can stay temporarily for
+  changelog purposes, per the existing pattern, but should be pruned
+  once they're no longer useful history).
+- If a doc update would meaningfully change what a fresh session
+  needs to know, it belongs in the same commit as the code change -
+  docs and code drifting apart is exactly the failure mode this
+  structure exists to prevent.
+
