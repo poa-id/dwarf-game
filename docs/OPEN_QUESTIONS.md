@@ -50,16 +50,45 @@ once resolved (and reflect the resolution in the relevant section above).
   their current `id`/`tier`/`category` exactly as-is; only the framing
   around new content should follow this going forward. No content has
   tested this naming approach yet.
-- **Vertical-slice loop not yet audited end-to-end:** DIRECTION_RESET.md's
-  recommended next milestone is proving one complete loop (wake → mine
-  copper → gather wood → repair forge → smelt ingots → repair torches →
-  feed Hearth → unlock first color → restore first room → rekindle →
-  return stronger) rather than adding more scattered content. Most pieces
-  of this loop exist in code already, but it hasn't been explicitly
-  walked end-to-end and checked against the actual implementation since
-  this directive landed — "restore first room" in particular has no
-  concrete meaning yet without the Room-State framework above. Planned as
-  the next session's audit task.
+- **Vertical-slice audit completed (2026-06-22):** walked the full loop
+  (wake → mine copper → gather wood → repair forge → smelt ingots →
+  repair torches → feed Hearth → unlock first color → restore first room
+  → rekindle → return stronger) against the actual implementation.
+  Findings:
+  - Wake, mine copper, gather wood, repair forge, repair torches, feed
+    Hearth, and unlock first color are all fully built, tested, and
+    correctly wired.
+  - **Real bug found and fixed:** the loop was NOT actually completable.
+    `copper_ingot` (needed to smelt, and to repair torches) required
+    `coal` as fuel, but `coal_seam` (defined in mining.ts) had no
+    placement anywhere on the Hub map - there was no way for a player
+    to ever obtain coal. **Fixed** by adding a Charcoal Kiln: a new
+    fixed structure in the Hearth Hall (`KILN_POSITION` in hubMap.ts,
+    contextual panel like the Forge/Hearth) that converts wood into a
+    new `charcoal` material (heatValue 7 - hot enough for copper_ingot's
+    minHeatRequired of 5, deliberately NOT hot enough for iron_ingot's
+    10), governed by Hearthkeeping (its first XP source in the game).
+    `SmithRecipe` was changed from a single `fuelMaterialId` to an
+    `acceptedFuels` list so copper_ingot can burn either coal or
+    charcoal - see smithing.ts/kiln.ts. `coal_seam` itself is still not
+    placed on the map; charcoal is the deliberate early-game bootstrap,
+    not a permanent replacement (see the resource-naming entry above -
+    real coal mining still belongs to the future Tunnel Entrance/mine
+    work).
+  - **Real gap found, NOT yet fixed:** `rekindle()` is fully implemented
+    and tested in engine/rekindle.ts, but nothing in main.ts, actions.ts,
+    or any UI panel ever calls it. There is currently no button, keybind,
+    or other player-facing way to trigger a rekindle. This is the
+    single biggest remaining hole in the vertical slice - needs a
+    decision on where the affordance lives (Hearth panel is the obvious
+    candidate) and what UX gates/confirms such a permanent, deliberate
+    action.
+  - **"Restore first room" has no real target yet:** only the Forge has
+    any state at all, and it's binary (broken/repaired), not the
+    Ruined/Cleared/Restored/Masterwork model from §14. No second room
+    (Archive, Great Hall, etc.) exists anywhere in the renderer. This is
+    exactly the room-state framework work already queued as the next
+    task after this audit.
 - **Idle-game bulk action multiplier (agreed, not yet built):** any
   repeatable spend/produce action (stoking, smithing) should support a
   shared x1/x5/x10/MAX multiplier selector (Cookie Clicker convention) -

@@ -121,3 +121,14 @@ export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
     position: { col: 42, row: 27 },
   },
 ];
+
+/**
+ * The Charcoal Kiln - one fixed structure in the Hearth Hall, on the
+ * way between the wood node and the corridor to the Forge Room (so
+ * "gather wood, burn it, carry charcoal to the forge" reads as a
+ * single short walk, not a backtrack). Unlike the Forge or torches,
+ * the kiln has no broken/repaired state - it's always usable from the
+ * start (see kiln.ts), so it needs only a position, not a tier or
+ * unlock condition.
+ */
+export const KILN_POSITION: Position = { col: 43, row: 23 };

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   attemptSmith,
   applySmithResult,
+  chooseFuelForRecipe,
   SMITH_RECIPES,
   nextForgeUpgrade,
   canAffordForgeUpgrade,
@@ -112,5 +113,44 @@ describe("forge upgrades (tier 1+, insight-based)", () => {
   it("cannot afford an upgrade that doesn't exist (max tier reached)", () => {
     const maxTier = FORGE_UPGRADES[FORGE_UPGRADES.length - 1].tier;
     expect(canAffordForgeUpgrade(1_000_000, maxTier)).toBe(false);
+  });
+});
+
+describe("multi-fuel support (charcoal as copper_ingot's early-game bootstrap fuel)", () => {
+  it("copper_ingot accepts both coal and charcoal", () => {
+    expect(copperIngotRecipe.acceptedFuels).toEqual(["coal", "charcoal"]);
+  });
+
+  it("iron_ingot only accepts coal - charcoal isn't hot enough", () => {
+    expect(ironIngotRecipe.acceptedFuels).toEqual(["coal"]);
+  });
+
+  it("chooseFuelForRecipe prefers coal when both are held", () => {
+    const inv = inventoryWith({ coal: 10, charcoal: 10 });
+    expect(chooseFuelForRecipe(copperIngotRecipe, inv)).toBe("coal");
+  });
+
+  it("chooseFuelForRecipe falls back to charcoal when coal isn't held", () => {
+    const inv = inventoryWith({ charcoal: 10 });
+    expect(chooseFuelForRecipe(copperIngotRecipe, inv)).toBe("charcoal");
+  });
+
+  it("attemptSmith succeeds burning charcoal alone for a copper ingot", () => {
+    const inv = inventoryWith({ copper_ore: 10, charcoal: 10 });
+    const result = attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.01, "charcoal");
+    expect(result.success).toBe(true);
+    expect(result.fuelMaterialId).toBe("charcoal");
+    expect(result.ingotsGained).toBe(1);
+  });
+
+  it("attemptSmith throws if charcoal is passed for iron (not hot enough)", () => {
+    const inv = inventoryWith({ iron_ore: 10, charcoal: 10 });
+    const ironLvl10: SkillState = { id: "smithing", level: 10, xp: 0 };
+    expect(() => attemptSmith(ironIngotRecipe, ironLvl10, inv, 0.01, "charcoal")).toThrow();
+  });
+
+  it("attemptSmith throws if an unaccepted fuel is explicitly passed", () => {
+    const inv = inventoryWith({ copper_ore: 10, wood: 10 });
+    expect(() => attemptSmith(copperIngotRecipe, smithingLvl1, inv, 0.01, "wood")).toThrow();
   });
 });

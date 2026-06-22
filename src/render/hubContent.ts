@@ -8,6 +8,7 @@ import {
   LIGHT_SOURCES,
   ORE_VEINS,
   WOOD_NODE_PLACEMENTS,
+  KILN_POSITION,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
@@ -115,6 +116,11 @@ function buildHubContent(): GridCell[] {
     const idx = woodPlacement.position.row * HUB_WIDTH + woodPlacement.position.col;
     stamped[idx] = { kind: "wood_node" };
   }
+
+  // Place the Charcoal Kiln - one fixed cell, always "kiln" (no
+  // broken/repaired state to track, unlike the forge - see kiln.ts).
+  const kilnIdx = KILN_POSITION.row * HUB_WIDTH + KILN_POSITION.col;
+  stamped[kilnIdx] = { kind: "kiln" };
 
   return stamped;
 }

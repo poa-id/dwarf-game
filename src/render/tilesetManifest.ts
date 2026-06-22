@@ -54,6 +54,11 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   hearth: { assetUrl: forgeUrl },
   forge: { assetUrl: forgeUrl },
   forge_broken: { assetUrl: forgeUrl, tint: "#5a4a3a" }, // same forge art, cold/dull tint - the unrepaired state
+  // No dedicated kiln sprite sliced yet - reusing the ore vein texture,
+  // tinted toward the same warm clay/brick tone as STAGE_2/STAGE_3's
+  // kiln color in palette.ts, as a placeholder. Swap once a real kiln
+  // tile is sliced from the sheets.
+  kiln: { assetUrl: oreBaseUrl, tint: "#8a5a3a" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   // No dedicated torch sprite sliced from the tileset yet - reusing the
   // forge's glow art as a placeholder, tinted to distinguish broken

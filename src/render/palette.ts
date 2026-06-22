@@ -23,6 +23,7 @@ export type CellKind =
   | "hearth"
   | "forge"
   | "forge_broken"
+  | "kiln"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -41,6 +42,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "hearth",
   "forge",
   "forge_broken",
+  "kiln",
   "ore_copper",
   "ore_iron",
   "ore_deep",
@@ -83,6 +85,7 @@ const STAGE_0: StagePalette = {
     hearth: "#9a9a9a", // unlit - indistinguishable from stone. this is the whole point.
     forge: "#9a9a9a",
     forge_broken: "#9a9a9a",
+    kiln: "#9a9a9a",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     torch_lit: "#ff5a1a", // earned light - glows warm even in total 2-bit darkness, independent of world color stage
@@ -129,6 +132,7 @@ const STAGE_2: StagePalette = {
     hearth: "#ff8c3a",
     forge: "#d4661f",
     forge_broken: "#5a4a3a", // dull, cold - the forge that hasn't caught yet, distinct from the live forge's orange
+    kiln: "#8a5a3a", // warm clay/brick tone - distinct from both the bright live forge and plain stone, reads as "fired earth"
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -158,6 +162,7 @@ const STAGE_3: StagePalette = {
     hearth: "#ffaa44",
     forge: "#e0701f",
     forge_broken: "#6a5a48",
+    kiln: "#9a6a45",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -185,6 +190,7 @@ export const GLYPHS: Record<CellKind, string> = {
   hearth: "♥",
   forge: "n",
   forge_broken: "ñ", // a near-miss of the working forge's glyph - recognizably related, visibly wrong/incomplete
+  kiln: "k",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea

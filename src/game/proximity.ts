@@ -1,5 +1,12 @@
 import { getState } from "./gameState";
-import { LIGHT_SOURCES, ORE_VEINS, WOOD_NODE_PLACEMENTS, ZONES, HEARTH_SPAWN_POSITION } from "../engine/hubMap";
+import {
+  LIGHT_SOURCES,
+  ORE_VEINS,
+  WOOD_NODE_PLACEMENTS,
+  ZONES,
+  HEARTH_SPAWN_POSITION,
+  KILN_POSITION,
+} from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
 import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
@@ -75,5 +82,12 @@ export function isNearHearth(): boolean {
   return (
     Math.abs(position.col - HEARTH_SPAWN_POSITION.col) <= 2 &&
     Math.abs(position.row - HEARTH_SPAWN_POSITION.row) <= 2
+  );
+}
+
+export function isNearKiln(): boolean {
+  const { position } = getState().vessel;
+  return (
+    Math.abs(position.col - KILN_POSITION.col) <= 2 && Math.abs(position.row - KILN_POSITION.row) <= 2
   );
 }

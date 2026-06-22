@@ -1,4 +1,10 @@
-import { SMITH_RECIPES, attemptSmith, applySmithResult, type SmithRecipe } from "../engine/smithing";
+import {
+  SMITH_RECIPES,
+  attemptSmith,
+  applySmithResult,
+  chooseFuelForRecipe,
+  type SmithRecipe,
+} from "../engine/smithing";
 import { canAffordMaterials, MATERIALS } from "../engine/types";
 import type { GameState } from "../engine/types";
 
@@ -17,15 +23,18 @@ export function renderSmithingPanel(
 
   const rows = SMITH_RECIPES.map((recipe) => {
     const meetsLevel = smithing.level >= recipe.requiredLevel;
+    const fuelChoice = chooseFuelForRecipe(recipe, state.vessel.inventory);
     const affordable = canAffordMaterials(state.vessel.inventory, {
       [recipe.oreMaterialId]: recipe.oreCost,
-      [recipe.fuelMaterialId]: recipe.fuelCost,
+      [fuelChoice]: recipe.fuelCost,
     });
     const canSmith = meetsLevel && affordable;
 
     const oreLabel = MATERIALS[recipe.oreMaterialId]?.name ?? recipe.oreMaterialId;
-    const fuelLabel = MATERIALS[recipe.fuelMaterialId]?.name ?? recipe.fuelMaterialId;
-    const costText = `${recipe.oreCost} ${oreLabel}, ${recipe.fuelCost} ${fuelLabel}`;
+    const fuelOptionsLabel = recipe.acceptedFuels
+      .map((id) => MATERIALS[id]?.name ?? id)
+      .join(" or ");
+    const costText = `${recipe.oreCost} ${oreLabel}, ${recipe.fuelCost} ${fuelOptionsLabel}`;
 
     let statusText = costText;
     if (!meetsLevel) statusText = `Requires Smithing level ${recipe.requiredLevel}`;
@@ -61,7 +70,14 @@ export interface SmithOutcome {
 
 /** Applies a smith attempt to state - the actual game-state-mutating logic, separate from rendering above. */
 export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcome {
-  const result = attemptSmith(recipe, state.vessel.skills.smithing, state.vessel.inventory, Math.random());
+  const chosenFuel = chooseFuelForRecipe(recipe, state.vessel.inventory);
+  const result = attemptSmith(
+    recipe,
+    state.vessel.skills.smithing,
+    state.vessel.inventory,
+    Math.random(),
+    chosenFuel
+  );
   const newInventory = applySmithResult(state.vessel.inventory, result);
 
   const oldLevel = state.vessel.skills.smithing.level;

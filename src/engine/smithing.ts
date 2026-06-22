@@ -9,8 +9,15 @@ export interface SmithRecipe {
   /** Which ore this recipe consumes, and how much. */
   oreMaterialId: MaterialId;
   oreCost: number;
-  /** Which fuel this recipe consumes, and how much. */
-  fuelMaterialId: MaterialId;
+  /**
+   * Which fuels this recipe will accept, in preference order - the
+   * first one the player actually holds enough of (and that clears
+   * minHeatRequired) is the one consumed. Most recipes list exactly
+   * one (coal); copper_ingot also accepts charcoal as an early-game
+   * bootstrap (see types.ts MATERIALS comment on charcoal) since the
+   * real coal_seam node has no placement on the Hub map yet.
+   */
+  acceptedFuels: MaterialId[];
   fuelCost: number;
   /** Minimum heatValue the chosen fuel must have - a weak fire (low heatValue) can't smith a recipe that demands real heat, regardless of how much of it you have. */
   minHeatRequired: number;
@@ -29,9 +36,9 @@ export const SMITH_RECIPES: SmithRecipe[] = [
     requiredLevel: 1,
     oreMaterialId: "copper_ore",
     oreCost: 2,
-    fuelMaterialId: "coal",
+    acceptedFuels: ["coal", "charcoal"],
     fuelCost: 1,
-    minHeatRequired: 5, // coal's heatValue is 10 - comfortably enough for the easiest recipe
+    minHeatRequired: 5, // coal's heatValue is 10, charcoal's is 7 - both comfortably clear the easiest recipe
     baseXp: 10,
     ingotMaterialId: "copper_ingot",
     ingotYield: 1,
@@ -43,7 +50,7 @@ export const SMITH_RECIPES: SmithRecipe[] = [
     requiredLevel: 10,
     oreMaterialId: "iron_ore",
     oreCost: 3,
-    fuelMaterialId: "coal",
+    acceptedFuels: ["coal"],
     fuelCost: 2,
     minHeatRequired: 10, // iron needs a proper coal fire, not a weaker future fuel substitute
     baseXp: 22,
@@ -67,17 +74,37 @@ export interface SmithAttemptResult {
 }
 
 /**
+ * Picks which of a recipe's acceptedFuels to actually use, given what
+ * the player is holding right now. Preference order follows the
+ * recipe's array order (coal listed before charcoal where both apply -
+ * see copper_ingot) but only fuels with ENOUGH quantity held are
+ * considered at all; falls back to the first accepted fuel (even if
+ * unaffordable) so attemptSmith still has something concrete to name
+ * in its "not enough X" error. Pure lookup, no mutation.
+ */
+export function chooseFuelForRecipe(recipe: SmithRecipe, inventory: ResourceBag): MaterialId {
+  const affordable = recipe.acceptedFuels.find(
+    (fuelId) => getMaterialAmount(inventory, fuelId) >= recipe.fuelCost
+  );
+  return affordable ?? recipe.acceptedFuels[0];
+}
+
+/**
  * Attempt to smith one item. Pure function, caller supplies `roll` for
- * determinism in tests. Throws if level, ore, fuel quantity, OR fuel
- * heat requirements aren't met — the caller (UI layer) is responsible
- * for not offering unavailable recipes in the first place, this is a
- * defensive invariant, not UX.
+ * determinism in tests, and `chosenFuel` for which of the recipe's
+ * acceptedFuels to actually burn (use chooseFuelForRecipe to pick one
+ * automatically, or pass a specific MaterialId directly). Throws if
+ * level, ore, fuel quantity, fuel heat, OR an unaccepted fuel is
+ * passed — the caller (UI layer) is responsible for not offering
+ * unavailable recipes in the first place, this is a defensive
+ * invariant, not UX.
  */
 export function attemptSmith(
   recipe: SmithRecipe,
   smithingSkill: SkillState,
   inventory: ResourceBag,
-  roll: number
+  roll: number,
+  chosenFuel: MaterialId = recipe.acceptedFuels[0]
 ): SmithAttemptResult {
   if (smithingSkill.level < recipe.requiredLevel) {
     throw new Error(
@@ -90,15 +117,19 @@ export function attemptSmith(
     throw new Error(`Not enough ${recipe.oreMaterialId}: have ${oreHeld}, need ${recipe.oreCost}`);
   }
 
-  const fuelHeld = getMaterialAmount(inventory, recipe.fuelMaterialId);
-  if (fuelHeld < recipe.fuelCost) {
-    throw new Error(`Not enough ${recipe.fuelMaterialId}: have ${fuelHeld}, need ${recipe.fuelCost}`);
+  if (!recipe.acceptedFuels.includes(chosenFuel)) {
+    throw new Error(`${chosenFuel} is not an accepted fuel for ${recipe.id}`);
   }
 
-  const fuelHeat = materialDef(recipe.fuelMaterialId).heatValue ?? 0;
+  const fuelHeld = getMaterialAmount(inventory, chosenFuel);
+  if (fuelHeld < recipe.fuelCost) {
+    throw new Error(`Not enough ${chosenFuel}: have ${fuelHeld}, need ${recipe.fuelCost}`);
+  }
+
+  const fuelHeat = materialDef(chosenFuel).heatValue ?? 0;
   if (fuelHeat < recipe.minHeatRequired) {
     throw new Error(
-      `${recipe.fuelMaterialId} (heat ${fuelHeat}) does not burn hot enough for ${recipe.id} (needs ${recipe.minHeatRequired})`
+      `${chosenFuel} (heat ${fuelHeat}) does not burn hot enough for ${recipe.id} (needs ${recipe.minHeatRequired})`
     );
   }
 
@@ -116,7 +147,7 @@ export function attemptSmith(
       ingotsGained: 0,
       oreMaterialId: recipe.oreMaterialId,
       oreSpent: recipe.oreCost,
-      fuelMaterialId: recipe.fuelMaterialId,
+      fuelMaterialId: chosenFuel,
       fuelSpent: recipe.fuelCost,
       newLevel: oldLevel,
       leveledUp: false,
@@ -133,7 +164,7 @@ export function attemptSmith(
     ingotsGained: recipe.ingotYield,
     oreMaterialId: recipe.oreMaterialId,
     oreSpent: recipe.oreCost,
-    fuelMaterialId: recipe.fuelMaterialId,
+    fuelMaterialId: chosenFuel,
     fuelSpent: recipe.fuelCost,
     newLevel,
     leveledUp: newLevel > oldLevel,

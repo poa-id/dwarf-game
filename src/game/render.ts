@@ -14,9 +14,11 @@ import {
   isNearForge,
   isForgeRepaired,
   isNearHearth,
+  isNearKiln,
 } from "./proximity";
 import { renderSmithingPanel, performSmith } from "../ui/smithingPanel";
 import { renderHearthPanel, performStoke, performHearthUpgrade } from "../ui/hearthPanel";
+import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
 
 export interface RenderRefs {
   renderer: GridRenderer;
@@ -138,12 +140,13 @@ export function updateActionHint(): void {
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
  * current position, and renders it into the reserved panel space.
- * Forge takes priority over Hearth if somehow both ranges overlapped
- * (they don't, given the map layout, but the priority order is
- * explicit rather than accidental). Shows nothing - panel collapses
- * to empty - when neither is nearby, per the "reserved space, not a
- * popup" UI philosophy: the layout never jumps, the panel area is
- * just sometimes empty.
+ * Forge takes priority over Hearth and Kiln if somehow ranges
+ * overlapped (they don't, given the map layout, but the priority
+ * order is explicit rather than accidental). Kiln is checked after
+ * Hearth for the same reason - explicit, not because overlap is
+ * expected. Shows nothing - panel collapses to empty - when none are
+ * nearby, per the "reserved space, not a popup" UI philosophy: the
+ * layout never jumps, the panel area is just sometimes empty.
  */
 function updateContextualPanel(): void {
   const state = getState();
@@ -180,6 +183,16 @@ function updateContextualPanel(): void {
         render();
       }
     );
+    return;
+  }
+
+  if (isNearKiln()) {
+    renderKilnPanel(state, refs.contextualPanel, () => {
+      const outcome = performCharcoalBurn(getState());
+      setState(outcome.newState);
+      if (outcome.leveledUp) narrate("level_up");
+      render();
+    });
     return;
   }
 

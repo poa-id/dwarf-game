@@ -111,13 +111,34 @@ content. Every material has a `MaterialDefinition`: category (ore/ingot/
 fuel/wood/currency), tier, and (for fuel and wood) `heatValue`.
 
 Currently defined: `copper_ore`, `iron_ore`, `coal` (heatValue 10),
-`wood` (heatValue 4 - weaker than coal, real fuel not just a
-construction material), `copper_ingot`, `iron_ingot`, `insight`.
+`charcoal` (heatValue 7), `wood` (heatValue 4 - weaker than coal, real
+fuel not just a construction material), `copper_ingot`, `iron_ingot`,
+`insight`.
 
 **Fuel philosophy:** coal is mined directly (not a smithing byproduct,
 which was the old design — explicitly removed). Purer, rarer fuels are
 planned for later, with higher `heatValue`, unlocking recipes a weak fire
 can't touch ("super-heat metals and gems").
+
+**The Charcoal Kiln — built, fixes a real progression dead end (added
+2026-06-22):** `coal_seam` is defined in mining.ts but has no placement
+on the Hub map — there is currently no way to obtain real coal at all.
+Without a fuel substitute, `copper_ingot` (and therefore torch repair,
+which costs `copper_ingot`) was completely unreachable — a genuine
+vertical-slice blocker, not a balance nitpick. The Charcoal Kiln is a
+fixed structure in the Hearth Hall (`KILN_POSITION` in hubMap.ts,
+contextual panel triggered by proximity exactly like the Forge/Hearth —
+see §6a) that converts wood into charcoal (`kiln.ts`, governed by
+Hearthkeeping — its first XP source anywhere in the game). Charcoal's
+heatValue (7) clears `copper_ingot`'s `minHeatRequired` (5) but
+deliberately NOT `iron_ingot`'s (10) — charcoal bootstraps copper-tier
+smithing only; iron still requires real coal once `coal_seam` gets an
+actual map placement. `SmithRecipe.fuelMaterialId` (singular) was
+changed to `SmithRecipe.acceptedFuels` (a list) to support this — see
+`chooseFuelForRecipe` in smithing.ts, which prefers coal over charcoal
+whenever both are held. The kiln itself has no broken/repaired state
+(unlike the Forge) — it's simply usable from the start, same
+accessibility tier as the starter copper vein and wood node.
 
 **Coal/wood allocation (Smithing vs. Hearthkeeping) — RESOLVED AND
 BUILT:** the Hearth has its OWN fuel stockpile, `WorldState.fuelReserve`

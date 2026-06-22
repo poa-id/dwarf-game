@@ -59,6 +59,14 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   copper_ore: { id: "copper_ore", name: "Copper Ore", category: "ore", tier: 1 },
   iron_ore: { id: "iron_ore", name: "Iron Ore", category: "ore", tier: 2 },
   coal: { id: "coal", name: "Coal", category: "fuel", tier: 1, heatValue: 10 },
+  // Charcoal - burned from wood at the Charcoal Kiln (see kiln.ts). Hot
+  // enough to clear copper_ingot's minHeatRequired (5) but NOT iron's
+  // (10) - a deliberate early-game bootstrap fuel, not a permanent
+  // substitute for real coal. coal_seam exists in mining.ts but has no
+  // placement on the Hub map yet (see OPEN_QUESTIONS.md) - charcoal is
+  // what actually unblocks the vertical slice's first smelt until the
+  // real mine exists.
+  charcoal: { id: "charcoal", name: "Charcoal", category: "fuel", tier: 1, heatValue: 7 },
   wood: { id: "wood", name: "Cave-Root Wood", category: "wood", tier: 1, heatValue: 4 }, // weaker than coal - burns, but not hot enough for serious smithing
   copper_ingot: { id: "copper_ingot", name: "Copper Ingot", category: "ingot", tier: 1 },
   iron_ingot: { id: "iron_ingot", name: "Iron Ingot", category: "ingot", tier: 2 },
