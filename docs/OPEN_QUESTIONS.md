@@ -7,18 +7,59 @@
 Tracked here so they don't get silently forgotten. Remove from this list
 once resolved (and reflect the resolution in the relevant section above).
 
-- **PROJECT NOT YET PUSHED TO GITHUB - blocks fresh-session resume.**
-  DESIGN.md's "Starting a new conversation" section assumes a real
-  GitHub remote a fresh Claude can `git clone`. As of this writing
-  that remote doesn't exist yet (discovered when a new conversation
-  was started per the old instructions and found no repo on disk -
-  conversations run in disposable sandboxes, nothing persists without
-  an external remote). Needs: project owner creates a public GitHub
-  repo, pushes this history to it, then replaces
-  `REPLACE_WITH_ACTUAL_URL` in DESIGN.md with the real URL. Until that
-  URL is filled in, treat DESIGN.md's clone instructions as
-  aspirational, not yet functional - fall back to asking the user to
-  upload the project zip instead.
+- **DIRECTION_RESET.md absorbed (2026-06-21):** the project's identity/
+  philosophy reset has been merged into LORE.md (core fantasy, three
+  protagonists, visible-progress rule, resource/relic philosophy,
+  permanent-residents principle) and MECHANICS.md (camera decision, Hub-
+  vs-systems pattern, travel philosophy, Four Layers of Restoration,
+  Rooms-As-Progression, UI-As-Progression). It mostly *confirmed* existing
+  architecture rather than contradicting it. The genuinely new/undone
+  items it surfaced are broken out as their own entries below rather than
+  re-stated here.
+- **5-stage perception/color framing vs. current 4-stage `ColorStage`:**
+  DIRECTION_RESET.md implies stages through "architecture returns" and
+  "memory returns" (up to Stage 5), but MECHANICS.md §8 only implements
+  and documents 4 stages (0–3). Not resolved — keeping the current
+  4-stage system as the documented source of truth for now; the fuller
+  framing is recorded as a future direction in MECHANICS.md §8 but no
+  decision has been made on whether/how to extend `ColorStage` itself,
+  add a parallel system, or fold "architecture/memory returns" into
+  Rooms-As-Progression (§14) instead of the color-stage system.
+- **Room-State framework (Ruined/Cleared/Restored/Masterwork) not yet
+  built:** MECHANICS.md §14 documents the target model, generalizing the
+  Forge's existing broken/repaired pattern. Currently the Forge only has
+  2 states in code, not 4, and no other room has any state at all. Needs:
+  (1) decide what "Cleared" and "Masterwork" mean concretely for the
+  Forge, (2) decide which room becomes the next one to get this treatment
+  (Archive is the most-referenced candidate), (3) actually implement the
+  4-state model as reusable code rather than one-off Forge logic.
+- **UI-As-Progression (panel unlocking) not yet built:** MECHANICS.md §15.
+  All current panels (Inventory, Skills, Smithing, Hearth) are available
+  from game start. Needs a decision on "exists but greyed out" vs. "does
+  not render until unlocked," and a wiring point (presumably each future
+  panel ties to its room's restoration stage once §14 exists).
+- **Relics system not designed or implemented:** LORE.md §1 names the
+  ambition (major content, not collectibles) and a few example relic
+  names from discussion, but there's no `RelicId`, no relic data model,
+  no acquisition mechanic, and no UI for them yet.
+- **Resource/depth naming philosophy (history over power-tiers) not yet
+  applied to any shipped content:** LORE.md §1 states the principle
+  (prefer "Fallen Workings," "King's Veins," etc. over a Copper→Iron→
+  Steel ladder framing) but this is a guideline for *future* material/
+  area names, not a renaming of `copper_ore`/`iron_ore` — those keep
+  their current `id`/`tier`/`category` exactly as-is; only the framing
+  around new content should follow this going forward. No content has
+  tested this naming approach yet.
+- **Vertical-slice loop not yet audited end-to-end:** DIRECTION_RESET.md's
+  recommended next milestone is proving one complete loop (wake → mine
+  copper → gather wood → repair forge → smelt ingots → repair torches →
+  feed Hearth → unlock first color → restore first room → rekindle →
+  return stronger) rather than adding more scattered content. Most pieces
+  of this loop exist in code already, but it hasn't been explicitly
+  walked end-to-end and checked against the actual implementation since
+  this directive landed — "restore first room" in particular has no
+  concrete meaning yet without the Room-State framework above. Planned as
+  the next session's audit task.
 - **Idle-game bulk action multiplier (agreed, not yet built):** any
   repeatable spend/produce action (stoking, smithing) should support a
   shared x1/x5/x10/MAX multiplier selector (Cookie Clicker convention) -

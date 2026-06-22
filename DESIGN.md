@@ -4,6 +4,15 @@
 touches the relevant file. If full context is needed, read all three;
 for a focused change, usually only one is needed.*
 
+**Production philosophy:** build one complete loop, then test, before
+adding more systems. The current target vertical slice (wake beside the
+dying Hearth → mine copper → gather wood → repair forge → smelt ingots →
+repair torches → feed Hearth → unlock first color → restore first room →
+rekindle → return stronger) is the next milestone to *prove*, not a list
+of features to build in isolation. If that loop isn't fun, more content
+won't fix it; if it is fun, that's the green light to keep going. See
+OPEN_QUESTIONS.md for the current audit status of this loop.
+
 - **[docs/LORE.md](docs/LORE.md)** — the pitch, the rekindling myth,
   the narrator's voice and rules, NPCs and Narag-Bund. Read this for
   *why* something should feel a certain way, or to write new narrator

@@ -170,6 +170,22 @@ content now, not just placeholder tiers:**
 
 ## 6. The Hub Map
 
+**The camera decision (confirmed, not new — but now explicit):** no
+scrolling world, no infinite map, no procedural overworld, no
+camera-follow system. The viewport stays fixed; the dwarf moves, the
+camera doesn't. This keeps the Hearth psychologically central — the
+player should always feel connected to home. The game is not a journey
+away from the mountain; it's a journey deeper into it. This is already
+how the renderer works today (fixed viewport, no camera code exists) —
+recorded here as a deliberate constraint, not an accidental omission.
+
+**One mountain, not multiple maps/biomes/regions.** The mountain grows
+through *revelation* — uncovering hidden halls, collapsed chambers,
+forgotten roads, sealed vaults, deep delves within the one existing hand-
+placed map — not through generating new chunks or new locations. The map
+feels larger because the player's perception of it grows (see "Perception
+Is Progression" below), not because the world itself expands outward.
+
 One **fixed, hand-placed** map (not procedurally generated) — 80×50
 currently. The Hearth sits at the spawn/center. Named zones
 (`hearth_hall`, `forge_room`, `tunnel_entrance`) are rectangular bounds
@@ -198,7 +214,33 @@ dead code. Real follow-up work.
   `torch_tunnel_mouth`) along corridors — repaired via walking adjacent +
   pressing E, cost in copper_ingot, permanently lit once repaired.
 
-## 7. Visibility & Movement
+### Hub vs. Systems
+
+The Hub is physical; the deep systems are interfaces. This is already
+the existing interaction pattern (walk to Forge, press E, open Smithing
+Panel) — recorded explicitly so future systems keep following it rather
+than drifting toward a global menu: walk to Mine Entrance → press E →
+open Mining Panel; walk to Archive → press E → open Archive Panel. The
+player must always physically reach a place first; the activity itself
+can then scale arbitrarily through that place's panel/interface. Never
+skip the physical-reach step for a new system, no matter how deep its
+interface gets.
+
+### Travel Philosophy
+
+Walking is valuable early (it's how the mountain remains a *place*, not
+a menu) and becomes tedious later as the map's revealed area grows. The
+intended solution is restoring infrastructure — mine carts, lifts,
+elevators, pulley systems, rail networks — which reduce friction while
+preserving physical presence. **Never replace movement with a global
+travel menu** ("teleport to Forge" dropdown, fast-travel list, etc.) —
+the fix for tedious walking is always an in-world object the player
+walks to and uses, not removing the walk. This connects directly to the
+not-yet-started Building skill and the not-yet-built Mine Entrance UI
+(cart speed/auto-collection upgrades) — both are travel-infrastructure,
+not menu shortcuts.
+
+
 
 Real grid movement (WASD/arrows), with collision against solid terrain
 (`SOLID_CELL_KINDS`: walls, hearth, forge, ore veins, tunnel_edge —
@@ -235,6 +277,23 @@ light than stage 2, not just more saturated).
 Lit torches glow warm at EVERY stage including Stage 0 — earned light is
 meant to read independent of overall world progress.
 
+### Perception Is Progression
+
+This system — the player literally restoring their own ability to
+perceive the mountain, not just unlocking prettier graphics — is the
+project's strongest unique feature and should be treated as core design,
+not a cosmetic upgrade track. The framing to hold onto for future stage
+work: Stage 0 is glyphs-only, the world is forgotten; later stages
+should read as "materials gain identity" (a player can tell copper from
+coal at a glance, not just by hovering), then "objects gain form" (sprites
+replace glyphs, important objects become recognizable), then eventually
+"architecture returns" (murals, statues, banners — the mountain gains
+identity) and "memory returns" (the player understands what was lost).
+**Current code implements 4 stages (0–3 above), not the fuller framing
+implied here** — whether/how to extend ColorStage to capture the later
+"architecture returns" / "memory returns" beats is an open question, not
+yet decided or built; see OPEN_QUESTIONS.md.
+
 Two renderer implementations exist with the same interface:
 **ASCII/glyph mode** (`GridRenderer`, monospace characters + CSS-like
 color) and **tileset mode** (`TilesetRenderer`, real sprite art from the
@@ -269,4 +328,83 @@ same thing as in-game rekindling.
 in-game rekindle() action (which doesn't have a player-facing trigger
 yet either). A page refresh is treated as "the player came back," not
 "a new dwarf began."
+
+## 13. The Four Layers of Restoration
+
+A categorization scheme for evaluating future content — every new
+feature should belong to at least one of these four layers. Useful as a
+filter ("what layer is this actually serving?") more than as a literal
+to-do list.
+
+- **Survival** — restore function. Forge repair, gathering, fuel,
+  torches. Question it answers: *can the dwarf survive?*
+- **Infrastructure** — restore utility. Lifts, tracks, workshops,
+  storage. Question: *can the mountain function?*
+- **Civilization** — restore culture. Halls, brewery, archive, shrines.
+  Question: *can the mountain live?*
+- **Memory** — restore identity. Relics, murals, names, history.
+  Question: *can the mountain remember?*
+
+Currently-built content is almost entirely Survival layer (Forge, basic
+gathering, torches, fuel). Infrastructure is just starting (the planned
+Building skill, Mine Entrance UI). Civilization and Memory are
+essentially unbuilt — Relics (LORE.md §1) and Rooms-as-progression
+(§14 below) are the main planned entry points into those two layers.
+
+## 14. Rooms As Progression
+
+A room is more meaningful than a stat, and restoring places — not
+accumulating numbers — should be the primary unit of visible long-term
+progress (see LORE.md's "Progress Should Be Visible"). The Forge already
+proves the pattern in miniature: it starts broken (rendered as rubble,
+`forge_broken`), and the player restores it with materials. The
+direction is to generalize this into a formal **four-stage room state**
+that future rooms (Archive, Great Hall, Brewery, Shrine, Treasury,
+Liftworks, Cartographer's Chamber, Ancestor Vault, and eventually a
+deeper version of the Forge itself) all share:
+
+1. **Ruined** — visually broken/rubble, not yet interactable beyond
+   "this is wrecked."
+2. **Cleared** — debris removed, the room's basic shape and purpose are
+   now visible, but nothing inside actually works yet.
+3. **Restored** — functional. The room does what it's for (a working
+   Forge, a working Archive you can actually read).
+4. **Masterwork** — a visibly distinct, best-in-class version, not just
+   a higher number behind the same sprite — the room's restoration is
+   "complete" in a way that should be rare and earned.
+
+Each room must have a **visible transformation** between every stage —
+this is a hard requirement, not an aspiration, per the visible-progress
+rule. A room upgrade that doesn't change what the room looks like on
+screen does not satisfy this framework, no matter what numbers it
+changes underneath.
+
+**STATUS: not yet built as a formal framework.** The Forge currently
+only has two states in code (broken / repaired), not four, and no other
+room has any state at all yet (Forge Room itself is always reachable
+once the engine exists; other named zones like `tunnel_entrance` are
+binary locked/unlocked, not staged). Generalizing the Forge's
+broken→repaired pattern into the full four-stage model above — and
+deciding what "Cleared" and "Masterwork" concretely mean for the Forge
+specifically — is real, undone design/implementation work. See
+OPEN_QUESTIONS.md.
+
+## 15. UI As Progression
+
+The UI itself should be restored alongside the mountain — the player
+should not start with every panel/menu already available. Early game:
+Inventory, Skills, Hearth. Later, as the corresponding room/system is
+restored: Forge, then Archive, then Relics, then Cartography, then
+Genealogy, then Deep Delve Records. Knowledge itself becomes a form of
+progression, not just a static set of tabs that happen to gate their
+*content* behind progress while the tab itself is always visible.
+
+**STATUS: not yet built.** All UI that currently exists (Inventory,
+Skills/stats panel, Smithing panel, Hearth panel) is simply available
+from the start; there's no panel-unlock mechanism yet. Implementing this
+means deciding where "panel exists but is greyed out" vs. "panel doesn't
+render at all until unlocked" lands, and wiring each future panel
+(Archive, Relics, Cartography, etc.) to its corresponding room's
+restoration stage (§14) once those rooms exist. Tracked in
+OPEN_QUESTIONS.md.
 

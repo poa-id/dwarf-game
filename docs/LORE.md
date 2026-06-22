@@ -4,18 +4,93 @@
 
 ## 1. Core Pitch
 
-A solitary dwarf, alone in a dead mountain, grinding skills to rebuild a
-hearth and, eventually, his own world's color. Influences: RuneScape (skill/
-XP grinding), idle/clicker games (Cookie Clicker, Bitcoin Billionaire —
-engine-building, exponential curves), base-building survival games (bare
-bones → discovery), Dwarf Fortress (artisan dwarves, hand-placed world),
-Bastion (narrator voice). Tone: bleak, mythic, quietly hopeful. Personal
-project first — "personality over portfolio." Enjoyment and storytelling
-matter more than showcase polish.
+**The Hearth & The Deep is a restoration game.** Not a colony sim, not a
+survival sandbox, not a traditional idle game, not a roguelike, not a
+management sim. A solitary dwarf wakes beside a dying Hearth in a dead
+mountain. The Hearth is dying. The mountain is dead. The player's purpose
+is to restore both — everything else (skills, materials, the Forge,
+Insight) exists in support of that goal, not as an end in itself.
+
+Influences: RuneScape (skill/XP grinding), idle/clicker games (Cookie
+Clicker, Bitcoin Billionaire — engine-building, exponential curves),
+base-building survival games (bare bones → discovery), Dwarf Fortress
+(artisan dwarves, hand-placed world), Bastion (narrator voice). Tone:
+bleak, mythic, quietly hopeful. Personal project first — "personality
+over portfolio." Enjoyment and storytelling matter more than showcase
+polish.
 
 **This is explicitly NOT a colony sim.** One dwarf. No roster, no population
 management, no job assignment UI. Other characters are rare events, not
 controllable units.
+
+### The Core Fantasy
+
+The fantasy is explicitly **not** "become rich" and explicitly **not**
+"build a production empire." Both are natural failure-modes for an
+idle/economy game to drift toward, and both are wrong for this project.
+
+The fantasy is: *"I found the last ember of a forgotten mountain kingdom
+and refused to let it die."*
+
+Every future feature should be evaluated against this distinction.
+Numbers (yields, speed, efficiency) support the fantasy but are never
+themselves the point — see "Progress Should Be Visible" below for what
+the point actually is.
+
+### The Three Protagonists
+
+The existing World/Vessel/Narrator state split (§2 in MECHANICS.md) isn't
+just an engineering convenience — it mirrors three actual protagonists,
+and design should keep treating it that way:
+
+- **The Dwarf** (Vessel) — temporary. Learns, works, dies, returns.
+- **The Hearth** (World) — persistent. Grows stronger, returns color,
+  returns memory, returns life.
+- **The Mountain** (World) — persistent. Expands through revelation,
+  reveals itself, remembers.
+
+The Hearth and the Mountain are as important as the dwarf — arguably
+more important, since they're what actually persists and accumulates
+meaning across every rekindling. The dwarf is the player's hands; the
+Hearth and Mountain are what the player is actually working to restore.
+
+### Progress Should Be Visible
+
+**The single most important design rule in this document.** A player
+should be able to compare two screenshots — say, hour 1 and hour 50 — and
+understand progress without reading a single number.
+
+Good progression *looks like something*: a repaired forge, a restored
+hall, lit torches, newly revealed rooms, recovered murals, a visible
+inhabitant, an upgraded sprite, more color in the world. Weak progression
+is invisible: +5% speed, +10 storage, +15% efficiency. Numbers support
+progress — they tune pacing under the hood — but they are never a
+substitute for something the player can actually *see* change. Any new
+feature that only manifests as a bigger number, with no visible
+counterpart, should be treated as incomplete.
+
+### Resource Philosophy
+
+Materials and depth should read as history, not as a power ladder.
+Mechanically, ore/ingot/fuel categories and numeric tiers stay exactly as
+implemented (see MECHANICS.md §5) — this is about *flavor and framing*,
+not new fields or a rename of existing materials. The aspiration is that
+future depth/area names lean toward "Fallen Workings," "Silent Delves,"
+"King's Veins," "Ancestor Roads," "Forgotten Below" rather than a generic
+Copper → Iron → Steel → Mithril ladder — each depth should feel like it's
+revealing a chapter of the mountain's past, not just a bigger number tier.
+Not yet applied to any shipped content; a principle to write new material/
+area names against going forward, not a retroactive relabel.
+
+### Relics
+
+Relics are planned to become major content in their own right — not
+collectibles, not vendor trash, not another resource category. The bar
+is that finding a relic should feel more exciting than finding ore.
+Examples from design discussion: a Cracked Crown, Survey Maps, Ancestor
+Journals, the Smith-King's Hammer, the Hearthkeeper's Bell. **Not yet
+designed mechanically or implemented** — no `RelicId` or relic system
+exists in code yet; tracked as a gap in OPEN_QUESTIONS.md.
 
 ---
 
@@ -65,6 +140,18 @@ narrating the player's actions back to them. This is the primary
   + fade), never stacks, never pauses input.
 - Anti-repeat: won't show the same line twice in a row within one
   trigger's pool (pools with only 1 line are exempt, by necessity).
+
+## 9a. Permanent Residents — Stay Extremely Rare
+
+The mountain remains lonely by design. Narag-Bund (§10a) already proves
+the principle in code: he's the **one** deliberate exception, not the
+start of a roster. Future permanent residents (design discussion has
+floated "The Last Smith," "The Widow," possibly one or two others total)
+should stay just as rare and just as narratively weighty. Concretely:
+**never build a population system, a workforce/job-assignment mechanic,
+or anything resembling a colony roster.** The loneliness is intentional
+and is load-bearing for the whole pitch (§1) — diluting it with more than
+a small handful of named residents, ever, would undercut the fantasy.
 
 ## 10. NPCs / Other Characters
 
