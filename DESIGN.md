@@ -65,14 +65,14 @@ The fix: this project's history is pushed to a real GitHub repo
 at the start of each new session - `git clone` works from Claude's
 sandbox with zero credentials needed for a public repo.
 
-**Repo URL: `https://github.com/REPLACE_WITH_ACTUAL_URL/dwarf-game.git`**
+**Repo URL: `https://github.com/poa-id/dwarf-game.git`**
 (fill this in once the repo is created - see the project owner if this
-still says REPLACE_WITH_ACTUAL_URL, the repo may not be pushed yet)
+still says poa-id, the repo may not be pushed yet)
 
 **Paste this as the opening message of a new conversation:**
 
 > This is an ongoing project: a dwarf-themed idle/RPG game called "The
-> Hearth & The Deep." Clone https://github.com/REPLACE_WITH_ACTUAL_URL/dwarf-game.git
+> Hearth & The Deep." Clone https://github.com/poa-id/dwarf-game.git
 > into your working directory first. Then read DESIGN.md at the repo
 > root (it's a short index), then docs/OPEN_QUESTIONS.md to see what's
 > unresolved/in-progress. Only read docs/LORE.md or docs/MECHANICS.md
