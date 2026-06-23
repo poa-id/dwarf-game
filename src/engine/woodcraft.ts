@@ -37,7 +37,20 @@ export const WOOD_NODES: WoodNode[] = [
     baseXp: 7,
     baseYield: 1,
     baseSuccessChance: 0.88,
-    totalYieldCapacity: 30, // a starter formation near the hearth - finite, like the starter copper vein
+    // Raised from 30 -> 50 (2026-06-23, playtesting feedback): forge
+    // repair alone costs 15 wood (see FORGE_REPAIR_COST in smithing.ts),
+    // which left only 15 of the old 30-wood capacity for everything
+    // else - barely enough for 3 charcoal-kiln attempts (4 wood each,
+    // see kiln.ts CHARCOAL_RECIPE) with zero margin for failure and
+    // nothing left to feed the Hearth directly. 50 comfortably covers
+    // forge repair + the charcoal needed to smelt and repair at least
+    // one torch, with realistic failure margin and some wood left over -
+    // deliberately NOT sized to repair every torch in the game from
+    // this one starter node alone (that's not the bar; see
+    // OPEN_QUESTIONS.md for the math behind this number). Kept the
+    // 4:1 wood->charcoal ratio unchanged - charcoal staying a real
+    // cost, not a freebie, was the explicit call here.
+    totalYieldCapacity: 50,
   },
 ];
 

@@ -223,4 +223,20 @@ once resolved (and reflect the resolution in the relevant section above).
   groups deliberately), and how this interacts with movement input if a
   panel is open AND the player presses a movement key (does that close/
   ignore the panel, or do both stay live). Not started.
+- **Starter wood node capacity raised 30 → 50 (2026-06-23, playtesting
+  feedback):** forge repair alone costs 15 wood (`FORGE_REPAIR_COST`),
+  which left only 15 of the old 30-wood total capacity for everything
+  else - barely 3 charcoal-kiln attempts (4 wood each) with zero margin
+  for the kiln's 15% failure chance, and nothing left to feed the Hearth
+  directly. Project owner suggested either lowering the kiln's 4:1
+  wood-to-charcoal ratio or raising wood supply; chose supply, to keep
+  charcoal a real cost rather than a near-freebie. The 50 figure: forge
+  repair (15) + charcoal for smelting/repairing at least the cheapest
+  torch (3 copper_ingot × 4 wood/charcoal = 12 wood) = 27 baseline, ×1.3
+  for failure margin + 10 wood buffer for Hearth-feeding ≈ 45, rounded
+  up to 50. Deliberately NOT sized to repair all 3 torches (11 ingots
+  total) from this one starter node alone - that's not the bar this
+  node is meant to clear; a player repairing every torch is expected to
+  draw on more than just the first wood formation. See woodcraft.ts's
+  `root_tangle` comment.
 

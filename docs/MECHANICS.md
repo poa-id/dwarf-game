@@ -65,9 +65,11 @@ skill for wood specifically.
 
 Mechanically identical to Mining (same generic `gathering.ts` strike
 mechanic, axes instead of pickaxes as the tool tier). The starter
-`root_tangle` node (30 total yield, finite) sits near spawn alongside
-the copper vein - both gatherable from the very start, since the first
-Forge repair needs wood AND ore together.
+`root_tangle` node (50 total yield, finite — raised from 30 on
+2026-06-23 after playtesting found forge repair alone consumed half the
+old capacity, see OPEN_QUESTIONS.md for the math) sits near spawn
+alongside the copper vein - both gatherable from the very start, since
+the first Forge repair needs wood AND ore together.
 
 **Explicitly deferred:** tree/mushroom-stalk GROWING (planting,
 waiting, harvesting) is a planned future expansion, not built now -
