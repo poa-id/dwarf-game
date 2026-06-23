@@ -165,6 +165,20 @@ whatever's in personal inventory; the Hearth only ever touches what's
 been deliberately set aside for it. See §10a for Narag-Bund, who
 automates the "setting aside" step once befriended.
 
+**The burn gauge — real, persisted feedback, added after playtesting
+found stoking had none (2026-06-22):** the Hearth panel shows a live
+"Burning (auto)" bar once auto-tending is unlocked, reading
+`reserveBurnSecondsRemaining()` - actual seconds the banked
+`fuelReserve` can sustain `tickHearth`'s passive draw at
+`FUEL_ABSORPTION_RATE_PER_SEC` (0.5/sec), draining in real time as the
+reserve is actually consumed. This is NOT cosmetic - it's the same
+value the engine itself uses, just exposed. Direct "feed the fire"
+stokes (which bypass the reserve and burn instantly) instead get a
+separate, genuinely cosmetic CSS flash, since that path has no ongoing
+state to show a gauge for. Deliberately does NOT show `lifetimeFuel` or
+distance-to-the-next-color-stage anywhere - see the rekindle-gating
+principle below for why that specific number stays hidden.
+
 **Forge repair vs. Forge upgrades - a real split, not just naming:**
 - **Tier 0→1 is a REPAIR**, not an upgrade - the forge starts broken
   (rubble), and the player invests raw materials (wood + copper ore,
@@ -181,13 +195,44 @@ automates the "setting aside" step once befriended.
 
 **Hearth upgrades (`HEARTH_UPGRADES` in hearth.ts) - built, real
 content now, not just placeholder tiers:**
-- **Tier 1, "Friend of Burden" (30 Insight):** befriends Narag-Bund
-  (§10a) AND unlocks `tickHearth`'s passive continuous draw. Before
-  this tier, the Hearth does NOTHING passively - manual stoking is the
-  entire mechanic, by deliberate design choice.
-- **Tier 2, "Deepened Hearth" (150 Insight):** the hearth burns fuel
-  more efficiently (described in content, not yet mechanically wired
-  to an actual efficiency multiplier - flagged in §11).
+- **Tier 1, "Friend of Burden" (250 Insight, raised from 30 — see
+  below):** befriends Narag-Bund (§10a) AND unlocks `tickHearth`'s
+  passive continuous draw. Before this tier, the Hearth does NOTHING
+  passively - manual stoking is the entire mechanic, by deliberate
+  design choice.
+- **Tier 2, "Deepened Hearth" (400 Insight, raised from 150):** the
+  hearth burns fuel more efficiently (described in content, not yet
+  mechanically wired to an actual efficiency multiplier - flagged in
+  §11). Raised so it stays above its own tier-1 prerequisite's cost.
+
+**Discovery gating - the upgrade row doesn't exist below its own
+cost, not just disabled (added 2026-06-22, after playtesting):**
+`Friend of Burden`'s description names Narag-Bund and his nature
+outright. Rendering it as a grayed-out-but-visible row (the original
+implementation) spoiled him before the player could plausibly have
+met him - a real violation of UI-as-progression (§15). The row now
+renders nothing at all - no header, no row, no hint - until
+`insightBanked` actually reaches the cost; reaching it IS the discovery
+moment. This is also why the cost itself needed raising from 30 to 250:
+Insight only comes from rekindling (`calculateRekindleInsight`, 5 per
+total skill level), so the old 30 cost was reachable after almost no
+play at all - far too cheap a gate for something meant to be rare and
+major, and not even a meaningful threshold for discovery-gating
+purposes.
+
+**Rekindling has a UI affordance now, and it must stay silent
+beforehand (added 2026-06-22):** the "Rekindle" option appears in the
+Hearth panel once `hearth.lifetimeFuel` crosses
+`COLOR_STAGES[1].fuelThreshold` (500) - deliberately the SAME threshold
+that triggers the world's first color, not a separate number. Per
+project owner's explicit direction, this must give no warning
+beforehand anywhere in the UI - no counter, no narrator foreshadowing.
+The option simply exists, or doesn't, the next time the panel renders.
+Confirmed via `window.confirm()` (mirrors the existing reset-save
+pattern) since the action is permanent. See hearthPanel.ts's
+`performRekindle`/`REKINDLE_FUEL_THRESHOLD`, and §13/§14's "knowledge
+itself becomes progression" framing - this is that principle applied
+to the single most important action in the game.
 
 ## 6. The Hub Map
 
@@ -295,8 +340,15 @@ rekindling) → 2 (Hearthlight — materials differentiate, embery muted
 palette) → 3 (True Color — full natural palette, a different *kind* of
 light than stage 2, not just more saturated).
 
-Lit torches glow warm at EVERY stage including Stage 0 — earned light is
-meant to read independent of overall world progress.
+**Torches follow Stage 0's flat-gray rule like everything else** (reversed
+2026-06-22, after playtesting — an earlier version of this doc had torches
+glow warm at every stage including Stage 0, on the theory that "earned
+light should read independent of world progress." Seeing it in actual
+play, that read as visually wrong rather than thematically meaningful —
+a warm-colored object sitting in an otherwise genuinely 2-color world
+undercut Stage 0's flatness more than it added anything. Torches now
+join the hearth and forge as part of the Stage 1 "first color enters the
+world" moment, not an exception to Stage 0).
 
 ### Perception Is Progression
 

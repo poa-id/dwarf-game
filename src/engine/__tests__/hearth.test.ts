@@ -183,8 +183,8 @@ describe("hearth upgrades", () => {
   });
 
   it("canAffordHearthUpgrade respects insight cost for tier 1", () => {
-    expect(canAffordHearthUpgrade(10, 0)).toBe(false); // costs 30
-    expect(canAffordHearthUpgrade(30, 0)).toBe(true);
+    expect(canAffordHearthUpgrade(100, 0)).toBe(false); // costs 250
+    expect(canAffordHearthUpgrade(250, 0)).toBe(true);
   });
 
   it("isAutoTendingUnlocked is false below tier 1, true at tier 1+", () => {

@@ -34,6 +34,19 @@ export function totalHearthFuelValue(inventory: ResourceBag): number {
   }, 0);
 }
 
+/**
+ * How many seconds of passive auto-burn the reserve can currently
+ * sustain at FUEL_ABSORPTION_RATE_PER_SEC - the real, persisted number
+ * behind the Hearth panel's burn gauge (see hearthPanel.ts). This is
+ * NOT cosmetic: it reflects actual banked WorldState.fuelReserve and
+ * drains for real as tickHearth consumes it each tick, same value the
+ * engine itself uses to decide how long auto-tending can run before
+ * the reserve runs dry.
+ */
+export function reserveBurnSecondsRemaining(fuelReserve: ResourceBag): number {
+  return totalHearthFuelValue(fuelReserve) / FUEL_ABSORPTION_RATE_PER_SEC;
+}
+
 // ---------------------------------------------------------------------------
 // Stoking - the EARLY, manual way to feed the Hearth, and ALSO the
 // permanent way to bank fuel for later even once automation exists
@@ -282,13 +295,25 @@ export interface HearthUpgrade {
 export const HEARTH_UPGRADES: HearthUpgrade[] = [
   {
     tier: 1,
-    insightCost: 30,
+    // Raised from 30 -> 250 (2026-06-22, project owner's explicit call):
+    // Narag-Bund is meant to be rare and major, not an early-game freebie.
+    // 250 matches FORGE_UPGRADES' "Bellows of the Deep" - the same
+    // weight-class as a major Forge upgrade, not a cheap first purchase.
+    // This cost ALSO doubles as the discovery gate (see hearthPanel.ts) -
+    // the upgrade row doesn't render at all below this threshold, so
+    // reaching 250 Insight banked IS the moment the player first learns
+    // Narag-Bund exists. Insight only comes from rekindling (see
+    // rekindle.ts calculateRekindleInsight), so this is reachable only
+    // after real, sustained play - not a quick early trigger.
+    insightCost: 250,
     name: "Friend of Burden",
     description: "Narag-Bund - found in the dark, coal-backed, willing to carry what you can't.",
   },
   {
     tier: 2,
-    insightCost: 150,
+    // Raised from 150 -> 400 (2026-06-22) - a tier-2 upgrade must cost
+    // more than its own tier-1 prerequisite (250), not less.
+    insightCost: 400,
     name: "Deepened Hearth",
     description: "The hearth burns fuel more efficiently - less is lost to the dark.",
   },

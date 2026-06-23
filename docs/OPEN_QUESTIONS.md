@@ -75,20 +75,92 @@ once resolved (and reflect the resolution in the relevant section above).
     not a permanent replacement (see the resource-naming entry above -
     real coal mining still belongs to the future Tunnel Entrance/mine
     work).
-  - **Real gap found, NOT yet fixed:** `rekindle()` is fully implemented
-    and tested in engine/rekindle.ts, but nothing in main.ts, actions.ts,
-    or any UI panel ever calls it. There is currently no button, keybind,
-    or other player-facing way to trigger a rekindle. This is the
-    single biggest remaining hole in the vertical slice - needs a
-    decision on where the affordance lives (Hearth panel is the obvious
-    candidate) and what UX gates/confirms such a permanent, deliberate
-    action.
+  - **Real gap found AND fixed (2026-06-22, same day):** `rekindle()`
+    was fully implemented and tested in engine/rekindle.ts, but nothing
+    anywhere ever called it - no button, no keybind. **Fixed**: a
+    "Rekindle" option now appears in the Hearth panel, but ONLY once
+    `hearth.lifetimeFuel` crosses `COLOR_STAGES[1].fuelThreshold` (500) -
+    the exact same threshold that triggers the world's first color and
+    the `color_stage_1` narrator line. This was a deliberate design
+    choice, not an implementation shortcut: per project owner's explicit
+    direction, rekindling progress must stay completely silent
+    beforehand - no counter, no narrator foreshadowing anywhere in the
+    UI. The option simply exists, or doesn't, next time the panel
+    renders. Confirmed via `window.confirm()` before committing (mirrors
+    the existing reset-save pattern in main.ts) since it's permanent and
+    irreversible. See hearthPanel.ts's `performRekindle`/
+    `REKINDLE_FUEL_THRESHOLD`.
   - **"Restore first room" has no real target yet:** only the Forge has
     any state at all, and it's binary (broken/repaired), not the
     Ruined/Cleared/Restored/Masterwork model from §14. No second room
     (Archive, Great Hall, etc.) exists anywhere in the renderer. This is
     exactly the room-state framework work already queued as the next
     task after this audit.
+- **First real playtest findings (2026-06-22) - several genuine bugs
+  caught by actually playing, not just reading code:**
+  - **Lit torches no longer glow independent of color stage.** An
+    earlier deliberate design choice (torches glow warm even at Stage 0,
+    "earned light reads independent of world progress") read as
+    visually WRONG once actually seen in play - a warm-colored object
+    in an otherwise genuinely 2-color world undercut Stage 0's flatness
+    more than it added meaning. **Reversed**: torches now follow Stage
+    0's flat-gray rule like everything else, and join the hearth/forge
+    as part of Stage 1's "first color enters the world" moment. See
+    palette.ts's STAGE_0/STAGE_1 `torch_lit` entries and MECHANICS.md §8.
+  - **Contextual interaction range tightened from 2 tiles to 1.** Forge,
+    Hearth, and Kiln proximity checks (`isNearForge`/`isNearHearth`/
+    `isNearKiln`) used a 2-tile radius, inconsistent with mining/
+    woodcraft's existing 1-tile radius and just generally felt too loose
+    in play. All three now match the 1-tile standard. See proximity.ts.
+  - **Sidebar was forcing page-level vertical scroll - fixed.** The
+    `.stats-panel` had no height constraint at all; as the Hearth panel
+    grew (fuel rows + reserve + burn gauge + upgrade + rekindle), the
+    whole page grew taller and the browser's own scrollbar kicked in.
+    **Fixed**: `.stats-panel` is now capped at exactly the canvas's pixel
+    height (408px, matching `viewportRows * cellSize`), with each
+    individual `.stats-section` scrolling internally if ITS OWN content
+    overflows, and `.contextual-panel` given `flex-shrink: 0` so the
+    actionable Forge/Hearth/Kiln panel is never squeezed by its
+    siblings. The page itself never scrolls; only specific menu boxes
+    can, per explicit direction. See style.css.
+  - **Narag-Bund's name/nature was spoiled before any in-game discovery
+    - fixed via real discovery gating, not just a disabled row.** The
+    Hearth's tier-1 upgrade row rendered unconditionally (just grayed
+    out if unaffordable), and its description named Narag-Bund and his
+    nature outright - visible the moment the panel was ever opened, long
+    before the player could plausibly have met him. **Fixed**: the
+    upgrade row now doesn't render AT ALL below its Insight cost - no
+    header, no disabled row, no hint anything exists there. Reaching the
+    cost banked IS the discovery moment. This needed `Friend of Burden`'s
+    cost raised from 30 to 250 Insight (the old cost was reachable after
+    almost no play at all - clearly too cheap for what's described as a
+    rare, major companion) - and `Deepened Hearth` (tier 2) raised from
+    150 to 400 to keep ascending order above its own tier-1 prerequisite.
+    Insight only comes from rekindling (`calculateRekindleInsight`), so
+    250 is a real, multi-rekindle-or-one-long-playthrough milestone, not
+    a quick trigger. See hearth.ts's `HEARTH_UPGRADES` and
+    hearthPanel.ts's discovery-gating logic.
+  - **Hearth stoking had no visible feedback at all - fixed with a real
+    gauge plus a separate cosmetic flash.** Clicking "Feed the fire" or
+    "Bank in reserve" silently updated a small inventory count with no
+    other visible response - a direct violation of LORE.md's "Progress
+    Should Be Visible" rule. Investigation found `HearthState.fuel` was
+    already a real, designed-but-never-implemented field (doc comment
+    described it as "consumed/spent over time," but nothing ever read or
+    decayed it). **Fixed** with two distinct pieces, per project owner's
+    explicit framing (a Minecraft-furnace analogy): (1) a real "burn
+    gauge" in the Hearth panel showing `reserveBurnSecondsRemaining()` -
+    actual seconds of auto-burn the banked reserve can sustain at
+    `FUEL_ABSORPTION_RATE_PER_SEC`, draining live as `tickHearth`
+    consumes it - only shown once auto-tending is unlocked, since the
+    reserve isn't drawn from at all before that; (2) a separate, purely
+    cosmetic CSS flash (`@keyframes`, not a transition, so it completes
+    on its own regardless of whether anything re-renders afterward) on
+    direct "feed the fire" clicks, since that path consumes instantly
+    with no other persisted trace to show. Explicitly does NOT show
+    `lifetimeFuel` or distance-to-next-color-stage anywhere - that stays
+    silent, same principle as the rekindle gate above. See hearth.ts's
+    `reserveBurnSecondsRemaining` and hearthPanel.ts/style.css.
 - **Idle-game bulk action multiplier (agreed, not yet built):** any
   repeatable spend/produce action (stoking, smithing) should support a
   shared x1/x5/x10/MAX multiplier selector (Cookie Clicker convention) -
@@ -133,4 +205,22 @@ once resolved (and reflect the resolution in the relevant section above).
   `HAUL_INTERVAL_MS=10000`, `HAUL_AMOUNT_PER_TRIP=1` were picked to
   "feel like a creature on its own schedule" per the design discussion,
   but have not been tuned against real play.
+- **Keyboard-only menu navigation requested, not yet built:** project
+  owner wants to play with keyboard alone, including selecting/clicking
+  contextual panel options (currently mouse-only - every Forge/Hearth/
+  Kiln panel row is a `<div>` with a `click` listener, no keyboard path
+  at all). Proposed shape from design discussion: WASD stays movement;
+  arrow keys become menu navigation once a contextual panel is open;
+  when the player is in interaction range of something (Forge/Hearth/
+  Kiln/etc.), the panel's first option should be pre-selected by
+  default, so a single confirm key-press acts on it immediately without
+  needing to navigate first. Real design work needed before
+  implementation: what's the confirm key (Enter? F, reused?), does
+  arrow-key navigation wrap or clamp at the panel's ends, how does focus
+  move between separate panel SECTIONS (e.g. Hearth panel currently has
+  fuel rows + upgrade + rekindle as visually distinct groups - is that
+  one flat list for arrow purposes, or does focus need to jump between
+  groups deliberately), and how this interacts with movement input if a
+  panel is open AND the player presses a movement key (does that close/
+  ignore the panel, or do both stay live). Not started.
 

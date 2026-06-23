@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { totalHearthFuelValue, HEARTH_FUEL_MATERIALS } from "../hearth";
+import {
+  totalHearthFuelValue,
+  HEARTH_FUEL_MATERIALS,
+  reserveBurnSecondsRemaining,
+  FUEL_ABSORPTION_RATE_PER_SEC,
+} from "../hearth";
 import type { ResourceBag } from "../types";
 
 describe("totalHearthFuelValue", () => {
@@ -31,5 +36,22 @@ describe("totalHearthFuelValue", () => {
   it("HEARTH_FUEL_MATERIALS includes both coal and wood", () => {
     expect(HEARTH_FUEL_MATERIALS).toContain("coal");
     expect(HEARTH_FUEL_MATERIALS).toContain("wood");
+  });
+});
+
+describe("reserveBurnSecondsRemaining", () => {
+  it("is 0 for an empty reserve", () => {
+    expect(reserveBurnSecondsRemaining({})).toBe(0);
+  });
+
+  it("converts fuel value into seconds using FUEL_ABSORPTION_RATE_PER_SEC", () => {
+    const reserve: ResourceBag = { coal: 5 }; // fuel value 50
+    expect(reserveBurnSecondsRemaining(reserve)).toBe(50 / FUEL_ABSORPTION_RATE_PER_SEC);
+  });
+
+  it("a single coal lasts longer than a single wood (higher heatValue)", () => {
+    const coalReserve: ResourceBag = { coal: 1 };
+    const woodReserve: ResourceBag = { wood: 1 };
+    expect(reserveBurnSecondsRemaining(coalReserve)).toBeGreaterThan(reserveBurnSecondsRemaining(woodReserve));
   });
 });

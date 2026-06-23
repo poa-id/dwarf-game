@@ -69,7 +69,7 @@ export function nearestAnyWoodNode() {
 export function isNearForge(): boolean {
   const { position } = getState().vessel;
   return (
-    Math.abs(position.col - FORGE_CENTER.col) <= 2 && Math.abs(position.row - FORGE_CENTER.row) <= 2
+    Math.abs(position.col - FORGE_CENTER.col) <= 1 && Math.abs(position.row - FORGE_CENTER.row) <= 1
   );
 }
 
@@ -80,14 +80,14 @@ export function isForgeRepaired(): boolean {
 export function isNearHearth(): boolean {
   const { position } = getState().vessel;
   return (
-    Math.abs(position.col - HEARTH_SPAWN_POSITION.col) <= 2 &&
-    Math.abs(position.row - HEARTH_SPAWN_POSITION.row) <= 2
+    Math.abs(position.col - HEARTH_SPAWN_POSITION.col) <= 1 &&
+    Math.abs(position.row - HEARTH_SPAWN_POSITION.row) <= 1
   );
 }
 
 export function isNearKiln(): boolean {
   const { position } = getState().vessel;
   return (
-    Math.abs(position.col - KILN_POSITION.col) <= 2 && Math.abs(position.row - KILN_POSITION.row) <= 2
+    Math.abs(position.col - KILN_POSITION.col) <= 1 && Math.abs(position.row - KILN_POSITION.row) <= 1
   );
 }

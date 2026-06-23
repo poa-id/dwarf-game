@@ -17,7 +17,7 @@ import {
   isNearKiln,
 } from "./proximity";
 import { renderSmithingPanel, performSmith } from "../ui/smithingPanel";
-import { renderHearthPanel, performStoke, performHearthUpgrade } from "../ui/hearthPanel";
+import { renderHearthPanel, performStoke, performHearthUpgrade, performRekindle } from "../ui/hearthPanel";
 import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
 
 export interface RenderRefs {
@@ -180,6 +180,18 @@ function updateContextualPanel(): void {
         if (!wasBefriendedBefore && getState().world.companion.befriended) {
           narrate("companion_befriended");
         }
+        render();
+      },
+      () => {
+        const result = performRekindle(getState());
+        if (!result) return; // defensive - the panel shouldn't have offered this below threshold
+        setState(result.newState);
+        // wake_rekindled, not wake_first_ever - this dwarf is new, but
+        // the world (and the player) have been here before. See
+        // gameState.ts's comment on why this trigger was previously
+        // unreachable - this onRekindle callback is its first and only
+        // real caller.
+        narrate("wake_rekindled");
         render();
       }
     );

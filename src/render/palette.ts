@@ -88,7 +88,15 @@ const STAGE_0: StagePalette = {
     kiln: "#9a9a9a",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
-    torch_lit: "#ff5a1a", // earned light - glows warm even in total 2-bit darkness, independent of world color stage
+    // Torches now follow the SAME flat-gray Stage 0 rule as everything
+    // else, rather than glowing independent of world color stage. This
+    // reverses an earlier deliberate design choice (see Stage 1 below)
+    // - playtesting found "earned light glows regardless of stage" read
+    // as visually wrong/inconsistent once actually seen in the dark
+    // world, even though it was internally consistent on paper. Torch
+    // color is now part of the same Stage 1 "first color enters the
+    // world" moment as the hearth and forge, not an exception to it.
+    torch_lit: "#9a9a9a",
   },
 };
 
@@ -105,6 +113,7 @@ const STAGE_1: StagePalette = {
     ...STAGE_0.colors,
     hearth: "#ff5a1a",
     forge: "#c44a14",
+    torch_lit: "#ff5a1a", // joins the hearth/forge as part of the first color entering the world - no longer an exception to Stage 0's flatness
   },
 };
 
