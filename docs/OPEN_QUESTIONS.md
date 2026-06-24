@@ -239,4 +239,52 @@ once resolved (and reflect the resolution in the relevant section above).
   node is meant to clear; a player repairing every torch is expected to
   draw on more than just the first wood formation. See woodcraft.ts's
   `root_tangle` comment.
+- **Tools are now smithed, not free (2026-06-23) - "metal + wood =
+  tool":** previously, pickaxe/axe quality (`PICKAXE_TIERS`/`AXE_TIERS`
+  in mining.ts/woodcraft.ts) was a free, automatic side-effect of
+  `world.forgeTier` (the Forge's own upgrade tier) - no crafting step,
+  no inventory item, nothing to actually DO to get a better pickaxe
+  besides upgrading the Forge for an unrelated reason. Per explicit
+  project direction, this was replaced: tools are now smithed at the
+  Forge (`smithing.ts`'s `TOOL_RECIPES`/`attemptForgeTool`), consuming
+  ingot + wood + fuel, same risk/fuel-heat rules as any other smithing
+  recipe. The forged tier lives in `WorldState.toolsForged`
+  (World-persistent - survives rekindling, unlike everything else a
+  dwarf personally carries) rather than being derived from
+  `forgeTier`. See MECHANICS.md's new Tools subsection under Smithing
+  for the full design. Displayed in a new "tools" stats-section in the
+  sidebar (`render.ts`).
+  - **Follow-up gap, not yet built:** Steel Pickaxe/Steel Axe (tier 3)
+    don't exist as real `ToolRecipe`s - there's no `steel_ingot`
+    `MaterialDefinition`, no steel ore, no steel smithing recipe
+    anywhere in the game. The OLD free-tier system had a "Steel Pick"
+    entry, but it was equally unbacked by real content - this isn't a
+    regression from the rework, just an existing gap made more visible
+    now that tiers need actual recipes rather than just appearing.
+  - **Possible follow-up, not decided:** old saves created before this
+    change get backfilled with `toolsForged: {pickaxe: 0, axe: 0}` (see
+    saveGame.ts) - meaning a save with `forgeTier >= 1` that previously
+    got a free Copper Pickaxe bonus will, on next load, show as bare
+    hands until the player re-forges one. Treated as an acceptable
+    one-time migration cost, not an ongoing concern, since it only
+    affects saves created before 2026-06-23.
+- **Sidebar squeeze fixed via a real layout split, not just CSS
+  (2026-06-23):** adding the "tools" stats-section made it likely that
+  all 4 sidebar boxes (Dwarf, Tools, Carried, Contextual panel) couldn't
+  comfortably fit a single 408px-tall column at once - rough math showed
+  ~550px of natural content wanting to fit in 408px once the Forge panel
+  shows both ingot AND tool recipes together. Rather than patch this
+  with more aggressive internal scrolling, the layout itself changed:
+  Dwarf/Tools/Carried now live in a LEFT sidebar
+  (`.stats-panel-left`), and the Contextual panel (Forge/Hearth/Kiln -
+  the thing that actually changes and needs room) now has an entire
+  RIGHT sidebar to itself (`.stats-panel-right`). The canvas also grew
+  from 25x17 to 32x22 cells (600x408px -> 768x528px) at the same 24px
+  cell size - comfortably within the 80x50 Hub map's bounds, so no fog-
+  of-war/light-radius side effects (DEFAULT_LIGHT_RADIUS is independent
+  of viewport size; a bigger viewport just shows more of the
+  already-dark unexplored map at once, not further sight). Both
+  sidebars are now capped at 528px (matching the new canvas height)
+  with real margin to spare for realistic content. See main.ts and
+  style.css.
 

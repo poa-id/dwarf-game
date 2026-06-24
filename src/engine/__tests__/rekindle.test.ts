@@ -21,6 +21,7 @@ function makeStateWithProgress(): GameState {
       litTorches: {},
       veinDepletion: { hearth_hall_copper: { totalYielded: 30 } },
       woodDepletion: { hearth_hall_roots: { totalYielded: 12 } },
+      toolsForged: { pickaxe: 1, axe: 1 }, // non-zero specifically to verify rekindle() carries this through (see "preserves" test below)
     },
     vessel: {
       skills: {
@@ -54,7 +55,7 @@ describe("calculateRekindleInsight", () => {
 });
 
 describe("rekindle", () => {
-  it("WORLD state survives untouched: forgeTier, mineDepth, hearth, lore, vein depletion all persist", () => {
+  it("WORLD state survives untouched: forgeTier, mineDepth, hearth, lore, vein depletion, forged tools all persist", () => {
     const state = makeStateWithProgress();
     const { newState } = rekindle(state);
     expect(newState.world.forgeTier).toBe(state.world.forgeTier);
@@ -63,6 +64,7 @@ describe("rekindle", () => {
     expect(newState.world.loreFlags).toEqual(state.world.loreFlags);
     expect(newState.world.veinDepletion).toEqual(state.world.veinDepletion); // a vein worked thin by one dwarf stays thin for the next
     expect(newState.world.woodDepletion).toEqual(state.world.woodDepletion); // same for wood
+    expect(newState.world.toolsForged).toEqual(state.world.toolsForged); // a forged pickaxe/axe is the mountain's, not the dwarf's - the next dwarf picks it right back up
   });
 
   it("VESSEL state is fully reset: skills back to level 1, inventory emptied", () => {

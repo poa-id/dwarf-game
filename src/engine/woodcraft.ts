@@ -55,13 +55,15 @@ export const WOOD_NODES: WoodNode[] = [
 ];
 
 export const AXE_TIERS: ToolTier[] = [
-  { requiredForgeTier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
-  { requiredForgeTier: 1, successChanceBonus: 0.1, yieldMultiplier: 1.25, name: "Copper Hatchet" },
-  { requiredForgeTier: 2, successChanceBonus: 0.2, yieldMultiplier: 1.5, name: "Iron Hatchet" },
+  { tier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
+  { tier: 1, successChanceBonus: 0.1, yieldMultiplier: 1.25, name: "Copper Axe" },
+  { tier: 2, successChanceBonus: 0.2, yieldMultiplier: 1.5, name: "Iron Axe" },
+  // Tier 3 ("Steel Axe") intentionally absent - same reason as
+  // PICKAXE_TIERS in mining.ts: no steel_ingot material exists yet.
 ];
 
-export function bestAvailableAxe(forgeTier: number): ToolTier {
-  return bestAvailableTool(AXE_TIERS, forgeTier);
+export function bestAvailableAxe(forgedAxeTier: number): ToolTier {
+  return bestAvailableTool(AXE_TIERS, forgedAxeTier);
 }
 
 export type WoodGatherResult = GatherStrikeResult;
@@ -69,11 +71,11 @@ export type WoodGatherResult = GatherStrikeResult;
 export function attemptWoodGather(
   node: WoodNode,
   woodcraftSkill: SkillState,
-  forgeTier: number,
+  forgedAxeTier: number,
   depletion: NodeDepletionState,
   roll: number
 ): WoodGatherResult {
-  const axe = bestAvailableAxe(forgeTier);
+  const axe = bestAvailableAxe(forgedAxeTier);
   return attemptGatherStrike(node, woodcraftSkill, axe, depletion, roll);
 }
 

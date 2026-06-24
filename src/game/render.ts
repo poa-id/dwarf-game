@@ -4,6 +4,8 @@ import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "../engine/
 import { cellKey, MATERIALS } from "../engine/types";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
 import { FORGE_REPAIR_COST } from "../engine/smithing";
+import { bestAvailablePickaxe } from "../engine/mining";
+import { bestAvailableAxe } from "../engine/woodcraft";
 import { getState, setState, narrate, persist } from "./gameState";
 import {
   nearestUnrepairedTorch,
@@ -16,7 +18,7 @@ import {
   isNearHearth,
   isNearKiln,
 } from "./proximity";
-import { renderSmithingPanel, performSmith } from "../ui/smithingPanel";
+import { renderSmithingPanel, performSmith, performForgeTool } from "../ui/smithingPanel";
 import { renderHearthPanel, performStoke, performHearthUpgrade, performRekindle } from "../ui/hearthPanel";
 import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
 
@@ -35,6 +37,7 @@ export interface RenderRefs {
     barHearthkeeping: HTMLElement;
     barWoodcraft: HTMLElement;
     inventoryList: HTMLElement;
+    toolsList: HTMLElement;
   };
 }
 
@@ -61,6 +64,7 @@ function levelProgressPercent(totalXp: number): number {
 
 function updateStatsPanel(): void {
   const { skills, inventory } = getState().vessel;
+  const { toolsForged } = getState().world;
   refs.statEls.mining.textContent = `Mining ${skills.mining.level}`;
   refs.statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
   refs.statEls.hearthkeeping.textContent = `Hearthkeeping ${skills.hearthkeeping.level}`;
@@ -70,6 +74,17 @@ function updateStatsPanel(): void {
   (refs.statEls.barSmithing as HTMLDivElement).style.width = `${levelProgressPercent(skills.smithing.xp)}%`;
   (refs.statEls.barHearthkeeping as HTMLDivElement).style.width = `${levelProgressPercent(skills.hearthkeeping.xp)}%`;
   (refs.statEls.barWoodcraft as HTMLDivElement).style.width = `${levelProgressPercent(skills.woodcraft.xp)}%`;
+
+  // Tools - shows what's CURRENTLY equipped per slot (bestAvailablePickaxe/
+  // bestAvailableAxe already pick the right ToolTier given the forged
+  // tier), not the forging recipes themselves (those live in the
+  // Smithing panel - see smithingPanel.ts). "Bare Hands" at tier 0 is
+  // shown plainly, not hidden, since there's nothing to spoil here -
+  // unlike Narag-Bund, knowing bare-handed mining exists isn't a
+  // discovery moment worth gating.
+  const pickaxe = bestAvailablePickaxe(toolsForged.pickaxe);
+  const axe = bestAvailableAxe(toolsForged.axe);
+  refs.statEls.toolsList.innerHTML = `<p>Pickaxe: ${pickaxe.name}</p><p>Axe: ${axe.name}</p>`;
 
   const heldEntries = Object.entries(inventory).filter(([, amount]) => (amount ?? 0) > 0);
   if (heldEntries.length === 0) {
@@ -152,12 +167,22 @@ function updateContextualPanel(): void {
   const state = getState();
 
   if (isNearForge() && isForgeRepaired()) {
-    renderSmithingPanel(state, refs.contextualPanel, (recipe) => {
-      const outcome = performSmith(getState(), recipe);
-      setState(outcome.newState);
-      if (outcome.leveledUp) narrate("level_up");
-      render();
-    });
+    renderSmithingPanel(
+      state,
+      refs.contextualPanel,
+      (recipe) => {
+        const outcome = performSmith(getState(), recipe);
+        setState(outcome.newState);
+        if (outcome.leveledUp) narrate("level_up");
+        render();
+      },
+      (toolRecipe) => {
+        const outcome = performForgeTool(getState(), toolRecipe);
+        setState(outcome.newState);
+        if (outcome.leveledUp) narrate("level_up");
+        render();
+      }
+    );
     return;
   }
 

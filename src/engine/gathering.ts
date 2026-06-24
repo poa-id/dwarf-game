@@ -60,19 +60,25 @@ export function isExhausted(node: GatherableNode, depletion: NodeDepletionState)
 
 /**
  * A tool tier that boosts gathering - the generic shape behind both
- * Mining's pickaxes and Woodcraft's axes. Tool quality comes from the
- * Forge (a World value), same mechanism regardless of which skill is
- * using the tool.
+ * Mining's pickaxes and Woodcraft's axes. Tool quality now comes from
+ * actually SMITHING the tool (see smithing.ts's ToolRecipe/
+ * attemptForgeTool) - `tier` matches ToolRecipe.tier exactly, and the
+ * dwarf's currently-equipped tier for a slot lives in
+ * WorldState.toolsForged (persists across rekindling, like the Forge
+ * itself). This replaced an earlier design where tool quality was a
+ * free, automatic side-effect of Forge UPGRADE tier with no crafting
+ * step at all - see OPEN_QUESTIONS.md for that history.
  */
 export interface ToolTier {
-  requiredForgeTier: number;
+  tier: number;
   successChanceBonus: number;
   yieldMultiplier: number;
   name: string;
 }
 
-export function bestAvailableTool(tiers: ToolTier[], forgeTier: number): ToolTier {
-  const eligible = tiers.filter((t) => t.requiredForgeTier <= forgeTier);
+/** Looks up the ToolTier matching the highest tier actually forged for a slot (0 = bare hands, always present as the first entry in every tiers array). */
+export function bestAvailableTool(tiers: ToolTier[], forgedTier: number): ToolTier {
+  const eligible = tiers.filter((t) => t.tier <= forgedTier);
   return eligible[eligible.length - 1];
 }
 

@@ -50,6 +50,16 @@ function backfillMissingFields(state: any): any {
     if (state.world.companion === undefined) {
       state.world.companion = { befriended: false, lastHaulAt: Date.now() };
     }
+    if (state.world.toolsForged === undefined) {
+      // Old saves predate smithed tools entirely - backfill at 0/0
+      // (bare hands for both slots), same as a brand new world. This
+      // does mean a save from before this change loses any "free"
+      // tool-quality bonus it implicitly had from forgeTier under the
+      // old automatic system - an accepted, one-time downgrade on
+      // migration, not an ongoing mechanic; the player can re-forge
+      // real tools going forward. See OPEN_QUESTIONS.md.
+      state.world.toolsForged = { pickaxe: 0, axe: 0 };
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

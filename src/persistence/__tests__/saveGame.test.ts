@@ -114,6 +114,17 @@ describe("loadGame - backfilling additive fields from older saves", () => {
     expect(result.state.vessel.skills.woodcraft).toEqual({ id: "woodcraft", level: 1, xp: 0 });
   });
 
+  it("backfills a missing toolsForged field (pre-dates smithed tools entirely) at bare-hands defaults", () => {
+    const original = createInitialGameState(1000);
+    const oldShaped: any = { ...original, world: { ...original.world } };
+    delete oldShaped.world.toolsForged;
+    localStorage.setItem("dwarf-game-save", JSON.stringify(oldShaped));
+
+    const result = loadGame(2000);
+    expect(result.isFreshState).toBe(false); // NOT discarded - backfilled instead
+    expect(result.state.world.toolsForged).toEqual({ pickaxe: 0, axe: 0 });
+  });
+
   it("preserves all OTHER existing data while backfilling - it's additive, not a reset", () => {
     const original = createInitialGameState(1000);
     const oldShaped: any = { ...original, world: { ...original.world, forgeTier: 3 } };

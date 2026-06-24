@@ -35,7 +35,7 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   }
 
   const isFirstStrikeEver = !state.narrator.firedOnceTriggers.includes("mine_first_strike");
-  const result = attemptMineStrike(rockNode, miningSkill, state.world.forgeTier, depletion, Math.random());
+  const result = attemptMineStrike(rockNode, miningSkill, state.world.toolsForged.pickaxe, depletion, Math.random());
 
   setState({
     ...state,
@@ -86,7 +86,7 @@ export function handleWoodGather(): void {
     return;
   }
 
-  const result = attemptWoodGather(woodNode, woodcraftSkill, state.world.forgeTier, depletion, Math.random());
+  const result = attemptWoodGather(woodNode, woodcraftSkill, state.world.toolsForged.axe, depletion, Math.random());
 
   setState({
     ...state,

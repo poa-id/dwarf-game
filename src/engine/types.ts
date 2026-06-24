@@ -229,6 +229,28 @@ export interface CompanionState {
 }
 
 // ---------------------------------------------------------------------------
+// Tools - smithed gear (metal ingot + wood, see smithing.ts TOOL_RECIPES),
+// World-persistent like the Forge/Hearth/litTorches: a dwarf forges a
+// pickaxe, and even after he rekindles, the mountain keeps the physical
+// tool - the next dwarf picks it right back up. Replaces an earlier,
+// simpler design where tool quality was a free, automatic side-effect of
+// Forge upgrade tier with no crafting step at all - see
+// OPEN_QUESTIONS.md for that history.
+// ---------------------------------------------------------------------------
+
+export type ToolSlot = "pickaxe" | "axe";
+
+/**
+ * Highest tier of each tool slot ever forged - 0 means "nothing forged
+ * yet, bare hands." Storing the tier number (not a ToolId/item) keeps
+ * this a direct lookup into TOOL_TIERS_BY_SLOT in smithing.ts, and
+ * "forge a better one" naturally supersedes the old tier just by being
+ * a bigger number - no separate equip step, matching the explicit
+ * design call that one tool per slot is always active automatically.
+ */
+export type ToolsForgedState = Record<ToolSlot, number>;
+
+// ---------------------------------------------------------------------------
 // World state — persists across every rekindling
 // ---------------------------------------------------------------------------
 
@@ -254,6 +276,8 @@ export interface WorldState {
   woodDepletion: Record<string, { totalYielded: number }>;
   /** Narag-Bund's own state - see CompanionState above. */
   companion: CompanionState;
+  /** Highest tier ever forged per tool slot - see ToolsForgedState above. */
+  toolsForged: ToolsForgedState;
 }
 
 // ---------------------------------------------------------------------------

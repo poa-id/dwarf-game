@@ -86,7 +86,7 @@ canvas {
 
 .stats-panel {
   width: 160px;
-  height: 408px; /* matches canvas height exactly (17 viewportRows * 24px cellSize, see main.ts) - the sidebar must never grow the page itself */
+  height: 528px; /* matches canvas height exactly (22 viewportRows * 24px cellSize, see main.ts) - the sidebar must never grow the page itself */
   display: flex;
   flex-direction: column;
   gap: 16px;

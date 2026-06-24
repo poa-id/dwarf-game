@@ -56,6 +56,7 @@ export function createInitialWorld(now: number): WorldState {
     litTorches: {},
     veinDepletion: {},
     woodDepletion: {},
+    toolsForged: { pickaxe: 0, axe: 0 },
   };
 }
 

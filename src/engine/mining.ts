@@ -67,24 +67,26 @@ export const ROCK_NODES: RockNode[] = [
 ];
 
 export const PICKAXE_TIERS: ToolTier[] = [
-  { requiredForgeTier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
-  { requiredForgeTier: 1, successChanceBonus: 0.1, yieldMultiplier: 1.25, name: "Copper Pick" },
-  { requiredForgeTier: 2, successChanceBonus: 0.2, yieldMultiplier: 1.5, name: "Iron Pick" },
-  { requiredForgeTier: 3, successChanceBonus: 0.3, yieldMultiplier: 2, name: "Steel Pick" },
+  { tier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
+  { tier: 1, successChanceBonus: 0.1, yieldMultiplier: 1.25, name: "Copper Pickaxe" },
+  { tier: 2, successChanceBonus: 0.2, yieldMultiplier: 1.5, name: "Iron Pickaxe" },
+  // Tier 3 ("Steel Pickaxe") intentionally absent - no steel_ingot
+  // material exists yet, so there's no real ToolRecipe to forge it
+  // with. See OPEN_QUESTIONS.md.
 ];
 
-export function bestAvailablePickaxe(forgeTier: number): ToolTier {
-  return bestAvailableTool(PICKAXE_TIERS, forgeTier);
+export function bestAvailablePickaxe(forgedPickaxeTier: number): ToolTier {
+  return bestAvailableTool(PICKAXE_TIERS, forgedPickaxeTier);
 }
 
 export function attemptMineStrike(
   node: RockNode,
   miningSkill: SkillState,
-  forgeTier: number,
+  forgedPickaxeTier: number,
   depletion: NodeDepletionState,
   roll: number
 ): MineStrikeResult {
-  const pickaxe = bestAvailablePickaxe(forgeTier);
+  const pickaxe = bestAvailablePickaxe(forgedPickaxeTier);
   return attemptGatherStrike(node, miningSkill, pickaxe, depletion, roll);
 }
 

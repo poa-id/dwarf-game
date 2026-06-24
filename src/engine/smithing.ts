@@ -1,4 +1,4 @@
-import type { SkillState, ResourceBag, MaterialId } from "./types";
+import type { SkillState, ResourceBag, MaterialId, ToolSlot, ToolsForgedState } from "./types";
 import { getMaterialAmount, deductMaterials, canAffordMaterials, addMaterial, materialDef } from "./types";
 import { levelForXp } from "./xpCurve";
 
@@ -81,8 +81,15 @@ export interface SmithAttemptResult {
  * considered at all; falls back to the first accepted fuel (even if
  * unaffordable) so attemptSmith still has something concrete to name
  * in its "not enough X" error. Pure lookup, no mutation.
+ *
+ * Takes only the two fields it actually needs (not the full
+ * SmithRecipe) so ToolRecipe - which shares the same fuel-acceptance
+ * shape but isn't a SmithRecipe - can reuse this directly, no casting.
  */
-export function chooseFuelForRecipe(recipe: SmithRecipe, inventory: ResourceBag): MaterialId {
+export function chooseFuelForRecipe(
+  recipe: { acceptedFuels: MaterialId[]; fuelCost: number },
+  inventory: ResourceBag
+): MaterialId {
   const affordable = recipe.acceptedFuels.find(
     (fuelId) => getMaterialAmount(inventory, fuelId) >= recipe.fuelCost
   );
@@ -183,6 +190,242 @@ export function applySmithResult(
     updated = addMaterial(updated, result.ingotMaterialId, result.ingotsGained);
   }
   return updated;
+}
+
+// ---------------------------------------------------------------------------
+// Tools - "metal + wood = tool", smithed at the Forge like ingots, but
+// producing a World-persistent tool tier (see ToolSlot/ToolsForgedState
+// in types.ts) instead of a stackable inventory material. Replaces an
+// earlier design where pickaxe/axe quality was a free, automatic
+// side-effect of Forge upgrade tier with no crafting step - see
+// gathering.ts's ToolTier/bestAvailableTool, still used as the actual
+// success/yield bonus lookup, just no longer auto-granted.
+//
+// Deliberately a SEPARATE recipe type from SmithRecipe rather than
+// overloading it: tools need wood AND ingot together (SmithRecipe only
+// models one input material), and produce a tier bump rather than a
+// stackable MaterialId - different enough in shape that forcing it
+// through SmithRecipe's fields would be more confusing than a sibling
+// type with its own (smaller) attempt/apply pair below.
+// ---------------------------------------------------------------------------
+
+export interface ToolRecipe {
+  id: string;
+  name: string;
+  slot: ToolSlot;
+  /** The tier this recipe produces - must be exactly currentTier+1 for the given slot; see canAffordToolRecipe. */
+  tier: number;
+  requiredLevel: number;
+  ingotMaterialId: MaterialId;
+  ingotCost: number;
+  woodCost: number;
+  acceptedFuels: MaterialId[];
+  fuelCost: number;
+  minHeatRequired: number;
+  baseXp: number;
+  /** 0-1 - shaping a tool head is a finer task than pouring an ingot; tool recipes generally risk more than their ingot-tier equivalent. */
+  baseSuccessChance: number;
+}
+
+export const TOOL_RECIPES: ToolRecipe[] = [
+  {
+    id: "copper_pickaxe",
+    name: "Copper Pickaxe",
+    slot: "pickaxe",
+    tier: 1,
+    requiredLevel: 1,
+    ingotMaterialId: "copper_ingot",
+    ingotCost: 2,
+    woodCost: 3,
+    acceptedFuels: ["coal", "charcoal"],
+    fuelCost: 1,
+    minHeatRequired: 5,
+    baseXp: 15,
+    baseSuccessChance: 0.75,
+  },
+  {
+    id: "iron_pickaxe",
+    name: "Iron Pickaxe",
+    slot: "pickaxe",
+    tier: 2,
+    requiredLevel: 10,
+    ingotMaterialId: "iron_ingot",
+    ingotCost: 3,
+    woodCost: 4,
+    acceptedFuels: ["coal"],
+    fuelCost: 2,
+    minHeatRequired: 10,
+    baseXp: 30,
+    baseSuccessChance: 0.6,
+  },
+  {
+    id: "copper_axe",
+    name: "Copper Axe",
+    slot: "axe",
+    tier: 1,
+    requiredLevel: 1,
+    ingotMaterialId: "copper_ingot",
+    ingotCost: 2,
+    woodCost: 3,
+    acceptedFuels: ["coal", "charcoal"],
+    fuelCost: 1,
+    minHeatRequired: 5,
+    baseXp: 15,
+    baseSuccessChance: 0.75,
+  },
+  {
+    id: "iron_axe",
+    name: "Iron Axe",
+    slot: "axe",
+    tier: 2,
+    requiredLevel: 10,
+    ingotMaterialId: "iron_ingot",
+    ingotCost: 3,
+    woodCost: 4,
+    acceptedFuels: ["coal"],
+    fuelCost: 2,
+    minHeatRequired: 10,
+    baseXp: 30,
+    baseSuccessChance: 0.6,
+  },
+  // Steel Pickaxe/Axe (tier 3) deliberately NOT included yet - no
+  // steel_ingot MaterialDefinition exists anywhere in the game. The old
+  // free-tier system had a "Steel Pick" entry but never had real
+  // content behind it either (no steel ore, no steel smithing recipe).
+  // See OPEN_QUESTIONS.md.
+];
+
+/** The next forgeable tier for a given slot, given what's already been forged - null if already at the highest defined tier (or beyond). */
+export function nextToolRecipe(slot: ToolSlot, toolsForged: ToolsForgedState): ToolRecipe | null {
+  const currentTier = toolsForged[slot];
+  return TOOL_RECIPES.find((r) => r.slot === slot && r.tier === currentTier + 1) ?? null;
+}
+
+export interface ToolForgeAttemptResult {
+  success: boolean;
+  xpGained: number;
+  slot: ToolSlot;
+  tierForged: number;
+  ingotMaterialId: MaterialId;
+  ingotSpent: number;
+  woodSpent: number;
+  fuelMaterialId: MaterialId;
+  fuelSpent: number;
+  newLevel: number;
+  leveledUp: boolean;
+}
+
+/**
+ * Attempt to forge one tool. Same shape/contract as attemptSmith -
+ * pure function, caller supplies `roll` and `chosenFuel`. Throws if
+ * level, ingot, wood, fuel quantity, fuel heat, an unaccepted fuel, OR
+ * an out-of-order tier (e.g. forging iron_pickaxe while still at tier 0)
+ * is passed - same defensive-invariant pattern as the rest of the
+ * engine; the caller is responsible for only offering
+ * nextToolRecipe(slot, toolsForged), never an arbitrary recipe.
+ */
+export function attemptForgeTool(
+  recipe: ToolRecipe,
+  smithingSkill: SkillState,
+  inventory: ResourceBag,
+  toolsForged: ToolsForgedState,
+  roll: number,
+  chosenFuel: MaterialId = recipe.acceptedFuels[0]
+): ToolForgeAttemptResult {
+  if (smithingSkill.level < recipe.requiredLevel) {
+    throw new Error(
+      `Smithing level ${smithingSkill.level} is below required ${recipe.requiredLevel} for ${recipe.id}`
+    );
+  }
+
+  if (toolsForged[recipe.slot] !== recipe.tier - 1) {
+    throw new Error(
+      `${recipe.id} is tier ${recipe.tier}, but ${recipe.slot} is currently at tier ${toolsForged[recipe.slot]} - tiers must be forged in order`
+    );
+  }
+
+  const ingotHeld = getMaterialAmount(inventory, recipe.ingotMaterialId);
+  if (ingotHeld < recipe.ingotCost) {
+    throw new Error(`Not enough ${recipe.ingotMaterialId}: have ${ingotHeld}, need ${recipe.ingotCost}`);
+  }
+
+  const woodHeld = getMaterialAmount(inventory, "wood");
+  if (woodHeld < recipe.woodCost) {
+    throw new Error(`Not enough wood: have ${woodHeld}, need ${recipe.woodCost}`);
+  }
+
+  if (!recipe.acceptedFuels.includes(chosenFuel)) {
+    throw new Error(`${chosenFuel} is not an accepted fuel for ${recipe.id}`);
+  }
+
+  const fuelHeld = getMaterialAmount(inventory, chosenFuel);
+  if (fuelHeld < recipe.fuelCost) {
+    throw new Error(`Not enough ${chosenFuel}: have ${fuelHeld}, need ${recipe.fuelCost}`);
+  }
+
+  const fuelHeat = materialDef(chosenFuel).heatValue ?? 0;
+  if (fuelHeat < recipe.minHeatRequired) {
+    throw new Error(
+      `${chosenFuel} (heat ${fuelHeat}) does not burn hot enough for ${recipe.id} (needs ${recipe.minHeatRequired})`
+    );
+  }
+
+  const success = roll < recipe.baseSuccessChance;
+  const oldLevel = smithingSkill.level;
+
+  // Ingot, wood, AND fuel are all consumed on attempt regardless of
+  // success - same "you fed the forge, a failed shaping still burns
+  // the materials" risk as attemptSmith, just with a third input.
+  if (!success) {
+    return {
+      success: false,
+      xpGained: 0,
+      slot: recipe.slot,
+      tierForged: toolsForged[recipe.slot], // unchanged on failure
+      ingotMaterialId: recipe.ingotMaterialId,
+      ingotSpent: recipe.ingotCost,
+      woodSpent: recipe.woodCost,
+      fuelMaterialId: chosenFuel,
+      fuelSpent: recipe.fuelCost,
+      newLevel: oldLevel,
+      leveledUp: false,
+    };
+  }
+
+  const newXp = smithingSkill.xp + recipe.baseXp;
+  const newLevel = levelForXp(newXp);
+
+  return {
+    success: true,
+    xpGained: recipe.baseXp,
+    slot: recipe.slot,
+    tierForged: recipe.tier,
+    ingotMaterialId: recipe.ingotMaterialId,
+    ingotSpent: recipe.ingotCost,
+    woodSpent: recipe.woodCost,
+    fuelMaterialId: chosenFuel,
+    fuelSpent: recipe.fuelCost,
+    newLevel,
+    leveledUp: newLevel > oldLevel,
+  };
+}
+
+export function applyForgeToolResult(
+  inventory: ResourceBag,
+  toolsForged: ToolsForgedState,
+  result: ToolForgeAttemptResult
+): { inventory: ResourceBag; toolsForged: ToolsForgedState } {
+  const newInventory = deductMaterials(inventory, {
+    [result.ingotMaterialId]: result.ingotSpent,
+    wood: result.woodSpent,
+    [result.fuelMaterialId]: result.fuelSpent,
+  });
+
+  const newToolsForged: ToolsForgedState = result.success
+    ? { ...toolsForged, [result.slot]: result.tierForged }
+    : toolsForged;
+
+  return { inventory: newInventory, toolsForged: newToolsForged };
 }
 
 // ---------------------------------------------------------------------------

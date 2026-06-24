@@ -23,19 +23,19 @@ const testNode: GatherableNode = {
 };
 
 const testTiers: ToolTier[] = [
-  { requiredForgeTier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
-  { requiredForgeTier: 1, successChanceBonus: 0.15, yieldMultiplier: 1.5, name: "Copper Axe" },
+  { tier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
+  { tier: 1, successChanceBonus: 0.15, yieldMultiplier: 1.5, name: "Copper Axe" },
 ];
 
 const skillLvl1: SkillState = { id: "mining", level: 1, xp: 0 };
 const fresh = () => createFreshDepletionState();
 
 describe("bestAvailableTool", () => {
-  it("returns the base tier at forge tier 0", () => {
+  it("returns the base tier at forged tool tier 0", () => {
     expect(bestAvailableTool(testTiers, 0).name).toBe("Bare Hands");
   });
 
-  it("returns the upgraded tier once forge tier meets the requirement", () => {
+  it("returns the upgraded tier once the forged tool tier meets the requirement", () => {
     expect(bestAvailableTool(testTiers, 1).name).toBe("Copper Axe");
   });
 });

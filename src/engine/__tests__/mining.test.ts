@@ -17,15 +17,15 @@ const ironVein = ROCK_NODES.find((n) => n.id === "iron_vein")!;
 const fresh = () => createFreshDepletionState();
 
 describe("bestAvailablePickaxe", () => {
-  it("returns bare hands at forge tier 0", () => {
+  it("returns bare hands at forged pickaxe tier 0", () => {
     expect(bestAvailablePickaxe(0).name).toBe("Bare Hands");
   });
 
-  it("returns the highest tier the forge supports", () => {
-    expect(bestAvailablePickaxe(2).name).toBe("Iron Pick");
+  it("returns the highest defined tier at or below the forged tier", () => {
+    expect(bestAvailablePickaxe(2).name).toBe("Iron Pickaxe");
   });
 
-  it("caps at the best tool even if forgeTier exceeds defined tiers", () => {
+  it("caps at the best tool even if the forged tier exceeds defined tiers", () => {
     expect(bestAvailablePickaxe(99).name).toBe(PICKAXE_TIERS[PICKAXE_TIERS.length - 1].name);
   });
 });

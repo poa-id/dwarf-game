@@ -88,6 +88,50 @@ smith demanding recipes regardless of quantity held. Ore AND fuel are
 both consumed even on a failed attempt (real risk, not just a yield
 penalty).
 
+**Tools - "metal + wood = tool" (added 2026-06-23), smithed at the
+Forge, World-persistent like the Forge itself:**
+
+Replaces an earlier, simpler design where pickaxe/axe quality was a
+free, automatic side-effect of Forge UPGRADE tier (`world.forgeTier`)
+with no crafting step at all. Per explicit project direction, tools are
+now real things the player forges: a `ToolRecipe` (`smithing.ts`'s
+`TOOL_RECIPES`) consumes an ingot + wood + fuel, same risk/fuel-heat
+rules as an ingot recipe, but produces a tool-tier bump instead of a
+stackable material.
+
+- **`ToolSlot`** (`types.ts`): currently `"pickaxe" | "axe"`. Each slot
+  holds exactly one active tier at a time - forging a better tier
+  automatically supersedes the old one, no separate equip step (an
+  explicit design call: tiers are strictly sequential, there's nothing
+  to choose between).
+- **`WorldState.toolsForged: Record<ToolSlot, number>`** - the highest
+  tier ever forged per slot, 0 = bare hands. Lives in `WorldState`, NOT
+  `VesselState` - a forged tool is a real, physical object the mountain
+  keeps; it survives rekindling, and the next dwarf picks it right back
+  up. This was a deliberate decision distinguishing tools from
+  everything else a dwarf personally carries (inventory, skills), which
+  IS lost on rekindle.
+- **Recipes are ingot-based, not raw-ore** ("you smelt first, then
+  shape") - `copper_pickaxe`/`copper_axe` need `copper_ingot` + wood;
+  `iron_pickaxe`/`iron_axe` need `iron_ingot` + wood. Tiers must be
+  forged in order (`attemptForgeTool` throws if you try to skip tier 1
+  and go straight to tier 2, or re-forge a tier you already hold).
+- **The actual mechanical bonus** (`successChanceBonus`/
+  `yieldMultiplier`) still lives in `gathering.ts`'s `ToolTier`/
+  `bestAvailableTool` - unchanged in SHAPE, just re-keyed: `ToolTier.tier`
+  (was `requiredForgeTier`) now matches against `toolsForged[slot]`
+  rather than `world.forgeTier`. `attemptMineStrike`/`attemptWoodGather`
+  now take the forged tier for their slot directly, not `forgeTier`.
+- **Steel Pickaxe/Axe (tier 3) deliberately not built yet** - no
+  `steel_ingot` MaterialDefinition exists anywhere in the game (the old
+  free-tier system had a "Steel Pick" entry, but never had real ore/
+  smithing content behind it either). See OPEN_QUESTIONS.md.
+- **Displayed in the sidebar's new "tools" stats-section**
+  (`render.ts`'s `updateStatsPanel`), showing the currently-equipped
+  name for both slots via `bestAvailablePickaxe`/`bestAvailableAxe` -
+  unlike Narag-Bund, there's no discovery-gating here; knowing
+  bare-handed mining exists isn't a spoiler worth hiding.
+
 ### Hearthkeeping / The Hearth
 Idle. Absorbs fuel from `bankedFuelAvailable` at a constant rate
 (`FUEL_ABSORPTION_RATE_PER_SEC`), capped by what's actually available —

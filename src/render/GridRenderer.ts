@@ -14,8 +14,8 @@ export interface RenderConfig {
 }
 
 const DEFAULT_CONFIG: RenderConfig = {
-  viewportCols: 25,
-  viewportRows: 17,
+  viewportCols: 32,
+  viewportRows: 22,
   cellSize: 24,
   fontFamily: '"Courier New", monospace',
 };

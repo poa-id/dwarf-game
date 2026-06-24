@@ -14,12 +14,12 @@ const rootTangle = WOOD_NODES.find((n) => n.id === "root_tangle")!;
 const fresh = () => createFreshDepletionState();
 
 describe("bestAvailableAxe", () => {
-  it("returns bare hands at forge tier 0", () => {
+  it("returns bare hands at forged axe tier 0", () => {
     expect(bestAvailableAxe(0).name).toBe("Bare Hands");
   });
 
-  it("returns the better axe once forge tier supports it", () => {
-    expect(bestAvailableAxe(1).name).toBe("Copper Hatchet");
+  it("returns the better axe once the forged tier supports it", () => {
+    expect(bestAvailableAxe(1).name).toBe("Copper Axe");
   });
 
   it("caps at the best defined tier", () => {

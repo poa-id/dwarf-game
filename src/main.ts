@@ -14,8 +14,7 @@ app.innerHTML = `
     <h1>the hearth &amp; the deep</h1>
     <p class="subtitle">WASD/arrows to move &middot; F to gather &middot; E to repair a torch &middot; R to repair the forge</p>
     <div class="game-area">
-      <canvas id="game-canvas"></canvas>
-      <div class="stats-panel">
+      <div class="stats-panel stats-panel-left">
         <div class="stats-section">
           <h2>the dwarf</h2>
           <div class="skill-row">
@@ -36,9 +35,16 @@ app.innerHTML = `
           </div>
         </div>
         <div class="stats-section">
+          <h2>tools</h2>
+          <div id="tools-list"></div>
+        </div>
+        <div class="stats-section">
           <h2>carried</h2>
           <div id="inventory-list"></div>
         </div>
+      </div>
+      <canvas id="game-canvas"></canvas>
+      <div class="stats-panel stats-panel-right">
         <div class="stats-section contextual-panel" id="contextual-panel"></div>
       </div>
     </div>
@@ -56,8 +62,8 @@ const narratorContainer = document.querySelector<HTMLDivElement>("#narrator-cont
 const contextualPanel = document.querySelector<HTMLDivElement>("#contextual-panel")!;
 
 const renderer = new GridRenderer(canvas, {
-  viewportCols: 25,
-  viewportRows: 17,
+  viewportCols: 32,
+  viewportRows: 22,
   cellSize: 24,
 });
 
@@ -76,6 +82,7 @@ initRenderRefs({
     barHearthkeeping: document.querySelector<HTMLDivElement>("#bar-hearthkeeping")!,
     barWoodcraft: document.querySelector<HTMLDivElement>("#bar-woodcraft")!,
     inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
+    toolsList: document.querySelector<HTMLDivElement>("#tools-list")!,
   },
 });
 
