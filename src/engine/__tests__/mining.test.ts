@@ -8,6 +8,7 @@ import {
   createFreshDepletionState,
   remainingYield,
   isExhausted,
+  type RockNode,
 } from "../mining";
 import type { SkillState, ResourceBag } from "../types";
 
@@ -15,6 +16,24 @@ const miningLvl1: SkillState = { id: "mining", level: 1, xp: 0 };
 const copperVein = ROCK_NODES.find((n) => n.id === "copper_vein")!;
 const ironVein = ROCK_NODES.find((n) => n.id === "iron_vein")!;
 const fresh = () => createFreshDepletionState();
+
+// Every real RockNode is now infinite (totalYieldCapacity: null) -
+// copper_vein/wood became infinite on 2026-06-23 specifically to fix a
+// permanent-deadlock bug (see mining.ts's comment on copper_vein), and
+// iron_vein/coal_seam/deepstone were always null pending the real mine.
+// Exhaustion is gathering.ts's GENERIC mechanism though, and still
+// needs real test coverage - hence this synthetic finite node, rather
+// than relying on any particular game-content node staying finite.
+const finiteTestNode: RockNode = {
+  id: "test_finite_vein",
+  name: "Test Finite Vein",
+  materialId: "copper_ore",
+  requiredLevel: 1,
+  baseXp: 8,
+  baseYield: 1,
+  baseSuccessChance: 0.9,
+  totalYieldCapacity: 40,
+};
 
 describe("bestAvailablePickaxe", () => {
   it("returns bare hands at forged pickaxe tier 0", () => {
@@ -36,8 +55,8 @@ describe("attemptMineStrike", () => {
   });
 
   it("throws if the node is already exhausted", () => {
-    const exhausted = { totalYielded: copperVein.totalYieldCapacity! };
-    expect(() => attemptMineStrike(copperVein, miningLvl1, 0, exhausted, 0.1)).toThrow();
+    const exhausted = { totalYielded: finiteTestNode.totalYieldCapacity! };
+    expect(() => attemptMineStrike(finiteTestNode, miningLvl1, 0, exhausted, 0.1)).toThrow();
   });
 
   it("succeeds when roll is below success chance, fails when above", () => {
@@ -85,7 +104,7 @@ describe("attemptMineStrike", () => {
 
 describe("depletion", () => {
   it("a fresh node has its full capacity remaining", () => {
-    expect(remainingYield(copperVein, fresh())).toBe(copperVein.totalYieldCapacity);
+    expect(remainingYield(finiteTestNode, fresh())).toBe(finiteTestNode.totalYieldCapacity);
   });
 
   it("a node with totalYieldCapacity=null never reports exhausted, regardless of yielded amount", () => {
@@ -95,30 +114,36 @@ describe("depletion", () => {
     expect(isExhausted(ironVein, heavilyMined)).toBe(false);
   });
 
+  it("copper_vein itself is infinite (2026-06-23 fix - was the only copper source in the game, exhausting it was a permanent deadlock)", () => {
+    expect(copperVein.totalYieldCapacity).toBeNull();
+    const heavilyMined = { totalYielded: 1_000_000 };
+    expect(isExhausted(copperVein, heavilyMined)).toBe(false);
+  });
+
   it("successive successful strikes reduce remaining yield", () => {
     let depletion = fresh();
-    const result = attemptMineStrike(copperVein, miningLvl1, 0, depletion, 0.1);
+    const result = attemptMineStrike(finiteTestNode, miningLvl1, 0, depletion, 0.1);
     depletion = result.newDepletion;
-    const remaining = remainingYield(copperVein, depletion);
-    expect(remaining).toBe(copperVein.totalYieldCapacity! - result.amountGained);
+    const remaining = remainingYield(finiteTestNode, depletion);
+    expect(remaining).toBe(finiteTestNode.totalYieldCapacity! - result.amountGained);
   });
 
   it("a failed strike does not change depletion state", () => {
     const depletion = fresh();
-    const result = attemptMineStrike(copperVein, miningLvl1, 0, depletion, 0.99);
+    const result = attemptMineStrike(finiteTestNode, miningLvl1, 0, depletion, 0.99);
     expect(result.newDepletion).toEqual(depletion);
   });
 
   it("yield is capped at whatever remains - cannot overdraw an almost-exhausted node", () => {
-    const almostGone = { totalYielded: copperVein.totalYieldCapacity! - 1 };
-    const result = attemptMineStrike(copperVein, miningLvl1, 3, almostGone, 0.01);
+    const almostGone = { totalYielded: finiteTestNode.totalYieldCapacity! - 1 };
+    const result = attemptMineStrike(finiteTestNode, miningLvl1, 3, almostGone, 0.01);
     expect(result.amountGained).toBeLessThanOrEqual(1);
-    expect(remainingYield(copperVein, result.newDepletion)).toBe(0);
+    expect(remainingYield(finiteTestNode, result.newDepletion)).toBe(0);
   });
 
   it("isExhausted becomes true exactly when remaining hits zero", () => {
-    const exactlyDepleted = { totalYielded: copperVein.totalYieldCapacity! };
-    expect(isExhausted(copperVein, exactlyDepleted)).toBe(true);
+    const exactlyDepleted = { totalYielded: finiteTestNode.totalYieldCapacity! };
+    expect(isExhausted(finiteTestNode, exactlyDepleted)).toBe(true);
   });
 });
 

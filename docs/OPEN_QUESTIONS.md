@@ -237,8 +237,36 @@ once resolved (and reflect the resolution in the relevant section above).
   up to 50. Deliberately NOT sized to repair all 3 torches (11 ingots
   total) from this one starter node alone - that's not the bar this
   node is meant to clear; a player repairing every torch is expected to
-  draw on more than just the first wood formation. See woodcraft.ts's
-  `root_tangle` comment.
+  draw on more than just the first wood formation. **SUPERSEDED same
+  day** by the infinite-resource fix below - 50 turned out to still be
+  finite, and finite was itself the actual problem. Kept here for the
+  record of how the number was originally derived, not because 50
+  still matters.
+- **Starter copper vein and wood node made infinite - fixes a genuine
+  permanent deadlock (2026-06-23):** found in actual play. Both nodes
+  were finite, and were the ONLY source of copper/wood anywhere in the
+  game (iron_vein/coal_seam/deepstone all require the not-yet-built
+  real mine - see Tunnel Entrance in §6). Once exhausted, a save was
+  permanently locked out of smelting, tool-forging, and torch repair -
+  no recovery path existed. **Fixed**: both nodes' `totalYieldCapacity`
+  changed to `null` (never depletes) - see LORE.md's new "Never
+  Deadlock the Engine" principle for the design rule this establishes
+  going forward (foundational materials infinite; better/rarer
+  materials allowed to stay finite/gated). Also repositioned both from
+  open floor to embedded against the Hearth Hall's walls (col 36 for
+  copper, col 44 for wood, adjacent to the Kiln) - purely visual/
+  thematic per project owner's direction, no change to interaction
+  range or movement. See mining.ts's `copper_vein` and woodcraft.ts's
+  `root_tangle` comments for the full rationale, and hubMap.ts for the
+  new positions.
+  - **Test fixture note:** every real `RockNode`/`WoodNode` in the game
+    is now infinite, so the generic exhaustion mechanism
+    (`totalYieldCapacity`/`isExhausted` in `gathering.ts`) no longer has
+    any real game-content node to test against. Added synthetic
+    `finiteTestNode` fixtures in `mining.test.ts`/`woodcraft.test.ts`
+    specifically to keep that coverage real rather than deleting it -
+    exhaustion is expected to matter again once the real mine
+    introduces nodes that should deplete.
 - **Tools are now smithed, not free (2026-06-23) - "metal + wood =
   tool":** previously, pickaxe/axe quality (`PICKAXE_TIERS`/`AXE_TIERS`
   in mining.ts/woodcraft.ts) was a free, automatic side-effect of

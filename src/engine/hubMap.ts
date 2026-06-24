@@ -82,10 +82,18 @@ export function lightSourceById(id: string): LightSourceDefinition | undefined {
 
 /**
  * Fixed ore vein placements on the Hub map. Just one for now (copper,
- * right in the hearth hall, always reachable from spawn with zero
- * unlock requirement) - this is intentionally the very first thing a
- * new dwarf can interact with, mirroring "mine_first_strike" being the
- * first narrator trigger after waking.
+ * embedded in the hearth hall's left wall, always reachable from spawn
+ * with zero unlock requirement) - this is intentionally the very first
+ * thing a new dwarf can interact with, mirroring "mine_first_strike"
+ * being the first narrator trigger after waking.
+ *
+ * Placed against the wall (col 36, the hearth hall's left boundary -
+ * see ZONES) rather than floating mid-room, deliberately offset from
+ * row 25 (the tunnel corridor's exit row) so it never blocks that
+ * path. Reads as rock embedded in the wall face, not a pile of stuff
+ * sitting in the open - reinforcing that this is a permanent geological
+ * feature (see mining.ts's copper_vein comment on why it's now
+ * infinite, not a depleting resource).
  */
 export interface OreVeinPlacement {
   id: string;
@@ -97,16 +105,19 @@ export const ORE_VEINS: OreVeinPlacement[] = [
   {
     id: "hearth_hall_copper",
     rockNodeId: "copper_vein",
-    position: { col: 38, row: 27 },
+    position: { col: 36, row: 23 },
   },
 ];
 
 /**
- * Fixed wood node placements - cave-root tangles, alongside the ore
- * vein near spawn. Both gatherable from the very start, since the
- * first forge repair needs BOTH wood and ore together - the player
- * shouldn't have to fully unlock one before discovering the other
- * exists.
+ * Fixed wood node placements - cave-root tangles. Embedded against the
+ * hearth hall's right wall (col 44), directly adjacent to the Charcoal
+ * Kiln - "gather wood, then immediately burn it" reads as one short
+ * step, not a walk across the room. Offset from row 25 (the forge
+ * corridor's exit row) so it never blocks that path. Gatherable from
+ * the very start, since the first forge repair needs BOTH wood and ore
+ * together - the player shouldn't have to fully unlock one before
+ * discovering the other exists.
  */
 export interface WoodNodePlacement {
   id: string;
@@ -118,7 +129,7 @@ export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
   {
     id: "hearth_hall_roots",
     woodNodeId: "root_tangle",
-    position: { col: 42, row: 27 },
+    position: { col: 44, row: 23 },
   },
 ];
 

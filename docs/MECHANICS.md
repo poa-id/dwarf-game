@@ -37,17 +37,31 @@ Four skills currently defined: **Mining**, **Smithing**, **Hearthkeeping**,
 
 ### Mining
 Strike a `RockNode` (deterministic via injected `roll`, for testability).
-Tool tier (from Forge tier, a World value) boosts success chance and
-yield — this is how "regrind but faster" is mechanically expressed: a new
-dwarf at Mining level 1 can still swing a Steel Pick if the World's forge
-is already tier 3.
+Forged tool tier (`WorldState.toolsForged`, see Smithing's Tools
+subsection below) boosts success chance and yield — this is how
+"regrind but faster" is mechanically expressed: a new dwarf at Mining
+level 1 can still swing whatever pickaxe was already forged, since
+forged tools are World-persistent and survive rekindling.
 
 **Depletion:** nodes can have a `totalYieldCapacity` (finite) or `null`
-(never depletes). The starter copper vein is intentionally finite (40
-total yield) — a tutorial prop, not the long-term loop. Depletion state
-is per-placed-instance (`NodeDepletionState`), stored on World
-(`veinDepletion`), persists across rekindling — a vein worked thin stays
-thin for the next dwarf.
+(never depletes). **Every currently-placed node is infinite as of
+2026-06-23** (changed from an earlier design where the starter copper
+vein and wood node were deliberately finite "tutorial props"):
+exhausting them turned out to be a genuine, permanent, unrecoverable
+deadlock, since they were the ONLY source of copper/wood anywhere in
+the game (the real mine isn't built yet - see §6's Tunnel Entrance
+zone). Per explicit project direction, basic starter materials are now
+infinite by design, functioning as a slow, reliable "idle engine" the
+player can always fall back on - mine/gather, craft, repair, forever,
+even before the real mine is reachable. The finite-node MECHANISM
+itself (`totalYieldCapacity`/`NodeDepletionState`/`isExhausted`) is
+unchanged and still real - it's just that no game content currently
+uses it. It's expected to matter again once the real mine introduces
+nodes that SHOULD deplete (to make exploring further into the mine
+meaningful), at which point depletion stops being theoretical. Depletion
+state is per-placed-instance (`NodeDepletionState`), stored on World
+(`veinDepletion`), persists across rekindling — a vein worked thin (on
+a future finite node) stays thin for the next dwarf.
 
 **Implementation note:** Mining is now a thin specialization of a
 generic `gathering.ts` module (`GatherableNode`, `attemptGatherStrike`,
@@ -65,9 +79,9 @@ skill for wood specifically.
 
 Mechanically identical to Mining (same generic `gathering.ts` strike
 mechanic, axes instead of pickaxes as the tool tier). The starter
-`root_tangle` node (50 total yield, finite — raised from 30 on
-2026-06-23 after playtesting found forge repair alone consumed half the
-old capacity, see OPEN_QUESTIONS.md for the math) sits near spawn
+`root_tangle` node is now infinite (`totalYieldCapacity: null`, changed
+2026-06-23 - see the Depletion note above; it went through two earlier
+finite values, 30 then 50, before this) and sits near spawn
 alongside the copper vein - both gatherable from the very start, since
 the first Forge repair needs wood AND ore together.
 
@@ -321,7 +335,14 @@ principle, then explicitly deferred — mockups discarded, not preserved as
 dead code. Real follow-up work.
 
 ### Fixed content currently placed on the Hub
-- 1 ore vein (`hearth_hall_copper`, copper, depletes) near spawn.
+- 1 ore vein (`hearth_hall_copper`, copper, **infinite** — see the
+  Depletion note above) embedded against the Hearth Hall's left wall.
+- 1 wood node (`hearth_hall_roots`, **infinite**, same reasoning)
+  embedded against the Hearth Hall's right wall, directly adjacent to
+  the Charcoal Kiln.
+- 1 Charcoal Kiln (`KILN_POSITION`) — see Materials & Economy's Tools/
+  Charcoal Kiln subsection above; always usable, no broken/repaired
+  state.
 - 3 torches (`torch_corridor_forge`, `torch_corridor_tunnel`,
   `torch_tunnel_mouth`) along corridors — repaired via walking adjacent +
   pressing E, cost in copper_ingot, permanently lit once repaired.

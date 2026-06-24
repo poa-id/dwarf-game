@@ -5,6 +5,7 @@ import {
   WOOD_NODES,
   bestAvailableAxe,
   AXE_TIERS,
+  type WoodNode,
 } from "../woodcraft";
 import { createFreshDepletionState, remainingYield, isExhausted } from "../gathering";
 import type { SkillState, ResourceBag } from "../types";
@@ -12,6 +13,23 @@ import type { SkillState, ResourceBag } from "../types";
 const woodcraftLvl1: SkillState = { id: "woodcraft", level: 1, xp: 0 };
 const rootTangle = WOOD_NODES.find((n) => n.id === "root_tangle")!;
 const fresh = () => createFreshDepletionState();
+
+// root_tangle became infinite on 2026-06-23 (was the only wood source
+// in the game - exhausting it was a permanent deadlock, see its
+// comment in woodcraft.ts). Exhaustion is gathering.ts's GENERIC
+// mechanism though, and still needs real coverage - hence this
+// synthetic finite fixture, rather than depending on any particular
+// game-content node staying finite.
+const finiteTestNode: WoodNode = {
+  id: "test_finite_wood",
+  name: "Test Finite Wood",
+  materialId: "wood",
+  requiredLevel: 1,
+  baseXp: 7,
+  baseYield: 1,
+  baseSuccessChance: 0.88,
+  totalYieldCapacity: 50,
+};
 
 describe("bestAvailableAxe", () => {
   it("returns bare hands at forged axe tier 0", () => {
@@ -48,17 +66,23 @@ describe("attemptWoodGather", () => {
 
   it("depletes correctly and matches the generic gathering depletion behavior", () => {
     let depletion = fresh();
-    const result = attemptWoodGather(rootTangle, woodcraftLvl1, 0, depletion, 0.1);
+    const result = attemptWoodGather(finiteTestNode, woodcraftLvl1, 0, depletion, 0.1);
     depletion = result.newDepletion;
-    expect(remainingYield(rootTangle, depletion)).toBe(
-      rootTangle.totalYieldCapacity! - result.amountGained
+    expect(remainingYield(finiteTestNode, depletion)).toBe(
+      finiteTestNode.totalYieldCapacity! - result.amountGained
     );
   });
 
   it("throws once the node is exhausted", () => {
-    const exhausted = { totalYielded: rootTangle.totalYieldCapacity! };
-    expect(isExhausted(rootTangle, exhausted)).toBe(true);
-    expect(() => attemptWoodGather(rootTangle, woodcraftLvl1, 0, exhausted, 0.1)).toThrow();
+    const exhausted = { totalYielded: finiteTestNode.totalYieldCapacity! };
+    expect(isExhausted(finiteTestNode, exhausted)).toBe(true);
+    expect(() => attemptWoodGather(finiteTestNode, woodcraftLvl1, 0, exhausted, 0.1)).toThrow();
+  });
+
+  it("root_tangle itself is infinite (2026-06-23 fix - was the only wood source in the game, exhausting it was a permanent deadlock)", () => {
+    expect(rootTangle.totalYieldCapacity).toBeNull();
+    const heavilyGathered = { totalYielded: 1_000_000 };
+    expect(isExhausted(rootTangle, heavilyGathered)).toBe(false);
   });
 });
 

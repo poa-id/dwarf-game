@@ -32,7 +32,21 @@ export const ROCK_NODES: RockNode[] = [
     baseXp: 8,
     baseYield: 1,
     baseSuccessChance: 0.9,
-    totalYieldCapacity: 40, // a starter vein - generous enough to learn the loop, finite enough to push toward the real mine
+    // Changed from a finite cap (was 40) to infinite (2026-06-23,
+    // playtesting feedback): the starter vein was the ONLY source of
+    // copper anywhere in the game (iron_vein/coal_seam/deepstone all
+    // live in the not-yet-built real mine). Once it exhausted, a
+    // player was PERMANENTLY locked out of smelting, tool-forging, and
+    // torch repair, with zero recovery path - a genuine deadlock, not
+    // just a tight squeeze. Per explicit project direction: basic
+    // starter materials should be infinite, functioning as a slow,
+    // reliable "idle engine" the player can always fall back on:
+    // mine/gather, craft, repair, at a modest pace, forever, even
+    // before the real mine (Tunnel Entrance) is reachable. Better
+    // materials (iron, coal, deepstone) staying gated behind the real
+    // mine is what makes unlocking it meaningful - the starter vein
+    // was never meant to be the thing that runs out and ends the game.
+    totalYieldCapacity: null,
   },
   {
     id: "iron_vein",

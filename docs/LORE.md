@@ -82,6 +82,30 @@ revealing a chapter of the mountain's past, not just a bigger number tier.
 Not yet applied to any shipped content; a principle to write new material/
 area names against going forward, not a retroactive relabel.
 
+### Never Deadlock the Engine
+
+Added 2026-06-23, after the starter copper vein and wood node — both
+finite by original design — exhausted in actual play and left no way
+to ever obtain copper or wood again, for the rest of that save's
+existence. No smelting, no tool-forging, no torch repair, ever again.
+A genuine, permanent, unrecoverable dead end, found only by someone
+actually playing the game to that point — exactly the kind of gap this
+project's "catch architectural issues via real playtesting" workflow
+exists to surface.
+
+The principle going forward: **basic, foundational materials should be
+infinite**, providing a slow, reliable "idle engine" — gather, craft,
+repair, at a modest pace — that the player can always fall back on, no
+matter how far they've drifted from optimal play or how long the
+session. This is what makes the early game feel like an engine, not a
+puzzle with a wrong-answer state. Better/rarer materials (iron, coal,
+deepstone — currently all gated behind the not-yet-built real mine) are
+allowed, and expected, to stay finite or otherwise gated — that
+scarcity is what makes unlocking deeper content meaningful. The
+distinction is "foundational, can't recover without it" vs. "better,
+nice to have more of" — only the former needs to be unconditionally
+renewable.
+
 ### Relics
 
 Relics are planned to become major content in their own right — not
