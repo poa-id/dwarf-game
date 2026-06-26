@@ -1,5 +1,6 @@
 import type { WorldState, ZoneDefinition, Position, UnlockCondition } from "./types";
 import { ZONES, LIGHT_SOURCES } from "./hubMap";
+import { FORGE_UPGRADES } from "./smithing";
 
 // ---------------------------------------------------------------------------
 // Zone unlocking
@@ -15,6 +16,33 @@ export function isUnlockConditionMet(condition: UnlockCondition, world: WorldSta
       return world.hearth.colorStage >= condition.stage;
     case "lore_flag":
       return world.loreFlags.includes(condition.flag);
+  }
+}
+
+/**
+ * Human-readable text for what would unlock a given condition - used
+ * by the blocked-movement message (movement.ts) so a player standing
+ * at a locked zone's boundary learns WHAT unlocks it, not just that
+ * it's locked. Added 2026-06-23, fixing a real reported gap: the
+ * Tunnel Entrance's boundary gave the same generic "something blocks
+ * the way" flavor line regardless of how far the player actually was
+ * from meeting its real unlock condition (forge_tier_at_least: 2).
+ * Looks up the real Forge upgrade name (e.g. "Bellows of the Deep")
+ * rather than showing a raw tier number, consistent with how the rest
+ * of the game names things.
+ */
+export function describeUnlockCondition(condition: UnlockCondition): string {
+  switch (condition.type) {
+    case "always":
+      return "";
+    case "forge_tier_at_least": {
+      const upgrade = FORGE_UPGRADES.find((u) => u.tier === condition.tier);
+      return upgrade ? `Requires the Forge upgraded to "${upgrade.name}".` : `Requires Forge tier ${condition.tier}.`;
+    }
+    case "hearth_color_stage_at_least":
+      return `Requires the Hearth to reach color stage ${condition.stage}.`;
+    case "lore_flag":
+      return "Requires something not yet discovered.";
   }
 }
 

@@ -32,3 +32,31 @@ export function colorStageForLifetimeFuel(lifetimeFuel: number): ColorStage {
 export function nextColorStage(currentStage: number): ColorStage | null {
   return COLOR_STAGES.find((s) => s.stage === currentStage + 1) ?? null;
 }
+
+/**
+ * Caps the otherwise-pure-fuel-based stage at 0 until the player has
+ * actually rekindled at least once. Fixed 2026-06-23 - a real bug
+ * found in playtesting: colorStage was a pure function of
+ * lifetimeFuel alone, so the world's first color appeared the MOMENT
+ * lifetimeFuel crossed the Stage 1 threshold (500) - the same moment
+ * the Rekindle option became available, but NOT the same moment the
+ * player actually clicked it. The color was visibly jumping ahead of
+ * the player's choice, contradicting the explicit lore framing that
+ * crossing this threshold "IS the rekindling event" - in the actual
+ * implementation, the two had quietly become independent.
+ *
+ * Stages 2/3 remain untouched by this cap once it lifts (after the
+ * first rekindle, `hasRekindledOnce` is permanently true forever after
+ * for that save - WorldState.dwarfCount only ever increases) - they
+ * stay exactly what they always were, "the hearth continuing to grow,"
+ * not additional rekindling events. Only Stage 1 was ever meant to be
+ * gated on the act itself; this helper expresses that by capping
+ * EVERYTHING at 0 pre-rekindle (since stage 1 must come before 2 or 3
+ * regardless) rather than special-casing just stage 1's transition.
+ */
+export function capColorStageBeforeFirstRekindle(
+  pureFuelStage: ColorStage,
+  hasRekindledOnce: boolean
+): ColorStage {
+  return hasRekindledOnce ? pureFuelStage : COLOR_STAGES[0];
+}

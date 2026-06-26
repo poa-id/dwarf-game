@@ -10,6 +10,7 @@ import {
   isActivelyLit,
   cellVisibility,
   DEFAULT_LIGHT_RADIUS,
+  describeUnlockCondition,
 } from "../visibility";
 import { ZONES, HEARTH_SPAWN_POSITION, LIGHT_SOURCES } from "../hubMap";
 import { createInitialWorld } from "../rekindle";
@@ -237,5 +238,27 @@ describe("cellVisibility with torches", () => {
       cellKey(torch.position.col, torch.position.row)
     );
     expect(result).toBe("lit");
+  });
+});
+
+describe("describeUnlockCondition", () => {
+  it("forge_tier_at_least looks up the real Forge upgrade name, not a raw tier number", () => {
+    const text = describeUnlockCondition({ type: "forge_tier_at_least", tier: 2 });
+    expect(text).toContain("Bellows of the Deep");
+  });
+
+  it("hearth_color_stage_at_least names the stage", () => {
+    const text = describeUnlockCondition({ type: "hearth_color_stage_at_least", stage: 1 });
+    expect(text).toContain("1");
+  });
+
+  it("always returns empty (nothing to describe - it's never the reason something's locked)", () => {
+    expect(describeUnlockCondition({ type: "always" })).toBe("");
+  });
+
+  it("lore_flag gives a vague but real answer rather than naming the flag (avoids spoiling discovery content)", () => {
+    const text = describeUnlockCondition({ type: "lore_flag", flag: "met_the_foreman" });
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toContain("met_the_foreman");
   });
 });

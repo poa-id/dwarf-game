@@ -1,7 +1,7 @@
 import { getState, setState, narrate } from "./gameState";
 import { attemptMove, type Direction } from "../engine/movement";
 import { markVisibleCellsExplored } from "../engine/exploration";
-import { zoneContaining } from "../engine/visibility";
+import { zoneContaining, describeUnlockCondition } from "../engine/visibility";
 import { hubCellAt } from "../render/hubContent";
 import { isSolidCellKind } from "../render/palette";
 
@@ -34,10 +34,22 @@ export function handlePlayerMove(direction: Direction): MoveOutcome {
   const moveResult = attemptMove(state.vessel.position, direction, state.world, isSolidAt);
 
   if (!moveResult.moved) {
-    const blockedMessage =
-      moveResult.blockedReason === "locked_zone"
-        ? "Something blocks the way - not yet rebuilt, not yet open to him."
-        : null;
+    // Zone-specific message when possible (2026-06-23 fix - a real
+    // reported gap: this used to be the SAME generic flavor line
+    // regardless of which zone, or how far from its real unlock
+    // condition, the player actually hit). Falls back to the old
+    // generic line if blockedZone is somehow null (e.g. a future
+    // locked-zone case this doesn't anticipate) - never regresses to
+    // showing nothing.
+    let blockedMessage: string | null = null;
+    if (moveResult.blockedReason === "locked_zone") {
+      const zone = moveResult.blockedZone;
+      const unlockText = zone ? describeUnlockCondition(zone.unlock) : "";
+      blockedMessage =
+        zone && unlockText
+          ? `${zone.name} is sealed. ${unlockText}`
+          : "Something blocks the way - not yet rebuilt, not yet open to him.";
+    }
     return { moved: false, blockedMessage };
   }
 

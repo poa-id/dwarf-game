@@ -332,6 +332,39 @@ for marginal gains"):** two separate, complementary mechanisms:
    trusting the engine result's `newLevel`/`leveledUp` fields directly -
    those were computed from the UN-multiplied `xpGained`.
 
+**colorStage is capped at 0 until the player has actually rekindled
+once (fixed 2026-06-23 - a real bug, not just polish):** `colorStage`
+used to be a pure function of `hearth.lifetimeFuel` alone, meaning the
+world's first color appeared the MOMENT `lifetimeFuel` crossed the
+Stage 1 threshold - the same moment the Rekindle option became
+available, but NOT the same moment the player actually clicked it.
+Found in playtesting: the hearth and torches visibly colored
+themselves before any rekindle had happened, contradicting the
+explicit lore framing that crossing this threshold "IS the rekindling
+event" (colorStages.ts's own comment) - in the actual implementation,
+color and rekindling had quietly become two independent things sharing
+a coincidental threshold. Fixed with `capColorStageBeforeFirstRekindle`
+in colorStages.ts: both `stokeFireDirectly` and `tickHearth` now take a
+`hasRekindledOnce` parameter (derived from `dwarfCount > 0`) and pin
+`colorStage` at 0 regardless of `lifetimeFuel` until that's true.
+Stages 2 and 3 are untouched once the cap lifts - they remain pure
+functions of `lifetimeFuel`, exactly as before this fix, since only
+Stage 1 was ever meant to be gated on the act of rekindling itself.
+
+**Smithing panel hides recipes the player's level doesn't qualify for
+yet, rather than showing them disabled (fixed 2026-06-23):** found in
+playtesting - a level-1 dwarf saw a permanently grayed-out "Iron Ingot -
+Requires Smithing level 6" row the instant they opened the Forge panel,
+which read as "iron is already available" when it wasn't remotely
+reachable. `SMITH_RECIPES`/tool rows in smithingPanel.ts are now
+filtered to only render for recipes the current Smithing level actually
+meets - the row simply doesn't exist below that level, rather than
+existing-but-disabled. Deliberately LEVEL-gated, not holdings-gated
+(seeing zero iron_ore held doesn't hide the row once level 6 is
+reached) - per explicit project reasoning, the recipe appearing the
+moment level qualifies is what should prompt the player to go look for
+iron, not the reverse.
+
 **Smithing's iron-tier `requiredLevel` lowered 10 → 6 (2026-06-23):**
 the first-ever climb to Smithing level 10 needed roughly 1,727
 `copper_ingot` smelts (`cumulativeXpForLevel(10) / baseXp 10`) -
@@ -467,6 +500,23 @@ REAL `forge_room` zone bounds, not a separate hardcoded copy) -
 a center-point-plus-radius. Per explicit direction, all four sides are
 walkable ("the illusion of a huge masterforge") - 20 perimeter cells
 now count as near the forge, up from 1.
+
+**Blocked-movement messages now name the specific zone and what
+unlocks it (fixed 2026-06-23):** found in playtesting - a player at the
+Tunnel Entrance's boundary (correctly blocked, `forgeTier < 2`) saw
+only "Something blocks the way - not yet rebuilt, not yet open to him,"
+the same generic flavor line shown for any locked zone regardless of
+which one or how far from its real unlock condition. Added
+`describeUnlockCondition` (visibility.ts) - human-readable text per
+`UnlockCondition` type, looking up the real Forge upgrade name (e.g.
+"Bellows of the Deep") rather than a raw tier number; `lore_flag`
+conditions deliberately stay vague ("Requires something not yet
+discovered") rather than naming the flag, to avoid spoiling discovery
+content. `MoveResult` (movement.ts) gained a `blockedZone` field,
+populated whenever `blockedReason === "locked_zone"`, so the game-layer
+message can say e.g. `"Tunnel Entrance is sealed. Requires the Forge
+upgraded to \"Bellows of the Deep\"."` - falling back to the old
+generic line only if zone info is somehow unavailable.
 
 **Fog of war, three states per cell:**
 - `hidden` — never seen, not currently lit, OR in a locked zone. True

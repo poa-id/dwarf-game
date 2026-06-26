@@ -28,14 +28,30 @@ export function renderSmithingPanel(
 ): void {
   const { smithing } = state.vessel.skills;
 
-  const rows = SMITH_RECIPES.map((recipe) => {
-    const meetsLevel = smithing.level >= recipe.requiredLevel;
+  // Only render a row for recipes the player's Smithing level actually
+  // qualifies for - per explicit direction (2026-06-23, playtesting
+  // feedback): seeing a permanently-grayed-out "Iron Ingot - Requires
+  // Smithing level 6" row before the player has any plausible way to
+  // use it reads as "iron is already available" when it isn't. This
+  // mirrors the same fix already applied to the Hearth's fuel rows
+  // earlier this session (hide what's not yet relevant, rather than
+  // show everything disabled). Unlike the Hearth's fix though, this is
+  // deliberately level-gated, NOT holdings-gated - project owner's
+  // explicit reasoning: seeing the recipe appear the moment Smithing
+  // level is high enough (even with zero iron_ore held yet) is what
+  // should prompt the player to go look for iron, rather than them
+  // needing to stumble onto iron first before learning smelting it is
+  // even possible.
+  const rows = SMITH_RECIPES.filter((recipe) => smithing.level >= recipe.requiredLevel).map((recipe) => {
+    // meetsLevel is no longer checked here - the .filter() above
+    // already guarantees every recipe reaching this point qualifies.
+    // Only affordability (materials held) can still disable a row.
     const fuelChoice = chooseFuelForRecipe(recipe, state.vessel.inventory);
     const affordable = canAffordMaterials(state.vessel.inventory, {
       [recipe.oreMaterialId]: recipe.oreCost,
       [fuelChoice]: recipe.fuelCost,
     });
-    const canSmith = meetsLevel && affordable;
+    const canSmith = affordable;
 
     const oreLabel = MATERIALS[recipe.oreMaterialId]?.name ?? recipe.oreMaterialId;
     const fuelOptionsLabel = recipe.acceptedFuels
@@ -49,9 +65,7 @@ export function renderSmithingPanel(
     // and "how likely it is to work" are different questions.
     const successRateText = `${Math.round(recipe.baseSuccessChance * 100)}% chance`;
 
-    let statusText = costText;
-    if (!meetsLevel) statusText = `Requires Smithing level ${recipe.requiredLevel}`;
-    else if (!affordable) statusText = `Need: ${costText}`;
+    const statusText = affordable ? costText : `Need: ${costText}`;
 
     return `
       <div class="recipe-row ${canSmith ? "" : "recipe-row-disabled"}" data-recipe-id="${recipe.id}">
@@ -74,24 +88,25 @@ export function renderSmithingPanel(
     .map((slot) => {
       const recipe = nextToolRecipe(slot, state.world.toolsForged);
       if (!recipe) return "";
+      // Same level-gating fix as the ingot rows above (2026-06-23) -
+      // don't render a tool recipe at all until Smithing level
+      // actually qualifies, rather than showing it disabled.
+      if (smithing.level < recipe.requiredLevel) return "";
 
-      const meetsLevel = smithing.level >= recipe.requiredLevel;
       const fuelChoice = chooseFuelForRecipe(recipe, state.vessel.inventory);
       const affordable = canAffordMaterials(state.vessel.inventory, {
         [recipe.ingotMaterialId]: recipe.ingotCost,
         wood: recipe.woodCost,
         [fuelChoice]: recipe.fuelCost,
       });
-      const canForge = meetsLevel && affordable;
+      const canForge = affordable;
 
       const ingotLabel = MATERIALS[recipe.ingotMaterialId]?.name ?? recipe.ingotMaterialId;
       const fuelOptionsLabel = recipe.acceptedFuels.map((id) => MATERIALS[id]?.name ?? id).join(" or ");
       const costText = `${recipe.ingotCost} ${ingotLabel}, ${recipe.woodCost} Cave-Root Wood, ${recipe.fuelCost} ${fuelOptionsLabel}`;
       const successRateText = `${Math.round(recipe.baseSuccessChance * 100)}% chance`;
 
-      let statusText = costText;
-      if (!meetsLevel) statusText = `Requires Smithing level ${recipe.requiredLevel}`;
-      else if (!affordable) statusText = `Need: ${costText}`;
+      const statusText = affordable ? costText : `Need: ${costText}`;
 
       return `
         <div class="recipe-row ${canForge ? "" : "recipe-row-disabled"}" data-tool-recipe-id="${recipe.id}">

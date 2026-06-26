@@ -212,7 +212,15 @@ export interface StokeOutcome {
 
 export function performStoke(state: GameState, materialId: MaterialId, target: StokeTarget): StokeOutcome {
   if (target === "fire") {
-    const result = stokeFireDirectly(state.world.hearth, state.vessel.inventory, materialId, STOKE_AMOUNT, Date.now());
+    const hasRekindledOnce = state.world.dwarfCount > 0;
+    const result = stokeFireDirectly(
+      state.world.hearth,
+      state.vessel.inventory,
+      materialId,
+      STOKE_AMOUNT,
+      Date.now(),
+      hasRekindledOnce
+    );
 
     // Direct stoking grants Hearthkeeping XP immediately, scaled by the
     // same per-fuel-value rate as the Hearth's passive tick (see

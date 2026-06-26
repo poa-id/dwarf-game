@@ -19,7 +19,8 @@ function gameTick(): void {
 
   if (isAutoTendingUnlocked(state.world.hearthTier)) {
     const fuelAvailable = totalHearthFuelValue(state.world.fuelReserve);
-    const result = tickHearth(state.world.hearth, now, fuelAvailable);
+    const hasRekindledOnce = state.world.dwarfCount > 0;
+    const result = tickHearth(state.world.hearth, now, fuelAvailable, hasRekindledOnce);
     if (result.fuelAbsorbed > 0) {
       const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
 

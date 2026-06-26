@@ -1,5 +1,5 @@
-import type { Position, WorldState } from "./types";
-import { isCellPartOfUnlockedWorld } from "./visibility";
+import type { Position, WorldState, ZoneDefinition } from "./types";
+import { isCellPartOfUnlockedWorld, zoneContaining } from "./visibility";
 import { HUB_WIDTH, HUB_HEIGHT } from "./hubMap";
 
 export type Direction = "up" | "down" | "left" | "right";
@@ -18,6 +18,16 @@ export interface MoveResult {
   moved: boolean; // false if blocked (locked zone, map edge, or solid terrain) - position unchanged
   /** Why the move failed, or null if it succeeded. Lets callers react differently to "that's a wall" vs "that area is locked" rather than treating every block identically. */
   blockedReason: BlockedReason;
+  /**
+   * WHICH zone blocked the move, when blockedReason is "locked_zone" -
+   * null otherwise. Added 2026-06-23 fixing a real reported gap: the
+   * blocked-movement message used to be the same generic flavor line
+   * regardless of which zone (or how far from its real unlock
+   * condition) the player actually hit. Callers can use this plus
+   * visibility.ts's describeUnlockCondition to tell the player WHAT
+   * unlocks the zone, not just that it's locked.
+   */
+  blockedZone: ZoneDefinition | null;
 }
 
 /**
@@ -51,16 +61,21 @@ export function attemptMove(
     targetCol >= 0 && targetCol < HUB_WIDTH && targetRow >= 0 && targetRow < HUB_HEIGHT;
 
   if (!withinBounds) {
-    return { position: current, moved: false, blockedReason: "out_of_bounds" };
+    return { position: current, moved: false, blockedReason: "out_of_bounds", blockedZone: null };
   }
 
   if (!isCellPartOfUnlockedWorld(targetCol, targetRow, world)) {
-    return { position: current, moved: false, blockedReason: "locked_zone" };
+    return {
+      position: current,
+      moved: false,
+      blockedReason: "locked_zone",
+      blockedZone: zoneContaining(targetCol, targetRow),
+    };
   }
 
   if (isSolid(targetCol, targetRow)) {
-    return { position: current, moved: false, blockedReason: "solid_terrain" };
+    return { position: current, moved: false, blockedReason: "solid_terrain", blockedZone: null };
   }
 
-  return { position: { col: targetCol, row: targetRow }, moved: true, blockedReason: null };
+  return { position: { col: targetCol, row: targetRow }, moved: true, blockedReason: null, blockedZone: null };
 }

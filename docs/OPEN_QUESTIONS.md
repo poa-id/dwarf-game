@@ -517,3 +517,65 @@ once resolved (and reflect the resolution in the relevant section above).
 This closes out the full third-playtesting-round batch (a-k), every
 item now either resolved or confirmed not needed.
 
+- **Fourth playtesting round (2026-06-23) - three real fixes, plus new
+  backlog items queued for later:**
+  - **Resolved: colorStage jumped ahead of the actual Rekindle action.**
+    `colorStage` was a pure function of `lifetimeFuel` alone, so the
+    world's first color appeared the MOMENT `lifetimeFuel` crossed 500
+    - the same moment the Rekindle option became available, but NOT
+    the same moment the player actually clicked it. This contradicted
+    the explicit lore framing ("crossing this threshold IS the
+    rekindling event") - in the implementation, the two had quietly
+    become independent. Fixed with `capColorStageBeforeFirstRekindle`
+    (colorStages.ts): `colorStage` now stays pinned at 0 until
+    `dwarfCount > 0` (the player has actually rekindled), regardless of
+    how far `lifetimeFuel` has climbed past any threshold. Stages 2/3
+    remain untouched once unlocked - pure functions of `lifetimeFuel`
+    exactly as before, since only Stage 1 was ever meant to be gated on
+    the act itself. Threaded `hasRekindledOnce` through both
+    `stokeFireDirectly` and `tickHearth` (hearth.ts).
+  - **Resolved: blocked-movement message gave zero indication of WHAT
+    unlocks a locked zone.** Reported as "the dark halls... shows, no
+    option to unlock or rebuild" - "the dark halls" turned out to be
+    `render.ts`'s generic fallback label for any unzoned corridor tile,
+    and the player was specifically at the Tunnel Entrance's boundary,
+    correctly blocked (forgeTier < 2) but given only a flavor line with
+    no real information. Added `describeUnlockCondition` (visibility.ts)
+    - human-readable text per `UnlockCondition` type, looking up the
+    real Forge upgrade name (e.g. "Bellows of the Deep") rather than a
+    raw tier number. Threaded a new `blockedZone` field through
+    `MoveResult` (movement.ts engine + game layer) so the blocked
+    message can name the specific zone and its unlock condition,
+    falling back to the old generic line only if zone info is somehow
+    unavailable.
+  - **Resolved: Smithing panel showed iron recipes before they were
+    remotely reachable.** `SMITH_RECIPES`/tool rows rendered
+    unconditionally for every recipe, disabled-but-visible if Smithing
+    level wasn't met - so a level-1 dwarf saw a permanently grayed-out
+    "Iron Ingot - Requires Smithing level 6" row. Per explicit
+    direction: hidden entirely now (filtered out, not just disabled)
+    until Smithing level actually qualifies - deliberately LEVEL-gated,
+    not holdings-gated, since seeing the recipe appear the moment level
+    is high enough (even with zero iron_ore held) is what should prompt
+    the player to go look for iron, not the reverse. Same fix applied
+    to both ingot rows and tool rows in smithingPanel.ts.
+  - **New backlog item, NOT yet designed or built:** per explicit
+    direction, unlocking iron mining should ALSO unlock some form of
+    automation/tech-advance for the PREVIOUS tier's gathering (copper) -
+    slow at first, improvable via a resource sink. This is a real new
+    idea connecting to the long-standing "idle automatization
+    mechanics" item already in the backlog (see the original
+    DIRECTION_RESET.md absorption and the project's RuneScape-adjacent
+    framing) - needs real design work before implementation: what the
+    automation structure actually looks like, its base rate, what sink
+    improves it, and how it relates to the also-still-unbuilt Building
+    skill.
+  - **New reference art provided, NOT yet used:** four 3x3 workshop
+    tileset images (Magma Forge, Metalsmith's Forge, Smelter, Wood
+    Furnace) in the same Vettlingr-style aesthetic already in the game,
+    intended for the still-queued Smelter/room-state backlog (see the
+    earlier "(3) The Smelter" entry above). Held for that design
+    conversation rather than acted on now - the Smelter's own open
+    questions (purified material identity, drop-chance, build cost,
+    what it unlocks) still need real answers first.
+

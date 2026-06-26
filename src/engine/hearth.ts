@@ -1,6 +1,6 @@
 import type { HearthState, ResourceBag, MaterialId } from "./types";
 import { getMaterialAmount, deductMaterials, addMaterial, materialDef } from "./types";
-import { colorStageForLifetimeFuel } from "./colorStages";
+import { colorStageForLifetimeFuel, capColorStageBeforeFirstRekindle } from "./colorStages";
 
 /**
  * Which materials the Hearth can burn, and how much each contributes
@@ -82,7 +82,8 @@ export function stokeFireDirectly(
   inventory: ResourceBag,
   materialId: MaterialId,
   amount: number,
-  now: number
+  now: number,
+  hasRekindledOnce: boolean
 ): StokeFireResult {
   if (!HEARTH_FUEL_MATERIALS.includes(materialId)) {
     throw new Error(`${materialId} cannot fuel the Hearth`);
@@ -99,7 +100,8 @@ export function stokeFireDirectly(
   const fuelAdded = amount * heat;
 
   const newLifetimeFuel = hearth.lifetimeFuel + fuelAdded;
-  const newColorStage = colorStageForLifetimeFuel(newLifetimeFuel).stage;
+  const pureFuelStage = colorStageForLifetimeFuel(newLifetimeFuel);
+  const newColorStage = capColorStageBeforeFirstRekindle(pureFuelStage, hasRekindledOnce).stage;
 
   const newHearth: HearthState = {
     fuel: hearth.fuel + fuelAdded,
@@ -209,7 +211,8 @@ export interface HearthTickResult {
 export function tickHearth(
   hearth: HearthState,
   now: number,
-  bankedFuelAvailable: number
+  bankedFuelAvailable: number,
+  hasRekindledOnce: boolean
 ): HearthTickResult {
   const elapsedMs = Math.max(0, now - hearth.lastUpdated);
   const cappedMs = Math.min(elapsedMs, MAX_OFFLINE_CATCHUP_MS);
@@ -219,7 +222,16 @@ export function tickHearth(
   const fuelAbsorbed = Math.min(desiredAbsorption, bankedFuelAvailable);
 
   const newLifetimeFuel = hearth.lifetimeFuel + fuelAbsorbed;
-  const newColorStage = colorStageForLifetimeFuel(newLifetimeFuel).stage;
+  // Defensive, not strictly reachable today: tickHearth only ever runs
+  // once isAutoTendingUnlocked(hearthTier >= 1) is true, which itself
+  // requires Insight, which ONLY comes from rekindle.ts's
+  // calculateRekindleInsight - so hasRekindledOnce is already always
+  // true by the time this function can be called at all. Threaded
+  // through anyway for explicitness, matching this engine's
+  // established pattern of defensive invariants rather than relying
+  // on an indirect chain of reasoning elsewhere staying true forever.
+  const pureFuelStage = colorStageForLifetimeFuel(newLifetimeFuel);
+  const newColorStage = capColorStageBeforeFirstRekindle(pureFuelStage, hasRekindledOnce).stage;
 
   const newHearth: HearthState = {
     fuel: hearth.fuel + fuelAbsorbed,
