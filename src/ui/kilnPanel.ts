@@ -6,6 +6,7 @@ import {
 } from "../engine/kiln";
 import { MATERIALS } from "../engine/types";
 import type { GameState } from "../engine/types";
+import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 /**
  * Renders the Charcoal Kiln's single-action panel into a container.
@@ -57,10 +58,15 @@ export function performCharcoalBurn(state: GameState): KilnOutcome {
   const newInventory = applyCharcoalBurnResult(state.vessel.inventory, result);
 
   const oldLevel = state.vessel.skills.hearthkeeping.level;
+  // See actions.ts's mining/woodcraft handlers for why this recomputes
+  // level rather than trusting result.newLevel - the dwarfCount XP
+  // multiplier is applied at this call-site layer.
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount);
+  const newHearthkeepingXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
   const newHearthkeeping = {
     ...state.vessel.skills.hearthkeeping,
-    level: result.newLevel,
-    xp: state.vessel.skills.hearthkeeping.xp + result.xpGained,
+    level: levelForXp(newHearthkeepingXp),
+    xp: newHearthkeepingXp,
   };
 
   const newState: GameState = {
@@ -72,5 +78,5 @@ export function performCharcoalBurn(state: GameState): KilnOutcome {
     },
   };
 
-  return { newState, success: result.success, leveledUp: result.newLevel > oldLevel };
+  return { newState, success: result.success, leveledUp: newHearthkeeping.level > oldLevel };
 }

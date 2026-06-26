@@ -47,7 +47,15 @@ export const SMITH_RECIPES: SmithRecipe[] = [
   {
     id: "iron_ingot",
     name: "Iron Ingot",
-    requiredLevel: 10,
+    // Lowered from 10 -> 6 (2026-06-23, explicit project direction):
+    // reaching level 10 from scratch needed ~1727 copper_ingot smelts
+    // (cumulativeXpForLevel(10) / baseXp 10) - genuinely daunting for a
+    // first playthrough, independent of the separate dwarfCount XP
+    // multiplier (which only helps AFTER several rekindles, not the
+    // very first climb). Level 6 needs ~315 smelts instead - still a
+    // real grind, but roughly a fifth of the original. See
+    // OPEN_QUESTIONS.md for the full numbers.
+    requiredLevel: 6,
     oreMaterialId: "iron_ore",
     oreCost: 3,
     acceptedFuels: ["coal"],
@@ -248,7 +256,7 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     name: "Iron Pickaxe",
     slot: "pickaxe",
     tier: 2,
-    requiredLevel: 10,
+    requiredLevel: 6, // lowered from 10, see iron_ingot's comment above for the full rationale
     ingotMaterialId: "iron_ingot",
     ingotCost: 3,
     woodCost: 4,
@@ -278,7 +286,7 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     name: "Iron Axe",
     slot: "axe",
     tier: 2,
-    requiredLevel: 10,
+    requiredLevel: 6, // lowered from 10, see iron_ingot's comment above for the full rationale
     ingotMaterialId: "iron_ingot",
     ingotCost: 3,
     woodCost: 4,

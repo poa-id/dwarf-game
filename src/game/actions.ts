@@ -5,6 +5,7 @@ import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted, a
 import { WOOD_NODES, isExhausted as isWoodExhausted, attemptWoodGather, applyWoodGatherResult } from "../engine/woodcraft";
 import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "../engine/smithing";
 import { repairTorch } from "../engine/torches";
+import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 import { showNarratorToast } from "../narration/toast";
 
 /**
@@ -51,10 +52,17 @@ export function handleMineStrike(actionHint: HTMLElement): void {
 
   const afterMiss = getState();
   const newInventory = applyMineResult(afterMiss.vessel.inventory, result);
+  // result.newLevel was computed inside attemptMineStrike from the
+  // RAW xpGained - recompute using the multiplied amount instead, see
+  // xpCurve.ts's applyDwarfCountXpMultiplier for why this multiplier
+  // exists and why it's applied here (call sites) rather than inside
+  // the pure engine functions themselves.
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, afterMiss.world.dwarfCount);
+  const newTotalXp = miningSkill.xp + multipliedXp;
   const newMiningSkill = {
     ...miningSkill,
-    level: result.newLevel,
-    xp: miningSkill.xp + result.xpGained,
+    level: levelForXp(newTotalXp),
+    xp: newTotalXp,
   };
 
   setState({
@@ -67,7 +75,7 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   });
 
   narrate(isFirstStrikeEver ? "mine_first_strike" : "mine_strike");
-  if (result.leveledUp) narrate("level_up");
+  if (newMiningSkill.level > miningSkill.level) narrate("level_up");
 }
 
 export function handleWoodGather(): void {
@@ -102,10 +110,15 @@ export function handleWoodGather(): void {
 
   const afterMiss = getState();
   const newInventory = applyWoodGatherResult(afterMiss.vessel.inventory, result);
+  // See the mining handler above for why this recomputes level rather
+  // than trusting result.newLevel directly - the multiplier is applied
+  // at this call-site layer, not inside attemptWoodGather itself.
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, afterMiss.world.dwarfCount);
+  const newTotalXp = woodcraftSkill.xp + multipliedXp;
   const newWoodcraftSkill = {
     ...woodcraftSkill,
-    level: result.newLevel,
-    xp: woodcraftSkill.xp + result.xpGained,
+    level: levelForXp(newTotalXp),
+    xp: newTotalXp,
   };
 
   setState({
@@ -121,7 +134,7 @@ export function handleWoodGather(): void {
   // finds rock" lines would be wrong for cutting wood. Leave silent
   // until Woodcraft earns its own line pool (see DESIGN.md open
   // questions). Level-ups are skill-agnostic enough to reuse as-is.
-  if (result.leveledUp) narrate("level_up");
+  if (newWoodcraftSkill.level > woodcraftSkill.level) narrate("level_up");
 }
 
 export function handleForgeRepair(narratorContainer: HTMLElement, actionHint: HTMLElement): void {

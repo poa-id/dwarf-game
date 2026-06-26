@@ -1,19 +1,52 @@
 import type { GameState, VesselState, WorldState, SkillState, SkillId } from "./types";
 import { HEARTH_SPAWN_POSITION } from "./hubMap";
 import { createInitialHearth } from "./hearth";
+import { COLOR_STAGES } from "./colorStages";
 import { createInitialNarratorState } from "../narration/narrator";
 
 /**
- * Insight earned at the moment of rekindling — separate from the slow
- * trickle of Insight the Hearth generates over time just by being tended.
- * Scaled by how far the dwarf got, so a longer-lived dwarf leaves more
- * behind for the one who follows him.
+ * The fuel threshold that makes rekindling available at all - same
+ * threshold that triggers the world's first color (Stage 1), per the
+ * deliberate design call that crossing it IS the rekindling event
+ * narratively (see colorStages.ts's comment on COLOR_STAGES[1]). Lives
+ * here (engine layer) rather than in hearthPanel.ts (where it
+ * originally lived, UI-only) because calculateRekindleInsight below
+ * also needs it, and an engine file importing a UI file would be the
+ * wrong dependency direction. hearthPanel.ts imports this constant now
+ * instead of defining its own copy.
  */
-export function calculateRekindleInsight(vessel: VesselState): number {
+export const REKINDLE_FUEL_THRESHOLD = COLOR_STAGES[1].fuelThreshold;
+
+/**
+ * Insight earned at the moment of rekindling. Two multipliers stack:
+ *
+ * 1. Scaled by how far the dwarf got (skill levels) - a longer-lived
+ *    dwarf leaves more behind for the one who follows him. Unchanged
+ *    from the original v1 design: 5 Insight per total skill level.
+ *
+ * 2. A DIMINISHING-RETURNS penalty based on how much hearth.lifetimeFuel
+ *    has grown SINCE THE LAST rekindle, not just whether the current
+ *    value clears REKINDLE_FUEL_THRESHOLD. lifetimeFuel never
+ *    decreases, so without this, the threshold stays permanently
+ *    cleared the instant it's first reached - nothing would stop
+ *    rekindling again 30 seconds later for whatever marginal Insight
+ *    the (now level-1-again) dwarf's levels are worth. Per explicit
+ *    project direction (2026-06-23): each rekindle should feel
+ *    meaningful, not spammable. Growing a full threshold's worth of
+ *    fuel since the last rekindle earns the FULL multiplier (1.0);
+ *    growing less scales linearly down to 0 at no growth at all. The
+ *    very first rekindle (lifetimeFuelAtLastRekindle starts at 0) always
+ *    gets the full multiplier, since there's no "last rekindle" to have
+ *    rushed past.
+ */
+export function calculateRekindleInsight(vessel: VesselState, world: WorldState): number {
   const totalLevels = Object.values(vessel.skills).reduce((sum, s) => sum + s.level, 0);
-  // Simple for v1: 5 Insight per total skill level across all skills.
-  // A dwarf who reached Mining 20 + Smithing 15 leaves 175 Insight behind.
-  return totalLevels * 5;
+  const baseInsight = totalLevels * 5;
+
+  const fuelGrowthSinceLastRekindle = world.hearth.lifetimeFuel - world.lifetimeFuelAtLastRekindle;
+  const diminishingReturnsScale = Math.min(1, Math.max(0, fuelGrowthSinceLastRekindle / REKINDLE_FUEL_THRESHOLD));
+
+  return Math.round(baseInsight * diminishingReturnsScale);
 }
 
 function freshSkill(id: SkillId): SkillState {
@@ -57,6 +90,7 @@ export function createInitialWorld(now: number): WorldState {
     veinDepletion: {},
     woodDepletion: {},
     toolsForged: { pickaxe: 0, axe: 0 },
+    lifetimeFuelAtLastRekindle: 0,
   };
 }
 
@@ -91,7 +125,7 @@ export interface RekindleResult {
  * already governed by the Hearth system, not by this function.
  */
 export function rekindle(state: GameState): RekindleResult {
-  const insightEarned = calculateRekindleInsight(state.vessel);
+  const insightEarned = calculateRekindleInsight(state.vessel, state.world);
   const isFirstRekindling = state.world.dwarfCount === 0;
 
   const newState: GameState = {
@@ -100,6 +134,7 @@ export function rekindle(state: GameState): RekindleResult {
       ...state.world,
       insightBanked: state.world.insightBanked + insightEarned,
       dwarfCount: state.world.dwarfCount + 1,
+      lifetimeFuelAtLastRekindle: state.world.hearth.lifetimeFuel,
     },
     vessel: createFreshVessel(),
   };

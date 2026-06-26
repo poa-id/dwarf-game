@@ -278,6 +278,19 @@ export interface WorldState {
   companion: CompanionState;
   /** Highest tier ever forged per tool slot - see ToolsForgedState above. */
   toolsForged: ToolsForgedState;
+  /**
+   * hearth.lifetimeFuel's value AT THE MOMENT of the most recent
+   * rekindle (0 if no dwarf has ever rekindled yet). Used to measure
+   * real growth SINCE the last rekindle, not just "are we currently
+   * above the threshold" - lifetimeFuel never decreases, so without
+   * this, a player could rekindle again the instant they're allowed to
+   * and again immediately after that, since the raw threshold stays
+   * permanently cleared. See rekindle.ts's calculateRekindleInsight for
+   * how this feeds the diminishing-returns penalty on rekindling too
+   * soon after the last one (2026-06-23, explicit design call: each
+   * rekindle should feel meaningful, not spammable for marginal gains).
+   */
+  lifetimeFuelAtLastRekindle: number;
 }
 
 // ---------------------------------------------------------------------------

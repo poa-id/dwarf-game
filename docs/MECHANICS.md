@@ -283,16 +283,65 @@ purposes.
 **Rekindling has a UI affordance now, and it must stay silent
 beforehand (added 2026-06-22):** the "Rekindle" option appears in the
 Hearth panel once `hearth.lifetimeFuel` crosses
-`COLOR_STAGES[1].fuelThreshold` (500) - deliberately the SAME threshold
-that triggers the world's first color, not a separate number. Per
-project owner's explicit direction, this must give no warning
-beforehand anywhere in the UI - no counter, no narrator foreshadowing.
-The option simply exists, or doesn't, the next time the panel renders.
-Confirmed via `window.confirm()` (mirrors the existing reset-save
-pattern) since the action is permanent. See hearthPanel.ts's
-`performRekindle`/`REKINDLE_FUEL_THRESHOLD`, and §13/§14's "knowledge
-itself becomes progression" framing - this is that principle applied
-to the single most important action in the game.
+`REKINDLE_FUEL_THRESHOLD` (500, defined in `rekindle.ts` - moved there
+2026-06-23 from `hearthPanel.ts` since `calculateRekindleInsight` below
+also needs it, and the engine can't depend on a UI file) - deliberately
+the SAME threshold that triggers the world's first color, not a
+separate number. Per project owner's explicit direction, this must give
+no warning beforehand anywhere in the UI - no counter, no narrator
+foreshadowing. The option simply exists, or doesn't, the next time the
+panel renders. Confirmed via `window.confirm()` (mirrors the existing
+reset-save pattern) since the action is permanent. See hearthPanel.ts's
+`performRekindle`, and §13/§14's "knowledge itself becomes progression"
+framing - this is that principle applied to the single most important
+action in the game.
+
+**Rekindling has real pacing now, added 2026-06-23 after explicit
+playtesting feedback ("rekindling is harsh... but also too easy to spam
+for marginal gains"):** two separate, complementary mechanisms:
+
+1. **Diminishing-returns Insight penalty for rekindling too soon.**
+   `hearth.lifetimeFuel` never decreases, so without this, the moment
+   the 500 threshold first cleared, it stayed permanently cleared -
+   nothing stopped rekindling again 30 seconds later for whatever
+   Insight a fresh level-1 dwarf's skills happened to be worth.
+   `WorldState.lifetimeFuelAtLastRekindle` now records the fuel level
+   at each rekindle; the NEXT rekindle's Insight payout scales linearly
+   by how much fuel has grown since then, from 0 (zero growth, zero
+   Insight) up to the full payout once growth reaches a full
+   `REKINDLE_FUEL_THRESHOLD`'s worth (growing beyond that doesn't
+   over-reward - the multiplier caps at 1.0). The very first-ever
+   rekindle always gets the full multiplier, since `lifetimeFuelAtLastRekindle`
+   starts at 0 and any real progress counts as growth. See
+   `calculateRekindleInsight` in rekindle.ts.
+2. **A permanent per-dwarf XP-gain-rate bonus, scaling with
+   `dwarfCount`.** "The Mountain has learned" - a fresh dwarf gains
+   skill XP meaningfully faster than the very first dwarf did: +15% per
+   prior dwarf, capped at 3x. Deliberately a flat multiplier applied at
+   every XP-granting call site (mining/woodcraft strikes, smithing
+   ingots/tools, the charcoal kiln), NOT a change to the underlying
+   `xpForLevel` curve itself - individual recipe/action balance stays
+   untouched, this is one separate lever. See
+   `applyDwarfCountXpMultiplier` in xpCurve.ts - the single shared
+   source of truth every call site uses, rather than each
+   reimplementing the formula. **Important implementation detail:**
+   because the multiplier is applied at the call-site layer (not inside
+   the pure `attempt*` engine functions), every call site must recompute
+   the skill's new level via `levelForXp(newTotalXp)` rather than
+   trusting the engine result's `newLevel`/`leveledUp` fields directly -
+   those were computed from the UN-multiplied `xpGained`.
+
+**Smithing's iron-tier `requiredLevel` lowered 10 → 6 (2026-06-23):**
+the first-ever climb to Smithing level 10 needed roughly 1,727
+`copper_ingot` smelts (`cumulativeXpForLevel(10) / baseXp 10`) -
+genuinely daunting, and notably NOT helped by the dwarfCount multiplier
+above, since that only kicks in after several rekindles, not on a
+fresh save's first climb. Level 6 needs roughly 315 smelts instead -
+still real, but a fifth of the original. Applies to `iron_ingot`,
+`iron_pickaxe`, and `iron_axe` (smithing's gate) - `iron_vein`'s Mining
+`requiredLevel` (8, in mining.ts) is a SEPARATE, independent skill gate
+and was deliberately left untouched, since the original complaint was
+specifically about Smithing.
 
 ## 6. The Hub Map
 

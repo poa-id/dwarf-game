@@ -315,4 +315,54 @@ once resolved (and reflect the resolution in the relevant section above).
   sidebars are now capped at 528px (matching the new canvas height)
   with real margin to spare for realistic content. See main.ts and
   style.css.
+- **Second design-feedback pass (2026-06-23) - rekindle pacing, iron
+  grind, and a queue of bigger systems not yet started:** project owner
+  played further and raised several distinct points in one batch. Two
+  are done (see MECHANICS.md's Hearthkeeping/Rekindling and Smithing
+  sections for full detail): (1) rekindle diminishing-returns penalty +
+  the dwarfCount XP multiplier ("the Mountain has learned"), (2) iron's
+  Smithing `requiredLevel` 10 → 6. **Still queued, in this explicit
+  order, not yet started:**
+  - **(3) The Smelter - a new Forge Room addon/room, AND Smithing's
+    real repeatable XP/resource sink.** Concept from design discussion:
+    an expensive, one-time-build secondary station that purifies common
+    ingots into a rare, low-drop-chance higher-quality ore/material,
+    used for "special upgrades." This directly answers two things at
+    once - the "pile of unused ingots after making one pickaxe + torches"
+    problem AND the lack of any repeatable, XP-efficient Smithing action
+    beyond raw ingot-spam (one-time tool recipes can't fill that role,
+    they're forged exactly once ever). Also the first real test of the
+    Room-State framework (§14) on something other than the Forge itself.
+    Needs real design work before building: the purified material's
+    name/identity (NOT deepstone - that's separately reserved for the
+    real mine's tier-3 node, kept deliberately distinct so "refine what
+    you have" and "delve deeper for something new" stay two different
+    answers), the drop-chance number, build cost, and what "special
+    upgrades" it actually unlocks.
+  - **(4) A Hearth-room station for permanent, account-wide passive
+    perks** ("improve the Mountain itself," distinct from the Smelter's
+    Smithing-side sink) - concept only, no mechanical shape decided yet.
+  - **(5) Tools should GATE access to better materials, RuneScape-style**
+    - not just "mine faster," but "you cannot mine iron at all without at
+    least a Copper Pickaxe," etc. Currently tool tiers only affect
+    `successChanceBonus`/`yieldMultiplier` (see gathering.ts) - there's
+    no hard gate tying a `RockNode.requiredLevel`-style check to
+    equipped tool tier. Real implementation work: extending `RockNode`/
+    `WoodNode` with a tool-tier requirement, and deciding the exact
+    tier-to-material mapping.
+  - **(6) Player-placed/buildable torches** - explicitly framed as the
+    first real foothold for the still-unstarted Building skill, and as
+    another resource sink. Not just "more fixed torches" - the player
+    CHOOSES where to place one.
+  - **(7) Rubble-clearing should cost resources + require tool tiers.**
+    Specific complaint: the empty room revealed after rekindling
+    currently has only one torch and no clearing cost/requirement at
+    all. Connects directly to the Room-State framework (§14, Ruined →
+    Cleared → Restored → Masterwork) - "Cleared" currently has no real
+    mechanical definition anywhere in the codebase; this would be the
+    first time it means something concrete.
+  - Project owner's own framing: once (3)-(7) land, the project should
+    be ready to move toward the longer-planned Mineshafts/real-mine
+    content and idle-automation mechanics - explicitly NOT started yet,
+    sequencing noted for the record.
 

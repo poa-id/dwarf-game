@@ -60,6 +60,15 @@ function backfillMissingFields(state: any): any {
       // real tools going forward. See OPEN_QUESTIONS.md.
       state.world.toolsForged = { pickaxe: 0, axe: 0 };
     }
+    if (state.world.lifetimeFuelAtLastRekindle === undefined) {
+      // Old saves predate the rekindle diminishing-returns penalty
+      // entirely - backfill at 0, meaning the save's ENTIRE existing
+      // hearth.lifetimeFuel counts as "growth since the last rekindle"
+      // on its next rekindle. This is the generous direction for a
+      // migration (full credit, not a penalty for pre-dating the
+      // feature) - see rekindle.ts's calculateRekindleInsight.
+      state.world.lifetimeFuelAtLastRekindle = 0;
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

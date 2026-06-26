@@ -7,8 +7,7 @@ import {
   isAutoTendingUnlocked,
   reserveBurnSecondsRemaining,
 } from "../engine/hearth";
-import { COLOR_STAGES } from "../engine/colorStages";
-import { rekindle } from "../engine/rekindle";
+import { rekindle, REKINDLE_FUEL_THRESHOLD } from "../engine/rekindle";
 import type { RekindleResult } from "../engine/rekindle";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
@@ -24,16 +23,16 @@ const STOKE_AMOUNT = 1; // fixed burst size for now - see DESIGN.md's x1/x5/x10/
 const GAUGE_FULL_AT_SECONDS = 60;
 
 // The rekindle option appears in this panel the moment lifetimeFuel
-// crosses the Stage 1 threshold - the same threshold that triggers the
-// color_stage_1 narrator line and the world's first color (see
-// colorStages.ts's comment: "crossing it IS the rekindling event").
-// Deliberately NOT a separate/new threshold - reaching Stage 1 already
-// IS "the dwarf could rekindle now," narratively. Per project owner's
-// explicit direction (2026-06-22): this must stay completely silent
-// beforehand - no counter, no narrator foreshadowing, no visible
-// progress toward it anywhere in the UI. The option simply exists, or
-// doesn't, the next time this panel renders.
-const REKINDLE_FUEL_THRESHOLD = COLOR_STAGES[1].fuelThreshold;
+// crosses the Stage 1 threshold (REKINDLE_FUEL_THRESHOLD, imported from
+// rekindle.ts) - the same threshold that triggers the color_stage_1
+// narrator line and the world's first color (see colorStages.ts's
+// comment: "crossing it IS the rekindling event"). Deliberately NOT a
+// separate/new threshold - reaching Stage 1 already IS "the dwarf could
+// rekindle now," narratively. Per project owner's explicit direction
+// (2026-06-22): this must stay completely silent beforehand - no
+// counter, no narrator foreshadowing, no visible progress toward it
+// anywhere in the UI. The option simply exists, or doesn't, the next
+// time this panel renders.
 
 // A brief, purely-visual "the fire just got fed" flash - module-level
 // because renderHearthPanel rebuilds its container's innerHTML on every

@@ -12,6 +12,7 @@ import {
 } from "../engine/smithing";
 import { canAffordMaterials, MATERIALS } from "../engine/types";
 import type { GameState, ToolSlot } from "../engine/types";
+import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 /**
  * Renders the Smithing recipe list into a container. Pure rendering -
@@ -137,10 +138,15 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
   const newInventory = applySmithResult(state.vessel.inventory, result);
 
   const oldLevel = state.vessel.skills.smithing.level;
+  // See actions.ts's mining/woodcraft handlers for why this recomputes
+  // level rather than trusting result.newLevel - the dwarfCount XP
+  // multiplier is applied at this call-site layer.
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount);
+  const newSmithingXp = state.vessel.skills.smithing.xp + multipliedXp;
   const newSmithing = {
     ...state.vessel.skills.smithing,
-    level: result.newLevel,
-    xp: state.vessel.skills.smithing.xp + result.xpGained,
+    level: levelForXp(newSmithingXp),
+    xp: newSmithingXp,
   };
 
   const newState: GameState = {
@@ -152,7 +158,7 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
     },
   };
 
-  return { newState, success: result.success, leveledUp: result.newLevel > oldLevel };
+  return { newState, success: result.success, leveledUp: newSmithing.level > oldLevel };
 }
 
 export interface ForgeToolOutcome {
@@ -179,10 +185,12 @@ export function performForgeTool(state: GameState, recipe: ToolRecipe): ForgeToo
   );
 
   const oldLevel = state.vessel.skills.smithing.level;
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount);
+  const newSmithingXp = state.vessel.skills.smithing.xp + multipliedXp;
   const newSmithing = {
     ...state.vessel.skills.smithing,
-    level: result.newLevel,
-    xp: state.vessel.skills.smithing.xp + result.xpGained,
+    level: levelForXp(newSmithingXp),
+    xp: newSmithingXp,
   };
 
   const newState: GameState = {
@@ -195,5 +203,5 @@ export function performForgeTool(state: GameState, recipe: ToolRecipe): ForgeToo
     },
   };
 
-  return { newState, success: result.success, leveledUp: result.newLevel > oldLevel };
+  return { newState, success: result.success, leveledUp: newSmithing.level > oldLevel };
 }

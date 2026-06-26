@@ -59,3 +59,32 @@ export function xpNeededForNextLevel(totalXp: number): number {
 }
 
 export { MAX_LEVEL };
+
+/**
+ * The "the Mountain has learned" bonus (added 2026-06-23, explicit
+ * project direction): a fresh dwarf gains skill XP meaningfully faster
+ * than the very first dwarf did, scaling with how many dwarves have
+ * come before (WorldState.dwarfCount). This is the counterpart to
+ * rekindle.ts's diminishing-returns Insight penalty - that punishes
+ * rekindling too SOON; this rewards having genuinely progressed,
+ * permanently, for every dwarf after the first. Deliberately a flat
+ * multiplier on raw XP gain (not a curve change in xpForLevel above)
+ * so individual recipe/action balance stays untouched - this is a
+ * single, separate lever.
+ *
+ * +15% per prior dwarf, capped at 3x (dwarfCount 0 = first dwarf ever,
+ * multiplier exactly 1.0, unchanged) - capped deliberately so a
+ * deeply-rekindled save doesn't trivialize leveling entirely; mastery
+ * should stay rare and earned even late, per this file's own stated
+ * design intent.
+ *
+ * This is the SINGLE place this multiplier is computed - every XP-
+ * granting call site (mining/woodcraft via gathering.ts, smithing
+ * ingots/tools, the charcoal kiln) should round its baseXp through
+ * this function before adding it to a skill's xp, rather than each
+ * site reimplementing the formula.
+ */
+export function applyDwarfCountXpMultiplier(baseXp: number, dwarfCount: number): number {
+  const multiplier = Math.min(3, 1 + dwarfCount * 0.15);
+  return Math.round(baseXp * multiplier);
+}

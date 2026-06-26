@@ -13,7 +13,10 @@ function makeStateWithProgress(): GameState {
       fuelReserve: { coal: 5 },
       companion: { befriended: true, lastHaulAt: 0 },
       unlockedMineDepth: 1,
-      hearth: createInitialHearth(0),
+      // lifetimeFuel set well past REKINDLE_FUEL_THRESHOLD (500) -
+      // this fixture represents a dwarf who made REAL progress, not
+      // one rushing to rekindle the instant the threshold first clears.
+      hearth: { ...createInitialHearth(0), lifetimeFuel: 1500 },
       insightBanked: 100,
       dwarfCount: 0,
       loreFlags: ["met_the_foreman"],
@@ -22,6 +25,7 @@ function makeStateWithProgress(): GameState {
       veinDepletion: { hearth_hall_copper: { totalYielded: 30 } },
       woodDepletion: { hearth_hall_roots: { totalYielded: 12 } },
       toolsForged: { pickaxe: 1, axe: 1 }, // non-zero specifically to verify rekindle() carries this through (see "preserves" test below)
+      lifetimeFuelAtLastRekindle: 0, // never rekindled before - this fixture's full 1500 counts as growth
     },
     vessel: {
       skills: {
@@ -42,15 +46,56 @@ function makeStateWithProgress(): GameState {
 }
 
 describe("calculateRekindleInsight", () => {
-  it("scales with total levels across all skills", () => {
-    const state = makeStateWithProgress();
-    // mining 20 + smithing 15 + hearthkeeping 5 + woodcraft 3 = 43 total levels * 5 = 215
-    expect(calculateRekindleInsight(state.vessel)).toBe(215);
+  it("scales with total levels across all skills, at full multiplier when growth clears the threshold", () => {
+    const state = makeStateWithProgress(); // lifetimeFuel 1500, lifetimeFuelAtLastRekindle 0 - growth 1500, well past the 500 threshold
+    // mining 20 + smithing 15 + hearthkeeping 5 + woodcraft 3 = 43 total levels * 5 = 215, full multiplier (1.0)
+    expect(calculateRekindleInsight(state.vessel, state.world)).toBe(215);
   });
 
-  it("is 0 for a fresh vessel (all 4 skills at level 1 -> total 4 -> 20 insight)", () => {
+  it("is 20 for a fresh vessel against a world with full growth (all 4 skills at level 1 -> total 4 -> 20 insight)", () => {
     const fresh = createFreshVessel();
-    expect(calculateRekindleInsight(fresh)).toBe(20); // 1+1+1+1=4 levels * 5
+    const world = makeStateWithProgress().world;
+    expect(calculateRekindleInsight(fresh, world)).toBe(20); // 1+1+1+1=4 levels * 5, full multiplier
+  });
+
+  it("diminishing returns: zero growth since the last rekindle yields ZERO insight, regardless of skill levels", () => {
+    const state = makeStateWithProgress();
+    const noGrowthWorld = {
+      ...state.world,
+      lifetimeFuelAtLastRekindle: state.world.hearth.lifetimeFuel, // rekindled again at the EXACT same lifetimeFuel - no growth at all
+    };
+    expect(calculateRekindleInsight(state.vessel, noGrowthWorld)).toBe(0);
+  });
+
+  it("diminishing returns: half the threshold's worth of growth yields half the insight", () => {
+    const state = makeStateWithProgress();
+    const halfGrowthWorld = {
+      ...state.world,
+      hearth: { ...state.world.hearth, lifetimeFuel: 250 },
+      lifetimeFuelAtLastRekindle: 0, // grew from 0 to 250 - half of the 500 threshold
+    };
+    // 43 total levels * 5 = 215 base, * 0.5 scale = 107.5, rounds to 108
+    expect(calculateRekindleInsight(state.vessel, halfGrowthWorld)).toBe(108);
+  });
+
+  it("diminishing returns: growth beyond a full threshold's worth still caps at the full multiplier (no bonus for over-waiting)", () => {
+    const state = makeStateWithProgress();
+    const massiveGrowthWorld = {
+      ...state.world,
+      hearth: { ...state.world.hearth, lifetimeFuel: 100_000 },
+      lifetimeFuelAtLastRekindle: 0,
+    };
+    expect(calculateRekindleInsight(state.vessel, massiveGrowthWorld)).toBe(215); // same as exactly-enough growth, not more
+  });
+
+  it("the very first rekindle (lifetimeFuelAtLastRekindle starts at 0) is never penalized, even if lifetimeFuel just barely cleared the threshold", () => {
+    const state = makeStateWithProgress();
+    const justClearedWorld = {
+      ...state.world,
+      hearth: { ...state.world.hearth, lifetimeFuel: 500 }, // exactly at the threshold, first time ever
+      lifetimeFuelAtLastRekindle: 0,
+    };
+    expect(calculateRekindleInsight(state.vessel, justClearedWorld)).toBe(215); // full multiplier - 500 growth from 0 clears the threshold exactly
   });
 });
 
@@ -119,6 +164,12 @@ describe("rekindle", () => {
     const { newState, insightEarned } = rekindle(state);
     expect(insightEarned).toBe(215);
     expect(newState.world.insightBanked).toBe(100 + 215);
+  });
+
+  it("records lifetimeFuelAtLastRekindle at the moment of rekindling, for the NEXT rekindle's diminishing-returns check", () => {
+    const state = makeStateWithProgress(); // hearth.lifetimeFuel is 1500
+    const { newState } = rekindle(state);
+    expect(newState.world.lifetimeFuelAtLastRekindle).toBe(1500);
   });
 
   it("dwarfCount increments by exactly 1", () => {

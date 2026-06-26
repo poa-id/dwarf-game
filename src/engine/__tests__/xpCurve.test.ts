@@ -5,6 +5,7 @@ import {
   levelForXp,
   xpIntoCurrentLevel,
   xpNeededForNextLevel,
+  applyDwarfCountXpMultiplier,
 } from "../xpCurve";
 
 describe("xpForLevel", () => {
@@ -70,5 +71,34 @@ describe("curve shape sanity check (printed for eyeballing, not asserted)", () =
     }));
     console.table(rows);
     expect(rows.length).toBe(checkpoints.length);
+  });
+});
+
+describe("applyDwarfCountXpMultiplier", () => {
+  it("dwarfCount 0 (the very first dwarf ever) gets exactly 1.0x - unchanged behavior", () => {
+    expect(applyDwarfCountXpMultiplier(10, 0)).toBe(10);
+    expect(applyDwarfCountXpMultiplier(100, 0)).toBe(100);
+  });
+
+  it("scales up +15% per prior dwarf", () => {
+    expect(applyDwarfCountXpMultiplier(100, 1)).toBe(115); // 1.15x
+    expect(applyDwarfCountXpMultiplier(100, 2)).toBe(130); // 1.30x
+    expect(applyDwarfCountXpMultiplier(100, 5)).toBe(175); // 1.75x
+  });
+
+  it("caps at 3x regardless of how high dwarfCount climbs", () => {
+    expect(applyDwarfCountXpMultiplier(100, 14)).toBe(300); // 1 + 14*0.15 = 3.1, capped to 3.0
+    expect(applyDwarfCountXpMultiplier(100, 1000)).toBe(300); // way past the cap, still 3.0
+  });
+
+  it("rounds to a whole number (XP gains should never be fractional)", () => {
+    const result = applyDwarfCountXpMultiplier(7, 3); // 7 * 1.45 = 10.15
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(10);
+  });
+
+  it("never returns less than the base XP (multiplier floor is 1.0, never penalizes)", () => {
+    expect(applyDwarfCountXpMultiplier(50, 0)).toBeGreaterThanOrEqual(50);
+    expect(applyDwarfCountXpMultiplier(50, 1)).toBeGreaterThanOrEqual(50);
   });
 });
