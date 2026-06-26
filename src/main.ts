@@ -7,6 +7,7 @@ import { startGameLoop } from "./game/loop";
 import { handlePlayerMove, KEY_TO_DIRECTION } from "./game/movement";
 import { handleMineStrike, handleWoodGather, handleForgeRepair, handleTorchRepair } from "./game/actions";
 import { nearestOreVein, nearestWoodNode } from "./game/proximity";
+import { movePanelHighlight, confirmPanelHighlight } from "./game/panelNavigation";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -113,7 +114,13 @@ render();
 startGameLoop();
 
 window.addEventListener("keydown", (e) => {
-  if (e.repeat && "fFeErR".includes(e.key)) {
+  // Repeat-guard covers every action/navigation key, not just F/E/R -
+  // extended 2026-06-23 to include arrow keys and Space, since holding
+  // Space down could otherwise spam-fire the highlighted row's action
+  // (e.g. rapidly burning through wood at the Kiln) on every repeat
+  // keydown event, and holding an arrow key would skip rows faster
+  // than intended.
+  if (e.repeat && (e.key === " " || e.key === "ArrowUp" || e.key === "ArrowDown" || "fFeErR".includes(e.key))) {
     return;
   }
 
@@ -136,6 +143,29 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "e" || e.key === "E") {
     handleTorchRepair(actionHint);
     render();
+    return;
+  }
+
+  // Arrow keys are fully reserved for contextual-panel navigation now
+  // (2026-06-23, explicit direction) - they no longer move the dwarf
+  // even when no panel is open (WASD is the sole movement input). If
+  // the panel happens to be empty when an arrow key is pressed (no
+  // contextual panel nearby), movePanelHighlight is a no-op - this is
+  // deliberate; arrow keys simply do nothing outside panel range,
+  // rather than falling back to movement.
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    e.preventDefault();
+    movePanelHighlight(contextualPanel, e.key === "ArrowUp" ? "up" : "down");
+    return;
+  }
+
+  // Space confirms the highlighted row - dispatches a real click on
+  // it, so every panel's existing onClick wiring fires unchanged. Per
+  // explicit direction: Space, not Enter, not reusing F.
+  if (e.key === " ") {
+    if (confirmPanelHighlight(contextualPanel)) {
+      e.preventDefault(); // only swallow the keypress if something was actually confirmed - an empty panel shouldn't eat Space for no reason
+    }
     return;
   }
 

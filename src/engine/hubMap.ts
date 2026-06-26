@@ -54,6 +54,31 @@ export function zoneById(id: string): ZoneDefinition | undefined {
 }
 
 /**
+ * The Forge building's exact 4x4 footprint within the Forge Room -
+ * derived from the REAL `forge_room` zone entry above, not a separately
+ * hardcoded guess. The single source of truth both hubContent.ts
+ * (which stamps the FORGE_BUILDING sprite here) and proximity.ts
+ * (which decides where the player can stand to interact with it) now
+ * share. Added 2026-06-23 to fix a real, reproducible bug: the two
+ * files previously computed their own independent guesses at "where is
+ * the forge" that never matched - proximity.ts's old `FORGE_CENTER`
+ * pointed at one of the building's own SOLID interior cells, walled in
+ * on every side except one lucky diagonal corner. "The forge is only
+ * accessible through the lower right corner" was an exact, reproducible
+ * consequence of that mismatch, not a vague feel issue. See
+ * exampleSprites.ts's `FORGE_BUILDING` for the actual 4x4 layout (solid
+ * wall frame around a 2x2 forge interior, with `null`/non-overriding
+ * corners).
+ */
+const forgeRoomBounds = zoneById("forge_room")!.bounds;
+export const FORGE_BUILDING_FOOTPRINT = {
+  originCol: forgeRoomBounds.col + Math.floor((forgeRoomBounds.width - 4) / 2),
+  originRow: forgeRoomBounds.row + Math.floor((forgeRoomBounds.height - 4) / 2),
+  width: 4,
+  height: 4,
+};
+
+/**
  * Torches, hand-placed along the corridors connecting the hearth hall
  * to other zones - exactly where the player feels the dark most
  * (the stretch between known rooms), and where a repaired torch reads

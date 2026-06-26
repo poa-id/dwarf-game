@@ -459,8 +459,61 @@ once resolved (and reflect the resolution in the relevant section above).
     fixed look once it activates - the big jump is glyphs→sprites
     itself). See MECHANICS.md's rewritten "Two renderer
     implementations" section for the full account.
-  - **Still queued, not yet addressed:** (e) more explicit passive-
-    consumption feedback beyond the existing burn gauge, (f) Forge
-    approach-angle feel, (g) contextual-panel keyboard interaction, (h)
-    success-rate display in station UIs.
+  - **(e) Confirmed already satisfied, no changes needed.** Direct
+    confirmation from project owner: the existing burn gauge (real-time
+    draining bar + "~Ns left" text, active once `hearthTier >= 1`) IS
+    the Minecraft-furnace-style feedback wanted - manual/direct stoking
+    correctly keeps just its brief cosmetic flash, nothing more
+    persistent. No gap here after all; this was resolved by re-checking
+    intent rather than by writing code.
+  - **(f) Resolved - a real, reproducible geometry bug, not a feel
+    issue.** The Forge building (`FORGE_BUILDING`, a 4x4 sprite: solid
+    wall frame around a 2x2 forge interior, with `null`/non-overriding
+    corners) had its proximity check (`FORGE_CENTER`) pointing at one
+    of the building's OWN solid interior cells - walled in on every
+    side except one lucky diagonal corner. "Only accessible through the
+    lower right corner" was an exact, computable consequence of that
+    mismatch. Root cause: `hubContent.ts` (rendering) and `proximity.ts`
+    (interaction) each independently GUESSED the forge's position, and
+    the two guesses never matched. **Fixed properly**: added
+    `FORGE_BUILDING_FOOTPRINT` (hubMap.ts), the single source of truth
+    both files now derive from (deriving from the REAL `forge_room`
+    zone entry, not a separate hardcoded copy); rewrote `isNearForge()`
+    to check the building's actual footprint rather than a center-point-
+    plus-radius. Per explicit direction, all four sides of the building
+    are now walkable/interactable ("the illusion of a huge masterforge"
+    you can walk all the way around) - verified computationally: 20
+    walkable perimeter cells now count as "near the forge," up from 1.
+  - **(g) Resolved - real new interaction infrastructure, not a small
+    fix.** Built per the full design discussed much earlier this
+    session: WASD is now the SOLE movement input (arrow keys removed
+    from `KEY_TO_DIRECTION` entirely, per explicit direction - they
+    never move the dwarf again, even with no panel open); arrow
+    Up/Down navigate the currently-open contextual panel's rows,
+    CLAMPING at the ends (no wraparound, explicit choice); Space
+    confirms the highlighted row (not Enter, not reusing F). New
+    `panelNavigation.ts` is deliberately panel-agnostic - it operates
+    purely on the existing `.recipe-row`/`.recipe-row-disabled` DOM
+    convention every panel already shared, so zero changes were needed
+    to any individual panel's render logic; confirming dispatches a
+    real `.click()` on the highlighted element, firing each panel's
+    existing onClick wiring unchanged. The first enabled row is
+    pre-selected the instant a panel has any content (no arrow-key
+    press needed first) - this is what makes "pre-select on proximity"
+    work. Highlight resets to row 0 when the active panel's IDENTITY
+    changes (e.g. walking from Forge to Hearth), tracked via
+    `render.ts`'s `lastActivePanelKind`. Repeat-key guard extended to
+    cover Space/arrows too, preventing held-key spam-firing.
+  - **(h) Resolved.** `baseSuccessChance` already existed on every
+    Smithing/tool/Kiln recipe - this was purely a display gap. Added a
+    `.recipe-success-rate` line (e.g. "85% chance") to every recipe row
+    across the Forge and Kiln panels, visually distinct from the cost/
+    status line since "what this costs" and "how likely it is to work"
+    are different questions. Explicitly NOT added to mining/woodcraft's
+    F-key actions - confirmed those are fine as quick keybind actions
+    without a displayed rate; "stations" specifically meant the
+    panel-based Forge/Kiln UIs.
+
+This closes out the full third-playtesting-round batch (a-k), every
+item now either resolved or confirmed not needed.
 

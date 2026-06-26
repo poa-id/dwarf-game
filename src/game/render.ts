@@ -22,6 +22,7 @@ import {
 import { renderSmithingPanel, performSmith, performForgeTool } from "../ui/smithingPanel";
 import { renderHearthPanel, performStoke, performHearthUpgrade, performRekindle } from "../ui/hearthPanel";
 import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
+import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
 export interface RenderRefs {
   renderer: GridRenderer;
@@ -155,6 +156,14 @@ export function updateActionHint(): void {
 }
 
 /**
+ * Tracks which panel was active on the PREVIOUS call, purely to detect
+ * a switch (e.g. walked from the Forge to the Hearth) so the keyboard
+ * highlight resets to row 0 rather than carrying over an index that
+ * made sense for a different panel's row count. See panelNavigation.ts.
+ */
+let lastActivePanelKind: "forge" | "hearth" | "kiln" | "none" = "none";
+
+/**
  * Decides which contextual panel (if any) applies given the dwarf's
  * current position, and renders it into the reserved panel space.
  * Forge takes priority over Hearth and Kiln if somehow ranges
@@ -169,6 +178,8 @@ function updateContextualPanel(): void {
   const state = getState();
 
   if (isNearForge() && isForgeRepaired()) {
+    if (lastActivePanelKind !== "forge") resetPanelHighlight();
+    lastActivePanelKind = "forge";
     renderSmithingPanel(
       state,
       refs.contextualPanel,
@@ -185,10 +196,13 @@ function updateContextualPanel(): void {
         render();
       }
     );
+    reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
 
   if (isNearHearth()) {
+    if (lastActivePanelKind !== "hearth") resetPanelHighlight();
+    lastActivePanelKind = "hearth";
     renderHearthPanel(
       state,
       refs.contextualPanel,
@@ -223,19 +237,24 @@ function updateContextualPanel(): void {
         render();
       }
     );
+    reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
 
   if (isNearKiln()) {
+    if (lastActivePanelKind !== "kiln") resetPanelHighlight();
+    lastActivePanelKind = "kiln";
     renderKilnPanel(state, refs.contextualPanel, () => {
       const outcome = performCharcoalBurn(getState());
       setState(outcome.newState);
       if (outcome.leveledUp) narrate("level_up");
       render();
     });
+    reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
 
+  lastActivePanelKind = "none";
   refs.contextualPanel.innerHTML = "";
 }
 

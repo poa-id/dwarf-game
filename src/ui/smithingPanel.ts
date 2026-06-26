@@ -42,6 +42,12 @@ export function renderSmithingPanel(
       .map((id) => MATERIALS[id]?.name ?? id)
       .join(" or ");
     const costText = `${recipe.oreCost} ${oreLabel}, ${recipe.fuelCost} ${fuelOptionsLabel}`;
+    // Success rate, shown to the player per explicit direction
+    // (2026-06-23: "stations with success rate should show it in the
+    // UI") - the data already existed on every recipe, this was purely
+    // a display gap. A separate line from cost, since "what this costs"
+    // and "how likely it is to work" are different questions.
+    const successRateText = `${Math.round(recipe.baseSuccessChance * 100)}% chance`;
 
     let statusText = costText;
     if (!meetsLevel) statusText = `Requires Smithing level ${recipe.requiredLevel}`;
@@ -51,6 +57,7 @@ export function renderSmithingPanel(
       <div class="recipe-row ${canSmith ? "" : "recipe-row-disabled"}" data-recipe-id="${recipe.id}">
         <div class="recipe-name">${recipe.name}</div>
         <div class="recipe-status">${statusText}</div>
+        <div class="recipe-success-rate">${successRateText}</div>
       </div>
     `;
   }).join("");
@@ -80,6 +87,7 @@ export function renderSmithingPanel(
       const ingotLabel = MATERIALS[recipe.ingotMaterialId]?.name ?? recipe.ingotMaterialId;
       const fuelOptionsLabel = recipe.acceptedFuels.map((id) => MATERIALS[id]?.name ?? id).join(" or ");
       const costText = `${recipe.ingotCost} ${ingotLabel}, ${recipe.woodCost} Cave-Root Wood, ${recipe.fuelCost} ${fuelOptionsLabel}`;
+      const successRateText = `${Math.round(recipe.baseSuccessChance * 100)}% chance`;
 
       let statusText = costText;
       if (!meetsLevel) statusText = `Requires Smithing level ${recipe.requiredLevel}`;
@@ -89,6 +97,7 @@ export function renderSmithingPanel(
         <div class="recipe-row ${canForge ? "" : "recipe-row-disabled"}" data-tool-recipe-id="${recipe.id}">
           <div class="recipe-name">${recipe.name}</div>
           <div class="recipe-status">${statusText}</div>
+          <div class="recipe-success-rate">${successRateText}</div>
         </div>
       `;
     })

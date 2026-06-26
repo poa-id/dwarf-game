@@ -425,9 +425,48 @@ not menu shortcuts.
 
 
 
-Real grid movement (WASD/arrows), with collision against solid terrain
+**Movement and keyboard controls (changed 2026-06-23 - WASD/arrows
+dual-mapped to movement until then):** WASD is now the SOLE movement
+input. Arrow keys are fully reserved for contextual-panel navigation -
+Up/Down move a highlighted-row selection, clamping at the panel's ends
+(no wraparound), Space confirms the highlighted row. This is real, not
+just a remap: a player can walk to the Forge/Hearth/Kiln, see the first
+available action pre-selected the instant the panel has content (no
+arrow-key press needed first), and confirm with Space alone - genuinely
+mouse-free play, per explicit project direction. Implementation
+(`panelNavigation.ts`) is deliberately panel-agnostic: it operates
+purely on the `.recipe-row`/`.recipe-row-disabled` DOM convention every
+panel already shared, confirming by dispatching a real `.click()` on
+the highlighted element so each panel's existing onClick wiring fires
+unchanged - no panel's render logic needed to know anything about
+keyboard state. `render.ts` tracks which panel was active on the
+previous render (`lastActivePanelKind`) purely to reset the highlight
+to row 0 when the panel's IDENTITY changes (e.g. walking from Forge to
+Hearth), so an index that made sense for one panel's row count doesn't
+carry over nonsensically to a different one.
+
+Real grid movement, with collision against solid terrain
 (`SOLID_CELL_KINDS`: walls, hearth, forge, ore veins, tunnel_edge —
 deliberately excludes torches and the dwarf himself).
+
+**The Forge's walkable approach (fixed 2026-06-23 - was a real,
+reproducible geometry bug, not a feel issue):** the Forge building
+(`FORGE_BUILDING` in exampleSprites.ts) is a 4x4 sprite - solid wall
+frame around a 2x2 forge interior, with `null`/non-overriding corners.
+The OLD proximity check (`FORGE_CENTER`, a separately-guessed center
+point) pointed at one of the building's own SOLID interior cells -
+walled in on every side except one lucky diagonal corner, so "near the
+forge" was only ever reachable from that single tile. Root cause:
+`hubContent.ts` (rendering, stamps the sprite) and `proximity.ts`
+(interaction, decides where the player can stand) each independently
+computed their own guess at the forge's position, and the two never
+matched. Fixed by introducing `FORGE_BUILDING_FOOTPRINT` (hubMap.ts) as
+the single shared source of truth both files now derive from (from the
+REAL `forge_room` zone bounds, not a separate hardcoded copy) -
+`isNearForge()` now checks the building's actual footprint rather than
+a center-point-plus-radius. Per explicit direction, all four sides are
+walkable ("the illusion of a huge masterforge") - 20 perimeter cells
+now count as near the forge, up from 1.
 
 **Fog of war, three states per cell:**
 - `hidden` — never seen, not currently lit, OR in a locked zone. True

@@ -231,6 +231,19 @@ canvas {
   background: #161616;
 }
 
+.recipe-row-highlighted {
+  /* Keyboard-driven selection (added 2026-06-23, see panelNavigation.ts)
+     - distinct from :hover since this is a PERSISTENT state (stays
+     highlighted until arrow keys move it again), not a transient
+     mouse-position effect. A visible left border makes it clear at a
+     glance which row Space will confirm, without needing to also
+     change the background (which could look identical to :hover and
+     confuse mouse + keyboard use together). */
+  background: #1c1a14;
+  border-left: 2px solid #ff8c3a;
+  padding-left: 6px;
+}
+
 .recipe-name {
   color: #ddd;
   font-size: 0.78rem;
@@ -239,6 +252,18 @@ canvas {
 .recipe-status {
   color: #888;
   font-size: 0.68rem;
+}
+
+.recipe-success-rate {
+  /* Distinct from .recipe-status (cost/requirement text) - a slightly
+     warmer, more muted tone so it reads as a secondary stat line, not
+     a duplicate of the status text right above it. Added 2026-06-23
+     per explicit direction: "stations with success rate should show
+     it in the UI" - the data already existed on every recipe, this
+     was purely a display gap. */
+  color: #6a6258;
+  font-size: 0.65rem;
+  font-style: italic;
 }
 
 .recipe-row-disabled {

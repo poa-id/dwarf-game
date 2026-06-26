@@ -7,13 +7,9 @@ import { isSolidCellKind } from "../render/palette";
 
 export const KEY_TO_DIRECTION: Record<string, Direction> = {
   w: "up",
-  ArrowUp: "up",
   s: "down",
-  ArrowDown: "down",
   a: "left",
-  ArrowLeft: "left",
   d: "right",
-  ArrowRight: "right",
 };
 
 function isSolidAt(col: number, row: number): boolean {

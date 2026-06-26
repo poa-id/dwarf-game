@@ -3,20 +3,13 @@ import {
   LIGHT_SOURCES,
   ORE_VEINS,
   WOOD_NODE_PLACEMENTS,
-  ZONES,
   HEARTH_SPAWN_POSITION,
   KILN_POSITION,
+  FORGE_BUILDING_FOOTPRINT,
 } from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
 import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
-
-/** The forge room's center, where the broken/working forge sits - used to check proximity for repair. */
-const FORGE_ROOM = ZONES.find((z) => z.id === "forge_room")!;
-const FORGE_CENTER = {
-  col: FORGE_ROOM.bounds.col + Math.floor(FORGE_ROOM.bounds.width / 2),
-  row: FORGE_ROOM.bounds.row + Math.floor(FORGE_ROOM.bounds.height / 2),
-};
 
 export function nearestUnrepairedTorch() {
   const { position } = getState().vessel;
@@ -66,11 +59,38 @@ export function nearestAnyWoodNode() {
   );
 }
 
+/**
+ * Is the player standing on open floor immediately adjacent to the
+ * Forge building (any of its four sides or corners), but not on one
+ * of the building's own solid cells? Replaces an earlier FORGE_CENTER-
+ * plus-1-tile-radius check that pointed at one of the building's own
+ * SOLID interior cells - since that point itself was walled in on
+ * every side except one lucky diagonal corner, "near the forge" was
+ * only ever reachable from that single corner. Fixed 2026-06-23 by
+ * checking against the building's REAL footprint (shared with
+ * hubContent.ts via hubMap.ts's FORGE_BUILDING_FOOTPRINT) instead of a
+ * separately-guessed center point. Per explicit project direction, all
+ * four sides are walkable/interactable - "the illusion of a huge
+ * masterforge" you can walk all the way around.
+ */
 export function isNearForge(): boolean {
   const { position } = getState().vessel;
-  return (
-    Math.abs(position.col - FORGE_CENTER.col) <= 1 && Math.abs(position.row - FORGE_CENTER.row) <= 1
-  );
+  const { originCol, originRow, width, height } = FORGE_BUILDING_FOOTPRINT;
+
+  // Inside the building's own bounding box (walls or forge cells
+  // themselves) doesn't count - the player can never stand there, but
+  // checking explicitly keeps this correct even if that ever changes.
+  const insideBuilding =
+    position.col >= originCol &&
+    position.col < originCol + width &&
+    position.row >= originRow &&
+    position.row < originRow + height;
+  if (insideBuilding) return false;
+
+  // Within 1 tile of the building's bounding box on any side.
+  const nearCol = position.col >= originCol - 1 && position.col <= originCol + width;
+  const nearRow = position.row >= originRow - 1 && position.row <= originRow + height;
+  return nearCol && nearRow;
 }
 
 export function isForgeRepaired(): boolean {

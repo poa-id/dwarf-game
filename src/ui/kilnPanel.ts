@@ -25,6 +25,7 @@ export function renderKilnPanel(state: GameState, container: HTMLElement, onBurn
 
   const woodLabel = MATERIALS.wood?.name ?? "wood";
   const costText = `${CHARCOAL_RECIPE.woodCost} ${woodLabel}`;
+  const successRateText = `${Math.round(CHARCOAL_RECIPE.baseSuccessChance * 100)}% chance`;
 
   let statusText = costText;
   if (!meetsLevel) statusText = `Requires Hearthkeeping level ${CHARCOAL_RECIPE.requiredLevel}`;
@@ -35,6 +36,7 @@ export function renderKilnPanel(state: GameState, container: HTMLElement, onBurn
     <div class="recipe-row ${canBurn ? "" : "recipe-row-disabled"}" data-action="burn">
       <div class="recipe-name">${CHARCOAL_RECIPE.name}</div>
       <div class="recipe-status">${statusText}</div>
+      <div class="recipe-success-rate">${successRateText}</div>
     </div>
   `;
 

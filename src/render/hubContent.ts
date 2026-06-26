@@ -10,6 +10,7 @@ import {
   ORE_VEINS,
   WOOD_NODE_PLACEMENTS,
   KILN_POSITION,
+  FORGE_BUILDING_FOOTPRINT,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
@@ -71,10 +72,13 @@ function buildHubContent(): GridCell[] {
     carveCorridor(set, hearthCenter, center);
   }
 
-  // Drop the forge building sprite into the forge room, roughly centered.
-  const forgeRoom = ZONES.find((z) => z.id === "forge_room")!;
-  const forgeOriginCol = forgeRoom.bounds.col + Math.floor((forgeRoom.bounds.width - 4) / 2);
-  const forgeOriginRow = forgeRoom.bounds.row + Math.floor((forgeRoom.bounds.height - 4) / 2);
+  // Drop the forge building sprite into the forge room, using the
+  // shared footprint constant (see hubMap.ts's FORGE_BUILDING_FOOTPRINT)
+  // rather than recomputing the origin here - this WAS a separate
+  // local calculation until 2026-06-23, which is exactly how it drifted
+  // out of sync with proximity.ts's own guess and caused the
+  // "forge only accessible through the lower right corner" bug.
+  const { originCol: forgeOriginCol, originRow: forgeOriginRow } = FORGE_BUILDING_FOOTPRINT;
   const stamped = stampSprite(grid, HUB_WIDTH, HUB_HEIGHT, FORGE_BUILDING, {
     col: forgeOriginCol,
     row: forgeOriginRow,
