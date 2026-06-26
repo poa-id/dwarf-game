@@ -319,22 +319,23 @@ once resolved (and reflect the resolution in the relevant section above).
   the dwarfCount XP multiplier ("the Mountain has learned"), (2) iron's
   Smithing `requiredLevel` 10 → 6. **Still queued, in this explicit
   order, not yet started:**
-  - **(3) The Smelter - a new Forge Room addon/room, AND Smithing's
-    real repeatable XP/resource sink.** Concept from design discussion:
-    an expensive, one-time-build secondary station that purifies common
-    ingots into a rare, low-drop-chance higher-quality ore/material,
-    used for "special upgrades." This directly answers two things at
-    once - the "pile of unused ingots after making one pickaxe + torches"
-    problem AND the lack of any repeatable, XP-efficient Smithing action
-    beyond raw ingot-spam (one-time tool recipes can't fill that role,
-    they're forged exactly once ever). Also the first real test of the
-    Room-State framework (§14) on something other than the Forge itself.
-    Needs real design work before building: the purified material's
-    name/identity (NOT deepstone - that's separately reserved for the
-    real mine's tier-3 node, kept deliberately distinct so "refine what
-    you have" and "delve deeper for something new" stay two different
-    answers), the drop-chance number, build cost, and what "special
-    upgrades" it actually unlocks.
+  - **(3) The Smelter - RESOLVED, fully built 2026-06-23.** All open
+    design questions settled through direct discussion and built:
+    purified material naming pattern is "True-X" (True Copper now,
+    True Iron etc. once those metals are real reachable content);
+    drop-chance curve corrected from an initial 3/8/15/25% proposal
+    (judged far too generous) down to a genuinely conservative
+    0.05/0.2/0.5/1%; build cost is 1200 Insight + 20 Copper Ingot + 15
+    Copper Ore + 30 Wood (deliberately iron-free, avoiding a circular
+    dependency with the Tunnel Entrance's own forgeTier-2 gate); the
+    first thing True-metals buy is a permanent, global, 3-tier XP
+    perk (+5/+10/+15%, cumulative True-metal spend thresholds),
+    stacking additively with the dwarfCount multiplier under the same
+    3x cap. See MECHANICS.md's full "The Smelter" writeup for every
+    number and the engine/UI implementation (`smelter.ts`,
+    `smelterPanel.ts`). Real reference art was provided
+    (`docs/reference-art/`) but is NOT yet integrated - still renders
+    as a placeholder; see the dedicated entry on this further down.
   - **(4) A Hearth-room station for permanent, account-wide passive
     perks** ("improve the Mountain itself," distinct from the Smelter's
     Smithing-side sink) - concept only, no mechanical shape decided yet.
@@ -570,12 +571,27 @@ item now either resolved or confirmed not needed.
     automation structure actually looks like, its base rate, what sink
     improves it, and how it relates to the also-still-unbuilt Building
     skill.
-  - **New reference art provided, NOT yet used:** four 3x3 workshop
-    tileset images (Magma Forge, Metalsmith's Forge, Smelter, Wood
-    Furnace) in the same Vettlingr-style aesthetic already in the game,
-    intended for the still-queued Smelter/room-state backlog (see the
-    earlier "(3) The Smelter" entry above). Held for that design
-    conversation rather than acted on now - the Smelter's own open
-    questions (purified material identity, drop-chance, build cost,
-    what it unlocks) still need real answers first.
+  - **Reference art provided, STILL not integrated (Smelter is built,
+    art integration is the remaining gap):** four 3x3 workshop tileset
+    images (Magma Forge, Metalsmith's Forge, Smelter, Wood Furnace) in
+    the same Vettlingr-style aesthetic already in the game
+    (`docs/reference-art/`). The Smelter itself is now fully built and
+    playable (see "(3) The Smelter - RESOLVED" above), but renders as a
+    placeholder (reused ore texture, tinted) in both ASCII and tileset
+    mode - the reference images are 96x118px multi-cell room
+    composites, not single 32x32 tiles matching `tilesetManifest.ts`'s
+    convention, so using them needs real slicing/integration work
+    (deciding how a multi-cell room concept maps onto the Smelter's
+    single-cell `CellKind`) that hasn't happened yet.
+  - **Fixed alongside the Smelter: Insight was never displayed
+    anywhere.** A real, separate gap found while designing the
+    Smelter's build cost - `insightBanked` was only ever used
+    internally to gate whether an upgrade row showed, never shown as
+    an actual number. A player could have 0 or 900 Insight and see
+    identical UI until crossing whatever threshold made a row appear -
+    directly undercutting "Progress Should Be Visible." Added a
+    persistent "Insight: N" readout under a new "the mountain" sidebar
+    section (main.ts/render.ts) - World-level, shown separately from
+    "the dwarf"'s personal skill stats, since Insight survives
+    rekindling and isn't a personal stat.
 

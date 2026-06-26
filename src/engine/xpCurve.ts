@@ -84,7 +84,23 @@ export { MAX_LEVEL };
  * this function before adding it to a skill's xp, rather than each
  * site reimplementing the formula.
  */
-export function applyDwarfCountXpMultiplier(baseXp: number, dwarfCount: number): number {
-  const multiplier = Math.min(3, 1 + dwarfCount * 0.15);
+/**
+ * Combines the dwarfCount-based bonus with the Smelter's permanent
+ * True-metal XP perk (smelter.ts's xpPerkBonus) into ONE multiplier,
+ * both terms additive, both capped together at 3x. Added 2026-06-23 -
+ * extends the original dwarfCount-only multiplier rather than
+ * introducing a second, separately-applied bonus, so spending
+ * True-metals can't blow past the same "mastery should stay rare and
+ * earned even late" ceiling the dwarfCount system already enforces.
+ * `trueMetalXpBonus` defaults to 0 (no perk purchased, or caller
+ * hasn't been updated to pass it) - every real call site should pass
+ * the actual value from `smelter.ts`'s `xpPerkBonus(world.trueMetalSpentOnXpPerk)`.
+ */
+export function applyDwarfCountXpMultiplier(
+  baseXp: number,
+  dwarfCount: number,
+  trueMetalXpBonus: number = 0
+): number {
+  const multiplier = Math.min(3, 1 + dwarfCount * 0.15 + trueMetalXpBonus);
   return Math.round(baseXp * multiplier);
 }

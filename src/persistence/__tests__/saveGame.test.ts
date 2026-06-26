@@ -136,6 +136,21 @@ describe("loadGame - backfilling additive fields from older saves", () => {
     expect(result.state.world.lifetimeFuelAtLastRekindle).toBe(0);
   });
 
+  it("backfills missing Smelter fields (pre-dates the Smelter entirely) as not-yet-built", () => {
+    const original = createInitialGameState(1000);
+    const oldShaped: any = { ...original, world: { ...original.world } };
+    delete oldShaped.world.smelterBuilt;
+    delete oldShaped.world.smelterTier;
+    delete oldShaped.world.trueMetalSpentOnXpPerk;
+    localStorage.setItem("dwarf-game-save", JSON.stringify(oldShaped));
+
+    const result = loadGame(2000);
+    expect(result.isFreshState).toBe(false);
+    expect(result.state.world.smelterBuilt).toBe(false);
+    expect(result.state.world.smelterTier).toBe(0);
+    expect(result.state.world.trueMetalSpentOnXpPerk).toBe(0);
+  });
+
   it("preserves all OTHER existing data while backfilling - it's additive, not a reset", () => {
     const original = createInitialGameState(1000);
     const oldShaped: any = { ...original, world: { ...original.world, forgeTier: 3 } };

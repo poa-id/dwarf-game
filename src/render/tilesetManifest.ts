@@ -60,6 +60,15 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   // kiln color in palette.ts, as a placeholder. Swap once a real kiln
   // tile is sliced from the sheets.
   kiln: { assetUrl: oreBaseUrl, tint: "#8a5a3a" },
+  // No dedicated smelter sprite sliced yet - reusing the ore vein
+  // texture, tinted toward the same intensified red-orange as
+  // STAGE_2/3's smelter color in palette.ts, as a placeholder. Real
+  // reference art exists (docs/reference-art/Smelter.png, a 96x118px
+  // multi-cell room composite, NOT a single 32x32 tile matching this
+  // file's convention) but needs real slicing/integration work to
+  // decide how a multi-cell room concept maps onto this single-cell
+  // CellKind - deliberately deferred rather than rushed.
+  smelter: { assetUrl: oreBaseUrl, tint: "#c4441a" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   // No dedicated torch sprite sliced from the tileset yet - reusing the
   // forge's glow art as a placeholder, tinted to distinguish broken

@@ -12,6 +12,7 @@ import { rekindle, REKINDLE_FUEL_THRESHOLD } from "../engine/rekindle";
 import type { RekindleResult } from "../engine/rekindle";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
+import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 const STOKE_AMOUNT = 1; // fixed burst size for now - see DESIGN.md's x1/x5/x10/MAX open item for the eventual bulk-action upgrade
@@ -230,7 +231,7 @@ export function performStoke(state: GameState, materialId: MaterialId, target: S
     // (2026-06-23): banking alone grants nothing; XP comes from the
     // fuel actually being burned, immediate or passive.
     const rawXp = result.fuelAdded * HEARTHKEEPING_XP_PER_FUEL_VALUE;
-    const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount);
+    const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
     const oldLevel = state.vessel.skills.hearthkeeping.level;
     const newHearthkeepingXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
     const newHearthkeeping = {

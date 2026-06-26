@@ -6,6 +6,7 @@ import {
 } from "../engine/kiln";
 import { MATERIALS } from "../engine/types";
 import type { GameState } from "../engine/types";
+import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 /**
@@ -63,7 +64,7 @@ export function performCharcoalBurn(state: GameState): KilnOutcome {
   // See actions.ts's mining/woodcraft handlers for why this recomputes
   // level rather than trusting result.newLevel - the dwarfCount XP
   // multiplier is applied at this call-site layer.
-  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount);
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
   const newHearthkeepingXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
   const newHearthkeeping = {
     ...state.vessel.skills.hearthkeeping,

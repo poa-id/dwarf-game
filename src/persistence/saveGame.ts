@@ -69,6 +69,15 @@ function backfillMissingFields(state: any): any {
       // feature) - see rekindle.ts's calculateRekindleInsight.
       state.world.lifetimeFuelAtLastRekindle = 0;
     }
+    if (state.world.smelterBuilt === undefined) {
+      // Old saves predate the Smelter entirely - backfill as
+      // not-yet-built, same as a brand new world. The player can
+      // build one going forward; this doesn't refund or grant
+      // anything retroactively.
+      state.world.smelterBuilt = false;
+      state.world.smelterTier = 0;
+      state.world.trueMetalSpentOnXpPerk = 0;
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

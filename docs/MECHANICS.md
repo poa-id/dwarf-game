@@ -201,6 +201,74 @@ whenever both are held. The kiln itself has no broken/repaired state
 (unlike the Forge) — it's simply usable from the start, same
 accessibility tier as the starter copper vein and wood node.
 
+**The Smelter — built 2026-06-23, a Forge Room addon answering two
+problems at once:** (1) Smithing had no repeatable, XP-efficient action
+beyond raw ingot-spam — tools are forged exactly once per tier, ever,
+so they can't serve as a sink; (2) players ended up with a pile of
+unused ingots after making one pickaxe and repairing torches, with
+nothing else to spend them on. The Smelter (`smelter.ts`,
+`smelterPanel.ts`, sits at `SMELTER_POSITION` — col 49, row 26, the open
+floor strip directly below the Forge building) purifies common ingots
+into rare **True-metals** ("True Copper" now; "True Iron" etc. once
+those metals are real, reachable content — deliberately not added yet).
+
+- **Must be BUILT first** — 1200 Insight + 20 Copper Ingot + 15 Copper
+  Ore + 30 Wood (`SMELTER_BUILD_COST`/`SMELTER_BUILD_INSIGHT_COST`).
+  1200 Insight is the new ceiling, above Heartfire-Tempered Anvil's
+  1000 — deliberately "the new top investment in the game." The
+  material cost is iron-free BY DESIGN: using iron here would create a
+  circular dependency, since iron access itself requires `forgeTier 2`
+  and the Smelter's own appeal partly depends on having something to
+  purify before that's even reachable. This is also the first upgrade
+  in the game funded by BOTH Insight AND materials together — every
+  prior Forge/Hearth upgrade was Insight-only.
+- **Purifying ALWAYS succeeds** at consuming 5 Copper Ingot
+  (`PURIFY_INGOT_COST`) and granting 12 Smithing XP
+  (`PURIFY_BASE_XP`, deliberately above `copper_ingot`'s own smelting
+  baseXp of 10 — meant to be Smithing's best repeatable XP/effort
+  ratio) — there's no separate success/failure roll, unlike nearly
+  every other action in this engine. The ONLY randomness is whether
+  that purification ALSO yields a True-metal on top, at a real but
+  genuinely low chance.
+- **The True-metal drop-chance curve is deliberately conservative:**
+  0.05% at base (just-built, unupgraded), rising to 0.2% / 0.5% / 1%
+  across three Insight-funded Smelter-specific tiers
+  (`SMELTER_TIERS` — "Truer Flame," "Patient Crucible," "Mountain's
+  Own Heat," 300/700/1500 Insight). This is a real, explicit
+  correction from an initial proposal of 3/8/15/25%, which was judged
+  far too generous for a currency meant to fund permanent, account-
+  wide upgrades — True-metals should stay genuinely rare even at max
+  tier, not become a steady trickle.
+- **Smelter tiers are a SEPARATE upgrade track from the Forge's own**
+  (Bellows of the Deep, Heartfire-Tempered Anvil) — an explicit design
+  call, not bundled into `forgeTier`.
+- **The Mountain's XP perk tree — the first thing True-metals actually
+  buy:** a permanent, GLOBAL (all skills, not just Smithing) XP
+  multiplier bonus, in 3 cumulative-spend tiers (`XP_PERK_TIERS`: spend
+  1 total True-metal → +5%, spend 3 total → +10%, spend 6 total →
+  +15%). Tracked as `WorldState.trueMetalSpentOnXpPerk` — a running
+  lifetime total, not a per-purchase deduction check, since the tiers
+  are cumulative thresholds. Stacks ADDITIVELY with the dwarfCount
+  multiplier (§ above) into ONE combined value, both capped together
+  at the same 3x ceiling — see `xpCurve.ts`'s `applyDwarfCountXpMultiplier`,
+  which now takes a `trueMetalXpBonus` parameter alongside `dwarfCount`,
+  so spending True-metals can't blow past "mastery should stay rare and
+  earned even late." The perk section of the Smelter's panel shows
+  REGARDLESS of `smelterBuilt` — it's Mountain-wide content, not
+  Smelter-room content, so a future True-metal source wouldn't need
+  the Smelter built to spend it here.
+- **Discovery-gated UI throughout**, same principle as Narag-Bund's
+  upgrade row: the Smelter's own tier-upgrade row and the perk-tree
+  section only render when actually affordable, never as a permanently
+  visible disabled row naming a cost far out of reach.
+- **Reference art exists but isn't integrated yet** —
+  `docs/reference-art/Smelter.png` (and three sibling workshop images)
+  are real Vettlingr-style assets, but as a 96x118px multi-cell room
+  composite, not a single 32x32 tile matching `tilesetManifest.ts`'s
+  convention. The Smelter currently renders as a placeholder (reused
+  ore texture, tinted) in both ASCII and tileset mode — real slicing/
+  integration work is still open, see OPEN_QUESTIONS.md.
+
 **Coal/wood allocation (Smithing vs. Hearthkeeping) — RESOLVED AND
 BUILT:** the Hearth has its OWN fuel stockpile, `WorldState.fuelReserve`
 - a separate `ResourceBag`, distinct from the dwarf's personal

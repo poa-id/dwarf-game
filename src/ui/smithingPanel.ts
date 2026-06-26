@@ -12,6 +12,7 @@ import {
 } from "../engine/smithing";
 import { canAffordMaterials, MATERIALS } from "../engine/types";
 import type { GameState, ToolSlot } from "../engine/types";
+import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 /**
@@ -165,7 +166,7 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
   // See actions.ts's mining/woodcraft handlers for why this recomputes
   // level rather than trusting result.newLevel - the dwarfCount XP
   // multiplier is applied at this call-site layer.
-  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount);
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
   const newSmithingXp = state.vessel.skills.smithing.xp + multipliedXp;
   const newSmithing = {
     ...state.vessel.skills.smithing,
@@ -209,7 +210,7 @@ export function performForgeTool(state: GameState, recipe: ToolRecipe): ForgeToo
   );
 
   const oldLevel = state.vessel.skills.smithing.level;
-  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount);
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
   const newSmithingXp = state.vessel.skills.smithing.xp + multipliedXp;
   const newSmithing = {
     ...state.vessel.skills.smithing,

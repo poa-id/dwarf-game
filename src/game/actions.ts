@@ -5,6 +5,7 @@ import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted, a
 import { WOOD_NODES, isExhausted as isWoodExhausted, attemptWoodGather, applyWoodGatherResult } from "../engine/woodcraft";
 import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "../engine/smithing";
 import { repairTorch } from "../engine/torches";
+import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 import { showNarratorToast } from "../narration/toast";
 
@@ -57,7 +58,7 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   // xpCurve.ts's applyDwarfCountXpMultiplier for why this multiplier
   // exists and why it's applied here (call sites) rather than inside
   // the pure engine functions themselves.
-  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, afterMiss.world.dwarfCount);
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, afterMiss.world.dwarfCount, xpPerkBonus(afterMiss.world.trueMetalSpentOnXpPerk));
   const newTotalXp = miningSkill.xp + multipliedXp;
   const newMiningSkill = {
     ...miningSkill,
@@ -114,7 +115,7 @@ export function handleWoodGather(): void {
   // See the mining handler above for why this recomputes level rather
   // than trusting result.newLevel directly - the multiplier is applied
   // at this call-site layer, not inside attemptWoodGather itself.
-  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, afterMiss.world.dwarfCount);
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, afterMiss.world.dwarfCount, xpPerkBonus(afterMiss.world.trueMetalSpentOnXpPerk));
   const newTotalXp = woodcraftSkill.xp + multipliedXp;
   const newWoodcraftSkill = {
     ...woodcraftSkill,

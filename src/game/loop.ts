@@ -8,6 +8,7 @@ import {
   advanceCompanionHauling,
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
 } from "../engine/hearth";
+import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 export const TICK_INTERVAL_MS = 1000;
@@ -25,7 +26,7 @@ function gameTick(): void {
       const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
 
       const rawXp = result.fuelAbsorbed * HEARTHKEEPING_XP_PER_FUEL_VALUE;
-      const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount);
+      const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
       const newHearthkeepingXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
       const newHearthkeeping = {
         ...state.vessel.skills.hearthkeeping,

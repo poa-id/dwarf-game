@@ -18,10 +18,18 @@ import {
   isForgeRepaired,
   isNearHearth,
   isNearKiln,
+  isNearSmelter,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool } from "../ui/smithingPanel";
 import { renderHearthPanel, performStoke, performHearthUpgrade, performRekindle } from "../ui/hearthPanel";
 import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
+import {
+  renderSmelterPanel,
+  performSmelterBuild,
+  performPurify,
+  performSmelterTierUpgrade,
+  performSpendTrueMetalOnPerk,
+} from "../ui/smelterPanel";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
 export interface RenderRefs {
@@ -41,6 +49,7 @@ export interface RenderRefs {
     barWoodcraft: HTMLElement;
     inventoryList: HTMLElement;
     toolsList: HTMLElement;
+    insightDisplay: HTMLElement;
   };
 }
 
@@ -67,7 +76,17 @@ function levelProgressPercent(totalXp: number): number {
 
 function updateStatsPanel(): void {
   const { skills, inventory } = getState().vessel;
-  const { toolsForged } = getState().world;
+  const { toolsForged, insightBanked } = getState().world;
+  // Insight - a real, persistent gap fixed 2026-06-23: insightBanked
+  // was only ever used internally to gate whether an upgrade row
+  // showed, never actually displayed as a number anywhere. A player
+  // could have 0 or 900 Insight and see identical UI until crossing
+  // whatever threshold made a row appear - directly undercutting
+  // "Progress Should Be Visible." Shown under "the mountain," not "the
+  // dwarf," since Insight is World-level (survives rekindling), not a
+  // personal stat that resets with the Vessel.
+  refs.statEls.insightDisplay.textContent = `Insight: ${insightBanked}`;
+
   refs.statEls.mining.textContent = `Mining ${skills.mining.level}`;
   refs.statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
   refs.statEls.hearthkeeping.textContent = `Hearthkeeping ${skills.hearthkeeping.level}`;
@@ -161,7 +180,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "forge" | "hearth" | "kiln" | "none" = "none";
+let lastActivePanelKind: "forge" | "hearth" | "kiln" | "smelter" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -254,6 +273,36 @@ function updateContextualPanel(): void {
     return;
   }
 
+  if (isNearSmelter()) {
+    if (lastActivePanelKind !== "smelter") resetPanelHighlight();
+    lastActivePanelKind = "smelter";
+    renderSmelterPanel(
+      state,
+      refs.contextualPanel,
+      () => {
+        const outcome = performSmelterBuild(getState());
+        setState(outcome.newState);
+        render();
+      },
+      (ingotMaterialId) => {
+        const outcome = performPurify(getState(), ingotMaterialId);
+        setState(outcome.newState);
+        if (outcome.leveledUp) narrate("level_up");
+        render();
+      },
+      () => {
+        setState(performSmelterTierUpgrade(getState()));
+        render();
+      },
+      () => {
+        setState(performSpendTrueMetalOnPerk(getState()));
+        render();
+      }
+    );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   lastActivePanelKind = "none";
   refs.contextualPanel.innerHTML = "";
 }
@@ -288,7 +337,8 @@ export function render(): void {
         state.world.litTorches,
         state.world.veinDepletion,
         state.world.woodDepletion,
-        state.world.forgeTier
+        state.world.forgeTier,
+        state.world.smelterBuilt
       );
     },
     (col, row) =>

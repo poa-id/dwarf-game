@@ -10,6 +10,7 @@ import {
   ORE_VEINS,
   WOOD_NODE_PLACEMENTS,
   KILN_POSITION,
+  SMELTER_POSITION,
   FORGE_BUILDING_FOOTPRINT,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
@@ -175,7 +176,8 @@ export function hubCellAt(
   litTorches: LitTorchSet = {},
   veinDepletion: WorldState["veinDepletion"] = {},
   woodDepletion: WorldState["veinDepletion"] = {},
-  forgeTier: number = 0
+  forgeTier: number = 0,
+  smelterBuilt: boolean = false
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -192,6 +194,17 @@ export function hubCellAt(
 
   if (staticCell.kind === "forge_broken" && forgeTier >= 1) {
     return { kind: "forge" };
+  }
+
+  // The Smelter (added 2026-06-23) has NO static stamp at all in the
+  // grid - unlike the Forge (which is always "forge_broken" rubble
+  // until repaired), the Smelter simply doesn't exist as a structure
+  // until built. The cell is plain rock_floor right up until
+  // smelterBuilt flips true, at which point it dynamically becomes
+  // the "smelter" CellKind - same override pattern as the Forge, just
+  // starting from ordinary floor instead of a ruin glyph.
+  if (smelterBuilt && col === SMELTER_POSITION.col && row === SMELTER_POSITION.row) {
+    return { kind: "smelter" };
   }
 
   const vein = ORE_VEINS.find((v) => v.position.col === col && v.position.row === row);

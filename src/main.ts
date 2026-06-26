@@ -14,9 +14,13 @@ const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
   <div class="shell">
     <h1>the hearth &amp; the deep</h1>
-    <p class="subtitle">WASD/arrows to move &middot; F to gather &middot; E to repair a torch &middot; R to repair the forge</p>
+    <p class="subtitle">WASD to move &middot; F to gather &middot; E to repair a torch &middot; R to repair the forge</p>
     <div class="game-area">
       <div class="stats-panel stats-panel-left">
+        <div class="stats-section">
+          <h2>the mountain</h2>
+          <p id="stat-insight">Insight: 0</p>
+        </div>
         <div class="stats-section">
           <h2>the dwarf</h2>
           <div class="skill-row">
@@ -102,6 +106,7 @@ initRenderRefs({
     barWoodcraft: document.querySelector<HTMLDivElement>("#bar-woodcraft")!,
     inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
     toolsList: document.querySelector<HTMLDivElement>("#tools-list")!,
+    insightDisplay: document.querySelector<HTMLParagraphElement>("#stat-insight")!,
   },
 });
 

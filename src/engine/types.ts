@@ -43,7 +43,7 @@ export interface SkillState {
 
 export type MaterialId = string;
 
-export type MaterialCategory = "ore" | "ingot" | "fuel" | "wood" | "currency";
+export type MaterialCategory = "ore" | "ingot" | "fuel" | "wood" | "currency" | "true_metal";
 
 export interface MaterialDefinition {
   id: MaterialId;
@@ -70,6 +70,20 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   wood: { id: "wood", name: "Cave-Root Wood", category: "wood", tier: 1, heatValue: 4 }, // weaker than coal - burns, but not hot enough for serious smithing
   copper_ingot: { id: "copper_ingot", name: "Copper Ingot", category: "ingot", tier: 1 },
   iron_ingot: { id: "iron_ingot", name: "Iron Ingot", category: "ingot", tier: 2 },
+  // True-metals - the Smelter's rare purification output (see
+  // smelter.ts), added 2026-06-23. "True-X" was always a NAMING
+  // PATTERN, not a literal material - each metal gets its own True
+  // variant (True Copper now; True Iron, True Silver etc. once those
+  // metals are real, reachable content - NOT yet added, since iron
+  // itself is barely reachable and the Smelter's own build cost was
+  // deliberately kept iron-free to avoid a circular dependency). A
+  // permanent, account-wide-upgrade currency, separate from Insight -
+  // Insight comes from rekindling (a per-dwarf sacrifice), True-metals
+  // come from a rare per-smelt CHANCE (see SMELTER_TIERS),
+  // independent of any dwarf dying. category: "true_metal" rather than
+  // folding into "ingot" - these are never used as fuel or smithing
+  // input, only as a perk-tree currency.
+  true_copper: { id: "true_copper", name: "True Copper", category: "true_metal", tier: 1 },
   insight: { id: "insight", name: "Insight", category: "currency", tier: 0 },
 };
 
@@ -291,6 +305,27 @@ export interface WorldState {
    * rekindle should feel meaningful, not spammable for marginal gains).
    */
   lifetimeFuelAtLastRekindle: number;
+  /**
+   * The Smelter - a Forge Room addon (see smelter.ts), built once
+   * (Insight + materials, like a Hearth/Forge upgrade) for a real,
+   * repeatable Smithing XP/resource sink: purifying common ingots into
+   * rare True-metals at a real, low chance. `smelterBuilt` gates
+   * whether the room/action exists at all; `smelterTier` is which of
+   * SMELTER_TIERS' purification-chance upgrades has been bought
+   * (0 = base 0.05% chance, built but unupgraded).
+   */
+  smelterBuilt: boolean;
+  smelterTier: number;
+  /**
+   * How many True-metals (any type, see TRUE_METAL_PERK_TIERS in
+   * smelter.ts) have been permanently spent on the Mountain's global
+   * XP perk tree - NOT a count of how many are currently held (that
+   * lives in inventory like any other material). Tracked separately
+   * because the perk tree's tiers are cumulative-spend thresholds
+   * (spend 1 total -> tier 1, spend 3 total -> tier 2, etc.), not a
+   * one-time purchase like Forge/Hearth upgrades.
+   */
+  trueMetalSpentOnXpPerk: number;
 }
 
 // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import {
   HEARTH_SPAWN_POSITION,
   KILN_POSITION,
   FORGE_BUILDING_FOOTPRINT,
+  SMELTER_POSITION,
 } from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
 import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted } from "../engine/mining";
@@ -109,5 +110,13 @@ export function isNearKiln(): boolean {
   const { position } = getState().vessel;
   return (
     Math.abs(position.col - KILN_POSITION.col) <= 1 && Math.abs(position.row - KILN_POSITION.row) <= 1
+  );
+}
+
+export function isNearSmelter(): boolean {
+  const { position } = getState().vessel;
+  return (
+    Math.abs(position.col - SMELTER_POSITION.col) <= 1 &&
+    Math.abs(position.row - SMELTER_POSITION.row) <= 1
   );
 }

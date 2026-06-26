@@ -91,6 +91,9 @@ export function createInitialWorld(now: number): WorldState {
     woodDepletion: {},
     toolsForged: { pickaxe: 0, axe: 0 },
     lifetimeFuelAtLastRekindle: 0,
+    smelterBuilt: false,
+    smelterTier: 0,
+    trueMetalSpentOnXpPerk: 0,
   };
 }
 

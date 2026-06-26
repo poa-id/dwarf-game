@@ -197,3 +197,15 @@ export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
  * unlock condition.
  */
 export const KILN_POSITION: Position = { col: 43, row: 23 };
+
+/**
+ * The Smelter - a Forge Room addon (added 2026-06-23, see
+ * smelter.ts), centered on the bottom open-floor strip directly below
+ * the Forge building (which occupies col 48-51, row 22-25 - see
+ * FORGE_BUILDING_FOOTPRINT). Clear of the row-25 corridor that enters
+ * the room from the Hearth Hall. Unlike the Kiln, the Smelter must be
+ * BUILT (Insight + materials) before it's usable at all - it's not
+ * simply always-available like the Kiln/Forge-room-itself; see
+ * WorldState.smelterBuilt and smelterPanel.ts.
+ */
+export const SMELTER_POSITION: Position = { col: 49, row: 26 };

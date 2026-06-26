@@ -101,4 +101,23 @@ describe("applyDwarfCountXpMultiplier", () => {
     expect(applyDwarfCountXpMultiplier(50, 0)).toBeGreaterThanOrEqual(50);
     expect(applyDwarfCountXpMultiplier(50, 1)).toBeGreaterThanOrEqual(50);
   });
+
+  it("trueMetalXpBonus defaults to 0 - unchanged behavior for callers not yet passing it", () => {
+    expect(applyDwarfCountXpMultiplier(100, 2)).toBe(applyDwarfCountXpMultiplier(100, 2, 0));
+  });
+
+  it("the Smelter's True-metal perk bonus stacks ADDITIVELY with dwarfCount, not multiplicatively", () => {
+    // dwarfCount=0 (1.0x) + perk bonus 0.05 (+5%) = 1.05x
+    expect(applyDwarfCountXpMultiplier(100, 0, 0.05)).toBe(105);
+    // dwarfCount=2 (1.30x) + perk bonus 0.1 (+10%) = 1.40x, NOT 1.30 * 1.10
+    expect(applyDwarfCountXpMultiplier(100, 2, 0.1)).toBe(140);
+  });
+
+  it("the combined multiplier (dwarfCount + perk bonus) is capped at 3x, same ceiling as dwarfCount alone", () => {
+    // dwarfCount=10 alone would be 1+1.5=2.5x; +perk 0.15 -> 2.65x, still under cap
+    expect(applyDwarfCountXpMultiplier(100, 10, 0.15)).toBe(265);
+    // dwarfCount=20 alone already exceeds the cap (1+3=4x -> capped to 3x);
+    // adding a perk bonus on top must NOT push it past 3x either
+    expect(applyDwarfCountXpMultiplier(100, 20, 0.15)).toBe(300);
+  });
 });
