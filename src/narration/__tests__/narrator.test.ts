@@ -36,6 +36,44 @@ describe("pickLine", () => {
   });
 });
 
+describe("Woodcraft narration (added 2026-06-23 - previously silent entirely)", () => {
+  it("wood_first_strike is a one-time trigger, mirroring mine_first_strike", () => {
+    let state = createInitialNarratorState();
+    const first = triggerNarration("wood_first_strike", state, 0.5, 0);
+    expect(first.line).not.toBeNull();
+    state = first.state;
+    expect(hasFiredOnce(state, "wood_first_strike")).toBe(true);
+
+    const second = triggerNarration("wood_first_strike", state, 0.5, 0);
+    expect(second.line).toBeNull(); // never fires twice
+  });
+
+  it("wood_strike is throttled at the same conservative rate as mine_strike (0.05) - not a louder pool just because it's new", () => {
+    const state = createInitialNarratorState();
+    const losesThrottle = triggerNarration("wood_strike", state, 0.5, 0.9);
+    expect(losesThrottle.line).toBeNull();
+
+    const winsThrottle = triggerNarration("wood_strike", state, 0.5, 0.01);
+    expect(winsThrottle.line).not.toBeNull();
+  });
+
+  it("wood_strike has its own distinct line pool, not a reuse of mine_strike's lines", () => {
+    const woodLines = new Set(NARRATOR_LINES.wood_strike);
+    const mineLines = new Set(NARRATOR_LINES.mine_strike);
+    for (const line of woodLines) {
+      expect(mineLines.has(line)).toBe(false);
+    }
+  });
+
+  it("wood_strike's pool avoids immediate repetition, same anti-repeat rule as every other multi-line pool", () => {
+    const pool = NARRATOR_LINES.wood_strike;
+    const lastShown = pool[0];
+    for (let roll = 0; roll < 1; roll += 0.05) {
+      expect(pickLine("wood_strike", lastShown, roll)).not.toBe(lastShown);
+    }
+  });
+});
+
 describe("triggerNarration - one-time triggers", () => {
   it("fires the first time and returns a non-null line", () => {
     const state = createInitialNarratorState();
@@ -94,7 +132,8 @@ describe("triggerNarration - repeatable triggers", () => {
 describe("triggerNarration - throttling", () => {
   it("a throttled trigger stays silent when throttleRoll loses (>= chance)", () => {
     const state = createInitialNarratorState();
-    // mine_strike's chance is 0.15 - a roll of 0.9 should lose
+    // mine_strike's chance is 0.05 (lowered from 0.15 on 2026-06-23,
+    // playtesting fatigue feedback) - a roll of 0.9 should lose either way
     const result = triggerNarration("mine_strike", state, 0.5, 0.9);
     expect(result.line).toBeNull();
     expect(result.state).toEqual(state); // state genuinely unchanged, not just line=null

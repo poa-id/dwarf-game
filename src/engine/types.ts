@@ -317,6 +317,8 @@ export type NarratorTrigger =
   | "wake_rekindled" // waking after a rekindling, NOT the first time
   | "mine_first_strike" // the very first successful mining strike of the whole game
   | "mine_strike" // routine successful mining strikes thereafter
+  | "wood_first_strike" // the very first successful wood-cutting strike of the whole game (added 2026-06-23 - Woodcraft previously had no narrator voice at all)
+  | "wood_strike" // routine successful wood-cutting strikes thereafter
   | "level_up" // any skill level up
   | "color_stage_1" // first rekindling's color reward - the biggest narrative beat
   | "color_stage_later" // any color stage beyond the first

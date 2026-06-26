@@ -12,7 +12,14 @@ import type { NarratorTrigger, NarratorState } from "../engine/types";
  * not listed here default to 1.0 (always narrate).
  */
 const NARRATION_CHANCE: Partial<Record<NarratorTrigger, number>> = {
-  mine_strike: 0.15,
+  // Lowered 0.15 -> 0.05 (2026-06-23, explicit fatigue feedback from
+  // playtesting: routine Mining lines got naggy, and a fired line's
+  // ~5s toast duration could outlast a quick switch to an unrelated
+  // action, reading as "the wrong skill's line fired"). Explicit
+  // direction was to lower the RATE specifically, not the toast
+  // duration - kept toast.ts's timing untouched.
+  mine_strike: 0.05,
+  wood_strike: 0.05, // same conservative rate from the start, rather than introducing a brand new line pool at a chattier rate than the established skill
   area_revealed: 0.6,
 };
 
@@ -61,6 +68,7 @@ export function createInitialNarratorState(): NarratorState {
 const ONE_TIME_TRIGGERS: NarratorTrigger[] = [
   "wake_first_ever",
   "mine_first_strike",
+  "wood_first_strike",
   "color_stage_1",
   "companion_befriended",
 ];

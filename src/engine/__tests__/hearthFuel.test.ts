@@ -33,9 +33,14 @@ describe("totalHearthFuelValue", () => {
     expect(totalHearthFuelValue(inv)).toBe(0);
   });
 
-  it("HEARTH_FUEL_MATERIALS includes both coal and wood", () => {
+  it("HEARTH_FUEL_MATERIALS includes coal, wood, AND charcoal", () => {
     expect(HEARTH_FUEL_MATERIALS).toContain("coal");
     expect(HEARTH_FUEL_MATERIALS).toContain("wood");
+    // charcoal was a real oversight, fixed 2026-06-23 - it's a genuine
+    // fuel material (heatValue 7, see types.ts) but was never wired
+    // into the Hearth's own accepted-fuels list, even though it was
+    // already a valid Smithing/Kiln fuel. Playtesting caught this.
+    expect(HEARTH_FUEL_MATERIALS).toContain("charcoal");
   });
 });
 

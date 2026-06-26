@@ -28,6 +28,16 @@ export const NARRATOR_LINES: Record<NarratorTrigger, string[]> = {
     "Ore, this time. Small as it is, it's more than he had an hour ago.",
   ],
 
+  wood_first_strike: [
+    "The root tangle gives way under the axe. Something that grew in the dark, felled by something that lives in it.",
+  ],
+
+  wood_strike: [
+    "The wood splits clean. It remembers being something else, once, before it remembered being this.",
+    "Cave-root, stubborn as stone but easier to forgive. He takes what it gives.",
+    "Not much of a tree, down here. It didn't need to be much, to be enough.",
+  ],
+
   level_up: [
     "His hands remember this now. They didn't, this morning.",
     "Something in him settles into place, the way a tool settles into a worn grip.",

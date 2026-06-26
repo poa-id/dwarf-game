@@ -12,7 +12,7 @@ import { colorStageForLifetimeFuel } from "./colorStages";
  * since "the hearth can be powered by other means" - it's not picky
  * the way a forge demanding real heat is.
  */
-export const HEARTH_FUEL_MATERIALS: MaterialId[] = ["coal", "wood"];
+export const HEARTH_FUEL_MATERIALS: MaterialId[] = ["coal", "wood", "charcoal"];
 
 /**
  * Computes total available fuel VALUE (not raw quantity) the Hearth

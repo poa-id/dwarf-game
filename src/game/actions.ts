@@ -94,6 +94,7 @@ export function handleWoodGather(): void {
     return;
   }
 
+  const isFirstStrikeEver = !state.narrator.firedOnceTriggers.includes("wood_first_strike");
   const result = attemptWoodGather(woodNode, woodcraftSkill, state.world.toolsForged.axe, depletion, Math.random());
 
   setState({
@@ -130,10 +131,11 @@ export function handleWoodGather(): void {
     },
   });
 
-  // Deliberately narrates nothing for routine gathers - "the pick
-  // finds rock" lines would be wrong for cutting wood. Leave silent
-  // until Woodcraft earns its own line pool (see DESIGN.md open
-  // questions). Level-ups are skill-agnostic enough to reuse as-is.
+  // Woodcraft now has its own real line pool (added 2026-06-23 -
+  // previously silent entirely, see wood_strike/wood_first_strike in
+  // lines.ts), mirroring Mining's isFirstStrikeEver/throttled-routine
+  // pattern exactly rather than reusing Mining's lines.
+  narrate(isFirstStrikeEver ? "wood_first_strike" : "wood_strike");
   if (newWoodcraftSkill.level > woodcraftSkill.level) narrate("level_up");
 }
 

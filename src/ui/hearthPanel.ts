@@ -59,22 +59,42 @@ export function renderHearthPanel(
   onUpgrade: () => void,
   onRekindle: () => void
 ): void {
-  const fuelRows = HEARTH_FUEL_MATERIALS.map((materialId) => {
-    const held = getMaterialAmount(state.vessel.inventory, materialId);
-    const label = MATERIALS[materialId]?.name ?? materialId;
-    const canStoke = held >= STOKE_AMOUNT;
-    const disabledClass = canStoke ? "" : "recipe-row-disabled";
-    return `
-      <div class="recipe-row ${disabledClass}" data-stoke-material="${materialId}" data-stoke-target="fire">
-        <div class="recipe-name">Feed the fire: ${label}</div>
-        <div class="recipe-status">Have: ${held}</div>
-      </div>
-      <div class="recipe-row ${disabledClass}" data-stoke-material="${materialId}" data-stoke-target="reserve">
-        <div class="recipe-name">Bank in reserve: ${label}</div>
-        <div class="recipe-status">Have: ${held}</div>
-      </div>
-    `;
-  }).join("");
+  // Only render a fuel row for materials the player actually holds -
+  // per explicit project direction (2026-06-23, playtesting feedback:
+  // "show what interacts with what the player has, not all options").
+  // Previously every HEARTH_FUEL_MATERIALS entry always rendered both
+  // rows (Feed/Bank), regardless of holdings - with 3 fuel types that
+  // was 6 rows of mostly "Have: 0" clutter. Held materials are sorted
+  // by heatValue descending so the best fuel the player has leads.
+  const heldFuels = HEARTH_FUEL_MATERIALS.filter(
+    (materialId) => getMaterialAmount(state.vessel.inventory, materialId) > 0
+  ).sort((a, b) => (MATERIALS[b]?.heatValue ?? 0) - (MATERIALS[a]?.heatValue ?? 0));
+
+  const fuelRows =
+    heldFuels.length === 0
+      ? `<p class="inventory-empty">No fuel carried yet.</p>`
+      : heldFuels
+          .map((materialId) => {
+            const held = getMaterialAmount(state.vessel.inventory, materialId);
+            const label = MATERIALS[materialId]?.name ?? materialId;
+            // Currently unreachable in practice (heldFuels already
+            // filters to held>0, and STOKE_AMOUNT is 1) - kept as a
+            // safeguard for whenever STOKE_AMOUNT becomes a real
+            // multi-unit bulk action (see its own comment above).
+            const canStoke = held >= STOKE_AMOUNT;
+            const disabledClass = canStoke ? "" : "recipe-row-disabled";
+            return `
+              <div class="recipe-row ${disabledClass}" data-stoke-material="${materialId}" data-stoke-target="fire">
+                <div class="recipe-name">Feed the fire: ${label}</div>
+                <div class="recipe-status">Have: ${held}</div>
+              </div>
+              <div class="recipe-row ${disabledClass}" data-stoke-material="${materialId}" data-stoke-target="reserve">
+                <div class="recipe-name">Bank in reserve: ${label}</div>
+                <div class="recipe-status">Have: ${held}</div>
+              </div>
+            `;
+          })
+          .join("");
 
   const reserveEntries = Object.entries(state.world.fuelReserve).filter(([, amt]) => (amt ?? 0) > 0);
   const reserveText =

@@ -191,10 +191,6 @@ once resolved (and reflect the resolution in the relevant section above).
   from Narag-Bund (§10a), which IS built.
 - **Torch repair cost balance**: current costs (3-5 copper_ingot) are
   placeholder guesses, unplaytested against real ingot production rate.
-- **Woodcraft has no narrator voice yet:** `handleWoodGather` deliberately
-  narrates nothing for routine gathers (Mining's "the pick finds rock"
-  lines would be wrong for cutting wood) - needs its own line pool once
-  Woodcraft's narrative identity is decided.
 - **Repeat-key guard doesn't cover the new contextual panel clicks:**
   the `e.repeat` fix only applies to keyboard shortcuts (F/E/R) - the
   Smithing/Hearth panel buttons are mouse clicks with no analogous
@@ -412,11 +408,34 @@ once resolved (and reflect the resolution in the relevant section above).
     (loop.ts, passive) so the two paths stay consistent. ~360 XP/hour
     from fully passive, idle tending once auto-tending is unlocked -
     deliberately well below the Kiln's 8 XP per active click.
-  - **Still queued, not yet addressed:** (b) charcoal-Hearth
-    acceptance/menu clarity, (c) Woodcraft narrator lines, (e) more
-    explicit passive-consumption feedback beyond the existing burn
-    gauge, (f) Forge approach-angle feel, (g) contextual-panel keyboard
-    interaction, (h) success-rate display in station UIs, (i) Mining
-    narrator-line fatigue tuning, (k) colorStage-2 visual-change
+  - **(b) Resolved:** `charcoal` was a real oversight - genuinely
+    missing from `HEARTH_FUEL_MATERIALS` (hearth.ts) even though it had
+    a real `MaterialDefinition`/heatValue and was already a valid
+    Smithing/Kiln fuel. Added. Also implemented the requested UI
+    declutter: the Hearth panel's fuel rows now only render for
+    materials the player actually holds (sorted by heatValue
+    descending), rather than always showing all 3 fuel types
+    regardless of holdings - was 6 rows of mostly "Have: 0" clutter
+    with charcoal added. See hearthPanel.ts.
+  - **(c) Resolved:** added a real Woodcraft narrator voice
+    (`wood_first_strike`/`wood_strike` in lines.ts, wired into
+    `handleWoodGather` in actions.ts) - previously genuinely silent.
+    Investigation into "Mining lines fire during woodcutting" found no
+    dispatch bug (the two materials' positions are 8 tiles apart,
+    can't both be in 1-tile range at once) - the most likely
+    explanation is the narrator toast's ~5s display duration
+    outlasting a quick switch from mining to an unrelated action,
+    which reads as "the wrong skill's line is showing." Addressed via
+    (i) below rather than shortening the toast itself (explicit
+    direction: lower the fire RATE, not the duration).
+  - **(i) Resolved:** `mine_strike`'s narration chance lowered 0.15 →
+    0.05 (explicit direction: "lower it much further"). `wood_strike`
+    uses the same conservative 0.05 rate from the start, rather than
+    introducing a brand-new pool at a chattier rate than the
+    established skill.
+  - **Still queued, not yet addressed:** (e) more explicit passive-
+    consumption feedback beyond the existing burn gauge, (f) Forge
+    approach-angle feel, (g) contextual-panel keyboard interaction, (h)
+    success-rate display in station UIs, (k) colorStage-2 visual-change
     investigation.
 
