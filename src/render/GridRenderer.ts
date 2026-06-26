@@ -40,7 +40,26 @@ export type VisibilityLookup = (col: number, row: number) => CellVisibility;
 /** How much to dim a "remembered" cell's color, as a 0-1 multiplier applied via canvas alpha. */
 const REMEMBERED_OPACITY = 0.35;
 
-export class GridRenderer {
+/**
+ * The shared shape both GridRenderer (ASCII) and TilesetRenderer
+ * (sprite art) satisfy - lets render.ts hold either one polymorphically
+ * and swap between them based on colorStage, without caring which is
+ * actually active. See render.ts's `activeRenderer()` for the swap
+ * logic, and TilesetRenderer.ts's docstring for why this interface
+ * genuinely matching (not just "intended to," as an earlier version
+ * claimed) mattered enough to be worth fixing.
+ */
+export interface Renderer {
+  render(
+    getCell: CellLookup,
+    getVisibility: VisibilityLookup,
+    centerCol: number,
+    centerRow: number,
+    colorStage: number
+  ): void;
+}
+
+export class GridRenderer implements Renderer {
   private ctx: CanvasRenderingContext2D;
   private config: RenderConfig;
 

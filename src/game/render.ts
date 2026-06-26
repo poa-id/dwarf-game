@@ -1,4 +1,5 @@
-import { GridRenderer } from "../render/GridRenderer";
+import { GridRenderer, type Renderer } from "../render/GridRenderer";
+import { TilesetRenderer } from "../render/TilesetRenderer";
 import { hubCellAt } from "../render/hubContent";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "../engine/visibility";
 import { cellKey, MATERIALS } from "../engine/types";
@@ -24,6 +25,7 @@ import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
 
 export interface RenderRefs {
   renderer: GridRenderer;
+  tilesetRenderer: TilesetRenderer;
   zoneHint: HTMLElement;
   actionHint: HTMLElement;
   contextualPanel: HTMLElement;
@@ -237,11 +239,28 @@ function updateContextualPanel(): void {
   refs.contextualPanel.innerHTML = "";
 }
 
+// Tileset mode activates at colorStage 2+ ("Hearthlight" - materials
+// gain identity, per MECHANICS.md's Perception Is Progression framing)
+// - ASCII glyphs are used at Stage 0/1, matching the "world is
+// forgotten/undifferentiated" feel those stages are meant to convey.
+// This is the FIRST time TilesetRenderer is actually switched to
+// anywhere - it existed fully asset-backed and type-complete since
+// earlier this session, but nothing ever selected it (see its own
+// docstring for the full history). Stage 3 does NOT change the
+// tileset's own appearance further per explicit direction - one fixed
+// look from Stage 2 onward; further stage progress is felt other ways.
+const TILESET_MODE_MIN_COLOR_STAGE = 2;
+
+function activeRenderer(colorStage: number): Renderer {
+  return colorStage >= TILESET_MODE_MIN_COLOR_STAGE ? refs.tilesetRenderer : refs.renderer;
+}
+
 export function render(): void {
   const state = getState();
   const { position } = state.vessel;
+  const colorStage = state.world.hearth.colorStage;
 
-  refs.renderer.render(
+  activeRenderer(colorStage).render(
     (col, row) => {
       if (col === position.col && row === position.row) return { kind: "dwarf" };
       return hubCellAt(
@@ -257,7 +276,7 @@ export function render(): void {
       cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS),
     position.col,
     position.row,
-    state.world.hearth.colorStage
+    colorStage
   );
 
   updateZoneHint();

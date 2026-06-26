@@ -1,4 +1,5 @@
 import { GridRenderer } from "./render/GridRenderer";
+import { TilesetRenderer } from "./render/TilesetRenderer";
 import { clearSave } from "./persistence/saveGame";
 import { initGameState } from "./game/gameState";
 import { initRenderRefs, render } from "./game/render";
@@ -67,8 +68,25 @@ const renderer = new GridRenderer(canvas, {
   cellSize: 24,
 });
 
+// Tileset mode (sprite art) shares the SAME canvas - whichever renderer
+// is active this frame just draws over whatever was there before (both
+// clear to black background first thing, same as a single-renderer
+// setup would). render.ts's render() picks which one to call based on
+// colorStage - see activeRenderer() there. Asset loading is async;
+// preload() is kicked off here but NOT awaited before the first
+// render() call below - a player starts at colorStage 0 (ASCII mode)
+// regardless, so tileset assets have hours of real playtime to finish
+// loading in the background before they're ever actually needed.
+const tilesetRenderer = new TilesetRenderer(canvas, {
+  viewportCols: 32,
+  viewportRows: 22,
+  cellSize: 24,
+});
+tilesetRenderer.preload();
+
 initRenderRefs({
   renderer,
+  tilesetRenderer,
   zoneHint,
   actionHint,
   contextualPanel,

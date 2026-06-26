@@ -484,15 +484,54 @@ implied here** — whether/how to extend ColorStage to capture the later
 "architecture returns" / "memory returns" beats is an open question, not
 yet decided or built; see OPEN_QUESTIONS.md.
 
-Two renderer implementations exist with the same interface:
-**ASCII/glyph mode** (`GridRenderer`, monospace characters + CSS-like
-color) and **tileset mode** (`TilesetRenderer`, real sprite art from the
-Vettlingr 32×32 Dwarf Fortress tileset, used with explicit artist
-permission for this non-commercial project — see `ATTRIBUTION.md`).
-Material-type variants (copper/iron ore) reuse one base texture with
-canvas multiply-tinting rather than unique art per mineral, mirroring how
-DF itself recolors generic stone. **Isometric rendering was considered
-and explicitly rejected** — too large a scope change for the visual gain.
+**Two renderer implementations, genuinely switched between as of
+2026-06-23 (previously, tileset mode existed fully asset-backed and
+type-complete but was never once instantiated or selected anywhere -
+this was discovered, not by reading the code, but by a direct
+playtesting question: "is there a stage where we implement [real
+sprite art] like the Dwarf Fortress one we talked about?" The honest
+answer at the time was no, despite `ATTRIBUTION.md` and the tileset
+asset files having existed since early in the project):**
+
+- **ASCII/glyph mode** (`GridRenderer`, monospace characters + the
+  4-stage color palette described above) - active at colorStage 0 and
+  1.
+- **Tileset mode** (`TilesetRenderer`, real sprite art from the
+  Vettlingr 32×32 Dwarf Fortress tileset, used with explicit artist
+  permission for this non-commercial project — see `ATTRIBUTION.md`) -
+  active at colorStage 2+. Per explicit project direction, this maps
+  directly onto the Perception-Is-Progression framing above: Stage 0/1
+  stay glyphs-only ("the world is forgotten"), Stage 2 is where
+  "objects gain form, sprites replace glyphs." Stage 3 does NOT change
+  the tileset's own appearance further - one fixed look from Stage 2
+  onward, by explicit choice (`TileDefinition` has exactly one tint per
+  `CellKind`, no per-stage variants) - the big visual jump is the
+  glyph→sprite transition itself; further stage progress is meant to
+  be felt other ways (architecture/memory beats, not yet built - see
+  OPEN_QUESTIONS.md).
+
+**What actually had to be fixed**, since the two renderers had quietly
+diverged despite an old docstring claiming "drop-in alternative, same
+input shape": `GridRenderer.render()` takes lazy per-cell lookup
+callbacks (`CellLookup`/`VisibilityLookup`) and does its own viewport-
+centering math around the dwarf; the original `TilesetRenderer.render()`
+instead took a flat pre-built `GridCell[]` array with NO viewport
+windowing and NO fog-of-war/visibility handling at all - genuinely
+incompatible shapes, not actually swappable. Rewrote `TilesetRenderer`
+to share `GridRenderer`'s exact signature and viewport/visibility logic
+(same `REMEMBERED_OPACITY` dimming, same void-background baseline), and
+added a shared `Renderer` interface (`GridRenderer.ts`) both classes now
+explicitly implement, so `render.ts`'s `render()` can hold either one
+polymorphically and pick via a simple `activeRenderer(colorStage)`
+helper. Material-type variants (copper/iron ore) reuse one base texture
+with canvas multiply-tinting rather than unique art per mineral,
+mirroring how DF itself recolors generic stone. Tile assets preload
+asynchronously at startup (`TilesetRenderer.preload()`, kicked off in
+main.ts but not awaited before the first frame) - safe because a fresh
+save starts at colorStage 0, giving real playtime for the (small,
+mostly base64-inlined-by-Vite) assets to finish loading well before
+colorStage 2 is ever reached. **Isometric rendering was considered and
+explicitly rejected** — too large a scope change for the visual gain.
 
 ## 12. Persistence
 

@@ -433,9 +433,34 @@ once resolved (and reflect the resolution in the relevant section above).
     uses the same conservative 0.05 rate from the start, rather than
     introducing a brand-new pool at a chattier rate than the
     established skill.
+  - **(k) Resolved - investigation found a much bigger gap than
+    expected.** The actual question behind "colorStage-2 didn't trigger
+    a visual change" turned out to be "is there a stage where we
+    implement real sprite art like the Dwarf Fortress tileset we
+    discussed?" - and the honest answer, on investigation, was no:
+    `TilesetRenderer` existed fully asset-backed (real PNGs, real
+    artist permission, full `CellKind` coverage in `tilesetManifest.ts`,
+    kept in sync all session) but was NEVER ONCE instantiated or
+    selected anywhere in the actual game - every "Stage 2/3 should look
+    different" comment written earlier this session was describing
+    ASCII color changes only, since that's all that could possibly run.
+    Worse, the two renderers had quietly diverged: `TilesetRenderer`'s
+    original `render(grid: GridCell[])` took a flat pre-built array
+    with no viewport-centering and no fog-of-war/visibility handling at
+    all - genuinely incompatible with `GridRenderer`'s lazy-callback,
+    viewport-centered signature, despite an old docstring claiming
+    "drop-in alternative." **Fixed properly, not just switched on**:
+    rewrote `TilesetRenderer` to share `GridRenderer`'s exact signature
+    and visibility/viewport logic, added a shared `Renderer` interface
+    both now implement, and wired `render.ts`'s `render()` to pick
+    between them via `activeRenderer(colorStage)`. Per explicit
+    direction: ASCII for Stage 0/1, tileset from Stage 2 onward, with
+    Stage 3 NOT changing the tileset's own appearance further (one
+    fixed look once it activates - the big jump is glyphs→sprites
+    itself). See MECHANICS.md's rewritten "Two renderer
+    implementations" section for the full account.
   - **Still queued, not yet addressed:** (e) more explicit passive-
     consumption feedback beyond the existing burn gauge, (f) Forge
     approach-angle feel, (g) contextual-panel keyboard interaction, (h)
-    success-rate display in station UIs, (k) colorStage-2 visual-change
-    investigation.
+    success-rate display in station UIs.
 
