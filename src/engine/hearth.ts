@@ -160,6 +160,21 @@ export function stokeReserve(
 export const FUEL_ABSORPTION_RATE_PER_SEC = 0.5;
 
 /**
+ * Hearthkeeping XP granted per unit of fuel VALUE actually burned -
+ * shared by both XP sources (direct "feed the fire" stokes in
+ * hearthPanel.ts's performStoke, and the passive tick's fuel
+ * consumption in loop.ts's gameTick) so they stay consistent rather
+ * than each defining their own rate. Per explicit project direction
+ * (2026-06-23): banking fuel into the reserve grants NOTHING by
+ * itself - XP comes from fuel being burned, whether that happens
+ * immediately (direct stoke) or later, passively, once auto-tending
+ * consumes it from the reserve. 0.2 works out to roughly 360 XP/hour
+ * of fully passive, idle hearth-tending - a deliberate slow trickle,
+ * well below the Charcoal Kiln's 8 XP per active click.
+ */
+export const HEARTHKEEPING_XP_PER_FUEL_VALUE = 0.2;
+
+/**
  * Cap on how much offline time we'll simulate in one catch-up, in ms.
  * Without this, leaving the tab closed for a month and coming back
  * would do a giant unsupervised computation and could also feel

@@ -197,6 +197,7 @@ function updateContextualPanel(): void {
           const already = getState().narrator.firedOnceTriggers.includes("color_stage_1");
           narrate(already ? "color_stage_later" : "color_stage_1");
         }
+        if (outcome.leveledUp) narrate("level_up");
         render();
       },
       () => {

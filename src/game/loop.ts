@@ -6,7 +6,9 @@ import {
   isAutoTendingUnlocked,
   deductFuelValueFromReserve,
   advanceCompanionHauling,
+  HEARTHKEEPING_XP_PER_FUEL_VALUE,
 } from "../engine/hearth";
+import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -20,11 +22,30 @@ function gameTick(): void {
     const result = tickHearth(state.world.hearth, now, fuelAvailable);
     if (result.fuelAbsorbed > 0) {
       const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
-      setState({ ...state, world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve } });
+
+      const rawXp = result.fuelAbsorbed * HEARTHKEEPING_XP_PER_FUEL_VALUE;
+      const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount);
+      const newHearthkeepingXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
+      const newHearthkeeping = {
+        ...state.vessel.skills.hearthkeeping,
+        level: levelForXp(newHearthkeepingXp),
+        xp: newHearthkeepingXp,
+      };
+      const leveledUp = newHearthkeeping.level > state.vessel.skills.hearthkeeping.level;
+
+      setState({
+        ...state,
+        world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve },
+        vessel: { ...state.vessel, skills: { ...state.vessel.skills, hearthkeeping: newHearthkeeping } },
+      });
       state = getState();
       changed = true;
       if (result.colorStageIncreased) {
         narrate(state.narrator.firedOnceTriggers.includes("color_stage_1") ? "color_stage_later" : "color_stage_1");
+        state = getState();
+      }
+      if (leveledUp) {
+        narrate("level_up");
         state = getState();
       }
     } else if (result.hearth.lastUpdated !== state.world.hearth.lastUpdated) {

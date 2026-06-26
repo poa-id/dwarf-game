@@ -45,6 +45,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   ore_copper: { assetUrl: oreBaseUrl, tint: "#d4894a" },
   ore_iron: { assetUrl: oreBaseUrl, tint: "#9aa3ad" },
   ore_deep: { assetUrl: oreDeepUrl }, // unique texture, no tint needed
+  ore_coal: { assetUrl: oreBaseUrl, tint: "#3a3530" }, // near-black, matching palette.ts's Stage 2/3 coal color
   ore_exhausted: { assetUrl: rockFloorUrl }, // spent rock - same texture as plain floor
   // No dedicated wood sprite sliced yet either - reusing the ore vein
   // texture, tinted toward a woody brown-green, as a placeholder.

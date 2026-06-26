@@ -36,7 +36,16 @@ export const ZONES: ZoneDefinition[] = [
     id: "tunnel_entrance",
     name: "Tunnel Entrance",
     bounds: { col: 20, row: 30, width: 10, height: 8 },
-    unlock: { type: "hearth_color_stage_at_least", stage: 1 },
+    // Changed from hearth_color_stage_at_least (2026-06-23, playtesting
+    // feedback): the mine unlocking at the exact same threshold as
+    // rekindle-eligibility was confusing in play - both happening at
+    // once read as "rekindling cleared the rubble," which wasn't true,
+    // it just LOOKED that way since they shared a trigger. Per explicit
+    // project direction, decoupled to its own forge-progress milestone
+    // instead: forgeTier 2 (Bellows of the Deep, 250 Insight) requires
+    // having rekindled at least once for real, which is a more
+    // deliberate gate than "stoke the hearth a bunch."
+    unlock: { type: "forge_tier_at_least", tier: 2 },
   },
 ];
 
@@ -106,6 +115,26 @@ export const ORE_VEINS: OreVeinPlacement[] = [
     id: "hearth_hall_copper",
     rockNodeId: "copper_vein",
     position: { col: 36, row: 23 },
+  },
+  // Iron and coal - the Tunnel Entrance's first real content (added
+  // 2026-06-23, fixing a genuine "the mine unlocked but is empty"
+  // gap found in playtesting). Both embedded against the zone's own
+  // walls (col 20 left, col 29 right - the zone spans col 20-29, row
+  // 30-37), at row 34, clear of the entrance corridor (which runs
+  // along col 25) and the Tunnel Mouth Torch at (25, 31). Finite, NOT
+  // infinite like the starter copper vein/wood node - see mining.ts's
+  // comments on those for why basic/foundational materials are
+  // infinite while better materials staying finite/gated is fine and
+  // expected (LORE.md's "Never Deadlock the Engine" principle).
+  {
+    id: "tunnel_entrance_iron",
+    rockNodeId: "iron_vein",
+    position: { col: 20, row: 34 },
+  },
+  {
+    id: "tunnel_entrance_coal",
+    rockNodeId: "coal_seam",
+    position: { col: 29, row: 34 },
   },
 ];
 

@@ -365,4 +365,58 @@ once resolved (and reflect the resolution in the relevant section above).
     be ready to move toward the longer-planned Mineshafts/real-mine
     content and idle-automation mechanics - explicitly NOT started yet,
     sequencing noted for the record.
+- **Third playtesting round (2026-06-23) - large batch, several real
+  bugs plus UX requests. In progress; this entry tracks what's done vs.
+  still queued within the batch.** Reported together:
+  (a) a perceived "rubble cleared on rekindle-threshold, not rekindle
+  itself" bug, (b) charcoal not accepted by the Hearth, (c) Woodcraft
+  has no narrator lines (Mining's lines fire instead/regardless), (d)
+  stoking grants no Hearthkeeping XP, (e) passive reserve consumption
+  has no visible feedback beyond the existing burn gauge, (f) the
+  Forge's walkable approach feels oddly limited to one corner, (g) no
+  keyboard way to interact with contextual panels (mouse-only), (h)
+  success-rate isn't shown anywhere in station UIs, (i) narrator lines
+  for routine Mining repeat too often and feel naggy, (j) no way to
+  progress further without iron/coal access, (k) a colorStage-2
+  transition didn't read as a visible change.
+  - **(a) Resolved - not actually a bug, but the underlying coupling
+    was real and is now fixed.** The Tunnel Entrance's unlock was tied
+    to `hearth_color_stage_at_least: 1` - the SAME threshold that makes
+    rekindling available - so both happening simultaneously looked like
+    "rekindling unlocked the room," when actually the room's rubble/
+    walls opening was a coincidentally-identical threshold, unrelated
+    to rekindling itself. Per explicit direction, decoupled: Tunnel
+    Entrance now unlocks at `forge_tier_at_least: 2` (Bellows of the
+    Deep, 250 Insight) instead. See hubMap.ts's ZONES.
+  - **(j) Resolved as a side effect of (a):** the Tunnel Entrance was
+    also completely EMPTY - unlocking it revealed a room with nothing
+    in it, since `iron_vein`/`coal_seam` existed in mining.ts's data
+    but had never been placed anywhere on the map. Now placed inside
+    the Tunnel Entrance (embedded against its walls, col 20/29 row 34 -
+    see hubMap.ts's `ORE_VEINS`), kept infinite per explicit direction
+    (Never Deadlock the Engine still applies; simpler than introducing
+    finite veins now). Also fixed a real rendering bug found in the
+    process: every vein rendered as `ore_copper` regardless of what it
+    actually contained (a hardcoded shortcut from when copper was the
+    only placed vein) - added a real `ore_coal` CellKind (didn't exist
+    before at all) and fixed the stamping logic to map each vein to its
+    correct kind by `rockNodeId`.
+  - **(d) Resolved - Hearthkeeping now actually grants XP from
+    stoking, with a real design split.** Per explicit direction:
+    banking fuel into the reserve grants NOTHING by itself; XP comes
+    from fuel actually being BURNED - either immediately (direct "feed
+    the fire" stokes) or later, passively, at the exact moment
+    `tickHearth` consumes banked reserve fuel. New shared constant
+    `HEARTHKEEPING_XP_PER_FUEL_VALUE` (hearth.ts) used by both
+    `performStoke` (hearthPanel.ts, immediate) and `gameTick`
+    (loop.ts, passive) so the two paths stay consistent. ~360 XP/hour
+    from fully passive, idle tending once auto-tending is unlocked -
+    deliberately well below the Kiln's 8 XP per active click.
+  - **Still queued, not yet addressed:** (b) charcoal-Hearth
+    acceptance/menu clarity, (c) Woodcraft narrator lines, (e) more
+    explicit passive-consumption feedback beyond the existing burn
+    gauge, (f) Forge approach-angle feel, (g) contextual-panel keyboard
+    interaction, (h) success-rate display in station UIs, (i) Mining
+    narrator-line fatigue tuning, (k) colorStage-2 visual-change
+    investigation.
 

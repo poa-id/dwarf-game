@@ -49,11 +49,12 @@ forged tools are World-persistent and survive rekindling.
 vein and wood node were deliberately finite "tutorial props"):
 exhausting them turned out to be a genuine, permanent, unrecoverable
 deadlock, since they were the ONLY source of copper/wood anywhere in
-the game (the real mine isn't built yet - see §6's Tunnel Entrance
-zone). Per explicit project direction, basic starter materials are now
-infinite by design, functioning as a slow, reliable "idle engine" the
-player can always fall back on - mine/gather, craft, repair, forever,
-even before the real mine is reachable. The finite-node MECHANISM
+the game at the time (the Tunnel Entrance - §6 - had no content placed
+in it yet then; it does now, see below). Per explicit project
+direction, basic starter materials are now infinite by design,
+functioning as a slow, reliable "idle engine" the player can always
+fall back on - mine/gather, craft, repair, forever. The finite-node
+MECHANISM
 itself (`totalYieldCapacity`/`NodeDepletionState`/`isExhausted`) is
 unchanged and still real - it's just that no game content currently
 uses it. It's expected to matter again once the real mine introduces

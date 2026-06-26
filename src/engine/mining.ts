@@ -56,7 +56,14 @@ export const ROCK_NODES: RockNode[] = [
     baseXp: 18,
     baseYield: 1,
     baseSuccessChance: 0.75,
-    totalYieldCapacity: null, // lives in the real mine (Tunnel Entrance) - not depleting yet, revisit once that's built out with multiple nodes to balance against
+    // Placed in the Tunnel Entrance (2026-06-23, see hubMap.ts's
+    // ORE_VEINS) - was a placeholder definition before that. Kept
+    // infinite (totalYieldCapacity: null) per explicit project
+    // direction, consistent with the Never Deadlock the Engine
+    // principle (LORE.md) - simpler than introducing finite veins now,
+    // and the mine's depth-gating already provides progression
+    // pressure without needing depletion on top of it.
+    totalYieldCapacity: null,
   },
   {
     id: "coal_seam",
@@ -66,7 +73,11 @@ export const ROCK_NODES: RockNode[] = [
     baseXp: 6,
     baseYield: 1,
     baseSuccessChance: 0.85,
-    totalYieldCapacity: null, // also belongs in the real mine - placeholder definition until that's built
+    // Placed in the Tunnel Entrance (2026-06-23, see hubMap.ts's
+    // ORE_VEINS) - was a placeholder definition before that. Kept
+    // infinite, same reasoning as iron_vein above - coal is also
+    // foundational fuel once reachable, not meant to be a scarcity gate.
+    totalYieldCapacity: null,
   },
   {
     id: "deepstone",

@@ -69,10 +69,19 @@ describe("zoneContaining / isZoneUnlocked / unlockedZones", () => {
     expect(isZoneUnlocked(tunnelEntrance, world)).toBe(false);
   });
 
-  it("tunnel_entrance unlocks once hearth colorStage reaches its requirement", () => {
-    const world = worldWith({ hearth: { ...createInitialWorld(0).hearth, colorStage: 1 } });
+  it("tunnel_entrance unlocks once forgeTier reaches its requirement (changed 2026-06-23 from hearth colorStage - see hubMap.ts)", () => {
+    const world = worldWith({ forgeTier: 2 });
     const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
     expect(isZoneUnlocked(tunnelEntrance, world)).toBe(true);
+  });
+
+  it("tunnel_entrance stays locked at forgeTier 1, even with a high hearth colorStage - the two are deliberately decoupled now", () => {
+    const world = worldWith({
+      forgeTier: 1,
+      hearth: { ...createInitialWorld(0).hearth, colorStage: 3 },
+    });
+    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    expect(isZoneUnlocked(tunnelEntrance, world)).toBe(false);
   });
 
   it("zoneContaining finds the correct zone for a coordinate inside it", () => {

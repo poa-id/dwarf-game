@@ -1,6 +1,7 @@
 import { createEmptyGrid, type GridCell } from "./GridRenderer";
 import { stampSprite } from "./sprites";
 import { FORGE_BUILDING } from "./exampleSprites";
+import type { CellKind } from "./palette";
 import {
   HUB_WIDTH,
   HUB_HEIGHT,
@@ -105,10 +106,20 @@ function buildHubContent(): GridCell[] {
     stamped[idx] = { kind: "torch_broken" };
   }
 
-  // Place ore veins.
+  // Place ore veins - mapped by rockNodeId to the correct CellKind,
+  // not hardcoded to copper. Fixed 2026-06-23 once iron_vein/coal_seam
+  // actually got real placements (see hubMap.ts's ORE_VEINS) - before
+  // that, every vein silently rendered as ore_copper regardless of
+  // what it actually contained, since copper was the only one placed.
+  const VEIN_CELL_KIND_BY_ROCK_NODE_ID: Record<string, CellKind> = {
+    copper_vein: "ore_copper",
+    iron_vein: "ore_iron",
+    coal_seam: "ore_coal",
+    deepstone: "ore_deep",
+  };
   for (const vein of ORE_VEINS) {
     const idx = vein.position.row * HUB_WIDTH + vein.position.col;
-    stamped[idx] = { kind: "ore_copper" }; // hardcoded for the one copper vein we have; revisit when more ore types appear on the map
+    stamped[idx] = { kind: VEIN_CELL_KIND_BY_ROCK_NODE_ID[vein.rockNodeId] ?? "ore_copper" };
   }
 
   // Place wood nodes.

@@ -6,11 +6,13 @@ import {
   canAffordHearthUpgrade,
   isAutoTendingUnlocked,
   reserveBurnSecondsRemaining,
+  HEARTHKEEPING_XP_PER_FUEL_VALUE,
 } from "../engine/hearth";
 import { rekindle, REKINDLE_FUEL_THRESHOLD } from "../engine/rekindle";
 import type { RekindleResult } from "../engine/rekindle";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
+import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 const STOKE_AMOUNT = 1; // fixed burst size for now - see DESIGN.md's x1/x5/x10/MAX open item for the eventual bulk-action upgrade
 
@@ -185,26 +187,58 @@ export interface StokeOutcome {
   newState: GameState;
   fuelAdded: number;
   colorStageIncreased: boolean;
+  leveledUp: boolean;
 }
 
 export function performStoke(state: GameState, materialId: MaterialId, target: StokeTarget): StokeOutcome {
   if (target === "fire") {
     const result = stokeFireDirectly(state.world.hearth, state.vessel.inventory, materialId, STOKE_AMOUNT, Date.now());
+
+    // Direct stoking grants Hearthkeeping XP immediately, scaled by the
+    // same per-fuel-value rate as the Hearth's passive tick (see
+    // loop.ts's HEARTHKEEPING_XP_PER_FUEL_VALUE) - this path burns
+    // instantly, so there's no "wait for it to be consumed" delay the
+    // way banking-to-reserve has. Per explicit project direction
+    // (2026-06-23): banking alone grants nothing; XP comes from the
+    // fuel actually being burned, immediate or passive.
+    const rawXp = result.fuelAdded * HEARTHKEEPING_XP_PER_FUEL_VALUE;
+    const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount);
+    const oldLevel = state.vessel.skills.hearthkeeping.level;
+    const newHearthkeepingXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
+    const newHearthkeeping = {
+      ...state.vessel.skills.hearthkeeping,
+      level: levelForXp(newHearthkeepingXp),
+      xp: newHearthkeepingXp,
+    };
+
     const newState: GameState = {
       ...state,
       world: { ...state.world, hearth: result.hearth },
-      vessel: { ...state.vessel, inventory: result.inventory },
+      vessel: {
+        ...state.vessel,
+        inventory: result.inventory,
+        skills: { ...state.vessel.skills, hearthkeeping: newHearthkeeping },
+      },
     };
-    return { newState, fuelAdded: result.fuelAdded, colorStageIncreased: result.colorStageIncreased };
+    return {
+      newState,
+      fuelAdded: result.fuelAdded,
+      colorStageIncreased: result.colorStageIncreased,
+      leveledUp: newHearthkeeping.level > oldLevel,
+    };
   }
 
+  // Banking to the reserve grants NO XP here - by explicit design, XP
+  // comes from fuel actually being burned. This path only stockpiles;
+  // the XP is granted later, in loop.ts's gameTick, at the moment
+  // tickHearth actually consumes this banked fuel passively.
   const result = stokeReserve(state.vessel.inventory, state.world.fuelReserve, materialId, STOKE_AMOUNT);
   const newState: GameState = {
     ...state,
     world: { ...state.world, fuelReserve: result.fuelReserve },
     vessel: { ...state.vessel, inventory: result.inventory },
   };
-  return { newState, fuelAdded: 0, colorStageIncreased: false };
+  return { newState, fuelAdded: 0, colorStageIncreased: false, leveledUp: false };
 }
 
 export function performHearthUpgrade(state: GameState): GameState {
