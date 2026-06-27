@@ -16,7 +16,7 @@
 // Skills
 // ---------------------------------------------------------------------------
 
-export type SkillId = "mining" | "smithing" | "hearthkeeping" | "woodcraft";
+export type SkillId = "mining" | "smithing" | "hearthkeeping" | "woodcraft" | "tinkering";
 
 export type SkillMode = "active" | "idle";
 
@@ -43,7 +43,7 @@ export interface SkillState {
 
 export type MaterialId = string;
 
-export type MaterialCategory = "ore" | "ingot" | "fuel" | "wood" | "currency" | "true_metal";
+export type MaterialCategory = "ore" | "ingot" | "fuel" | "wood" | "currency" | "true_metal" | "gem";
 
 export interface MaterialDefinition {
   id: MaterialId;
@@ -85,6 +85,23 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   // input, only as a perk-tree currency.
   true_copper: { id: "true_copper", name: "True Copper", category: "true_metal", tier: 1 },
   insight: { id: "insight", name: "Insight", category: "currency", tier: 0 },
+  // Gems - added 2026-06-23 alongside the new Tinkering skill and
+  // Gemcutting station (gemcutting.ts). Rough gems drop rarely from
+  // mining strikes (see gathering.ts's GemDrop), one type per ore vein
+  // tier - copper_vein -> quartz (common), iron_vein -> garnet
+  // (uncommon), deepstone -> amethyst (rare); coal_seam deliberately
+  // drops none, since coal isn't gem-bearing rock thematically. Cut
+  // gems are the Gemcutting station's refined output, the currency
+  // spent on Tinkering's own self-reinforcing perk tree (boosts gem-
+  // drop chance AND cutting success) - a third permanent-multiplier
+  // track, alongside the Smelter's XP perk and the Hearth's yield perk,
+  // each with its own currency and each affecting a different number.
+  rough_quartz: { id: "rough_quartz", name: "Rough Quartz", category: "gem", tier: 1 },
+  cut_quartz: { id: "cut_quartz", name: "Cut Quartz", category: "gem", tier: 1 },
+  rough_garnet: { id: "rough_garnet", name: "Rough Garnet", category: "gem", tier: 2 },
+  cut_garnet: { id: "cut_garnet", name: "Cut Garnet", category: "gem", tier: 2 },
+  rough_amethyst: { id: "rough_amethyst", name: "Rough Amethyst", category: "gem", tier: 3 },
+  cut_amethyst: { id: "cut_amethyst", name: "Cut Amethyst", category: "gem", tier: 3 },
 };
 
 export function materialDef(id: MaterialId): MaterialDefinition {
@@ -326,6 +343,30 @@ export interface WorldState {
    * one-time purchase like Forge/Hearth upgrades.
    */
   trueMetalSpentOnXpPerk: number;
+  /**
+   * The Hearth's yield-multiplier perk tree (added 2026-06-23) - a
+   * SEPARATE running total from trueMetalSpentOnXpPerk above, even
+   * though both spend the same True-metal currency. The player
+   * allocates each True-metal independently between "level faster"
+   * (Smelter's tree) and "yield more per action" (this one) - two
+   * genuinely different perks competing for the same limited pool,
+   * by explicit design. See hearth.ts's YIELD_PERK_TIERS.
+   */
+  trueMetalSpentOnYieldPerk: number;
+  /**
+   * The Gemcutting station (gemcutting.ts) - built once like the
+   * Smelter, for Insight + materials. gemcuttingTier raises BOTH the
+   * raw gem drop chance (gathering.ts) AND the cutting success chance
+   * - a single tier track governs both, gated by what's AVAILABLE at
+   * Tinkering's current skill level (better tools/perks unlock as the
+   * skill grows), separate again from cutGemsSpentOnPerk, which tracks
+   * the cut-gem currency spent on Tinkering's own self-reinforcing
+   * perk tree (further drop-chance/cutting-success boosts on top of
+   * the station's own tier).
+   */
+  gemcuttingBuilt: boolean;
+  gemcuttingTier: number;
+  cutGemsSpentOnPerk: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -354,6 +395,7 @@ export type NarratorTrigger =
   | "mine_strike" // routine successful mining strikes thereafter
   | "wood_first_strike" // the very first successful wood-cutting strike of the whole game (added 2026-06-23 - Woodcraft previously had no narrator voice at all)
   | "wood_strike" // routine successful wood-cutting strikes thereafter
+  | "gem_found" // a rare bonus gem dropped from a mining strike (added 2026-06-23, alongside the Gemcutting station) - distinct from routine mine_strike, since this is meant to feel like a real event
   | "level_up" // any skill level up
   | "color_stage_1" // first rekindling's color reward - the biggest narrative beat
   | "color_stage_later" // any color stage beyond the first

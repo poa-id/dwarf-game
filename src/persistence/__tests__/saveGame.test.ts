@@ -151,6 +151,36 @@ describe("loadGame - backfilling additive fields from older saves", () => {
     expect(result.state.world.trueMetalSpentOnXpPerk).toBe(0);
   });
 
+  it("backfills a missing tinkering skill on the vessel", () => {
+    const original = createInitialGameState(1000);
+    const oldShaped: any = {
+      ...original,
+      vessel: { ...original.vessel, skills: { ...original.vessel.skills } },
+    };
+    delete oldShaped.vessel.skills.tinkering;
+    localStorage.setItem("dwarf-game-save", JSON.stringify(oldShaped));
+
+    const result = loadGame(2000);
+    expect(result.state.vessel.skills.tinkering).toEqual({ id: "tinkering", level: 1, xp: 0 });
+  });
+
+  it("backfills missing Gemcutting/yield-perk fields (pre-date both entirely) as not-yet-built", () => {
+    const original = createInitialGameState(1000);
+    const oldShaped: any = { ...original, world: { ...original.world } };
+    delete oldShaped.world.trueMetalSpentOnYieldPerk;
+    delete oldShaped.world.gemcuttingBuilt;
+    delete oldShaped.world.gemcuttingTier;
+    delete oldShaped.world.cutGemsSpentOnPerk;
+    localStorage.setItem("dwarf-game-save", JSON.stringify(oldShaped));
+
+    const result = loadGame(2000);
+    expect(result.isFreshState).toBe(false);
+    expect(result.state.world.trueMetalSpentOnYieldPerk).toBe(0);
+    expect(result.state.world.gemcuttingBuilt).toBe(false);
+    expect(result.state.world.gemcuttingTier).toBe(0);
+    expect(result.state.world.cutGemsSpentOnPerk).toBe(0);
+  });
+
   it("preserves all OTHER existing data while backfilling - it's additive, not a reset", () => {
     const original = createInitialGameState(1000);
     const oldShaped: any = { ...original, world: { ...original.world, forgeTier: 3 } };

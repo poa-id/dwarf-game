@@ -6,6 +6,7 @@ import { WOOD_NODES, isExhausted as isWoodExhausted, attemptWoodGather, applyWoo
 import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "../engine/smithing";
 import { repairTorch } from "../engine/torches";
 import { xpPerkBonus } from "../engine/smelter";
+import { totalGemDropChanceBonus } from "../engine/gemcutting";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 import { showNarratorToast } from "../narration/toast";
 
@@ -37,7 +38,21 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   }
 
   const isFirstStrikeEver = !state.narrator.firedOnceTriggers.includes("mine_first_strike");
-  const result = attemptMineStrike(rockNode, miningSkill, state.world.toolsForged.pickaxe, depletion, Math.random());
+  // Real gem-drop rolling, wired up 2026-06-23 alongside the
+  // Gemcutting station - a second, INDEPENDENT roll from the strike's
+  // own success roll (see gathering.ts's attemptGatherStrike for why
+  // reusing one roll for both would be wrong), weighted by the
+  // combined Gemcutting-station-tier + Tinkering-perk bonus.
+  const gemDropChanceBonus = totalGemDropChanceBonus(state.world.gemcuttingTier, state.world.cutGemsSpentOnPerk);
+  const result = attemptMineStrike(
+    rockNode,
+    miningSkill,
+    state.world.toolsForged.pickaxe,
+    depletion,
+    Math.random(),
+    Math.random(),
+    gemDropChanceBonus
+  );
 
   setState({
     ...state,
@@ -76,6 +91,7 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   });
 
   narrate(isFirstStrikeEver ? "mine_first_strike" : "mine_strike");
+  if (result.gemGained) narrate("gem_found");
   if (newMiningSkill.level > miningSkill.level) narrate("level_up");
 }
 

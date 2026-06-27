@@ -22,6 +22,16 @@ const testNode: GatherableNode = {
   totalYieldCapacity: 10,
 };
 
+// A gem-bearing variant, added 2026-06-23 alongside the Gemcutting
+// station - only Mining's real rock nodes have a gemDrop config in
+// production (mining.ts), but the mechanism itself lives in this
+// shared file, so it's tested here against a synthetic fixture.
+const gemBearingNode: GatherableNode = {
+  ...testNode,
+  id: "test_gem_node",
+  gemDrop: { materialId: "rough_quartz", baseChance: 0.1 },
+};
+
 const testTiers: ToolTier[] = [
   { tier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
   { tier: 1, successChanceBonus: 0.15, yieldMultiplier: 1.5, name: "Copper Axe" },
@@ -97,5 +107,61 @@ describe("applyGatherResult", () => {
     if (result.success) {
       expect(newInv.wood).toBe(result.amountGained);
     }
+  });
+});
+
+describe("gem drops (added 2026-06-23, alongside the Gemcutting station)", () => {
+  it("a node with no gemDrop config never produces a gem, regardless of gemRoll", () => {
+    const result = attemptGatherStrike(testNode, skillLvl1, testTiers[0], fresh(), 0.1, 0.0001);
+    expect(result.gemGained).toBeNull();
+  });
+
+  it("gemRoll and the strike's own success roll are INDEPENDENT - a roll that wins the gem check still requires the strike itself to succeed", () => {
+    // roll=0.99 fails the strike (baseSuccessChance 0.8) regardless of
+    // how favorable gemRoll is - a failed strike never reaches the gem
+    // check at all, per attemptGatherStrike's early return on failure.
+    const result = attemptGatherStrike(gemBearingNode, skillLvl1, testTiers[0], fresh(), 0.99, 0.0001);
+    expect(result.success).toBe(false);
+    expect(result.gemGained).toBeNull();
+  });
+
+  it("a successful strike with a winning gemRoll produces the configured gem material", () => {
+    const result = attemptGatherStrike(gemBearingNode, skillLvl1, testTiers[0], fresh(), 0.01, 0.05); // gemRoll 0.05 < baseChance 0.1
+    expect(result.success).toBe(true);
+    expect(result.gemGained).toBe("rough_quartz");
+  });
+
+  it("a successful strike with a losing gemRoll produces no gem", () => {
+    const result = attemptGatherStrike(gemBearingNode, skillLvl1, testTiers[0], fresh(), 0.01, 0.5); // gemRoll 0.5 > baseChance 0.1
+    expect(result.success).toBe(true);
+    expect(result.gemGained).toBeNull();
+  });
+
+  it("gemDropChanceBonus raises the effective chance additively, capped at 1", () => {
+    // baseChance 0.1 + bonus 0.85 = 0.95 effective chance - a gemRoll
+    // of 0.92 should now win, even though it would lose against the
+    // base chance alone.
+    const result = attemptGatherStrike(gemBearingNode, skillLvl1, testTiers[0], fresh(), 0.01, 0.92, 0.85);
+    expect(result.gemGained).toBe("rough_quartz");
+  });
+
+  it("gemRoll defaults to 1 (never wins) for callers not yet passing it - existing callers stay unaffected", () => {
+    const result = attemptGatherStrike(gemBearingNode, skillLvl1, testTiers[0], fresh(), 0.01);
+    expect(result.gemGained).toBeNull();
+  });
+
+  it("applyGatherResult adds the gem to inventory alongside the normal material, on a win", () => {
+    const inv: ResourceBag = {};
+    const result = attemptGatherStrike(gemBearingNode, skillLvl1, testTiers[0], fresh(), 0.01, 0.05);
+    const newInv = applyGatherResult(inv, result);
+    expect(newInv.wood).toBeGreaterThan(0); // the normal yield still happens
+    expect(newInv.rough_quartz).toBe(1); // the bonus gem on top
+  });
+
+  it("applyGatherResult adds nothing extra when gemGained is null", () => {
+    const inv: ResourceBag = {};
+    const result = attemptGatherStrike(gemBearingNode, skillLvl1, testTiers[0], fresh(), 0.01, 0.99);
+    const newInv = applyGatherResult(inv, result);
+    expect(newInv.rough_quartz ?? 0).toBe(0);
   });
 });

@@ -30,6 +30,24 @@ export interface GatherableNode {
    * NodeDepletionState for the latter.
    */
   totalYieldCapacity: number | null;
+  /**
+   * Optional rare bonus gem drop on a successful strike (added
+   * 2026-06-23, alongside the Tinkering skill and Gemcutting station).
+   * Only Mining's rock nodes populate this - Woodcraft's wood
+   * formations never drop gems, since GatherableNode is generic
+   * shared infrastructure between the two skills, this field is
+   * simply absent (undefined) for wood nodes rather than the
+   * mechanism being Mining-specific in code. One gem type per ore
+   * TIER (copper -> quartz, iron -> garnet, deepstone -> amethyst;
+   * coal_seam deliberately has none - not gem-bearing rock
+   * thematically). The chance here is the BASE/unupgraded rate -
+   * gemcutting.ts's Gemcutting station tiers raise it further, see
+   * attemptGatherStrike's gemDropChanceBonus parameter.
+   */
+  gemDrop?: {
+    materialId: MaterialId;
+    baseChance: number; // 0-1
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -90,12 +108,25 @@ export interface GatherStrikeResult {
   newLevel: number;
   leveledUp: boolean;
   newDepletion: NodeDepletionState;
+  /** The bonus gem material gained this strike, if any - null on the (overwhelmingly common) non-drop outcome, or if this node has no gemDrop config at all. */
+  gemGained: MaterialId | null;
 }
 
 /**
  * Attempt one strike against a gatherable node. Pure function — caller
  * supplies a random roll so this stays deterministic and testable;
  * production code passes Math.random(), tests pass fixed values.
+ *
+ * `gemRoll` is a SEPARATE, independent roll from `roll` (added
+ * 2026-06-23) - reusing one roll for both "did the strike succeed" and
+ * "did a gem drop" would incorrectly couple two unrelated
+ * probabilities (e.g. a roll of 0.05 would always trigger both events
+ * together, when they should be independent). Defaults to 1 (never
+ * wins the gem roll) so existing callers that haven't been updated yet
+ * still compile and behave exactly as before this field existed.
+ * `gemDropChanceBonus` (also additive, also defaults to 0) is the
+ * Gemcutting station's own tier bonus on top of the node's baseChance -
+ * see gemcutting.ts.
  *
  * Throws if level or exhaustion preconditions aren't met - same
  * defensive pattern throughout the engine; the caller (UI layer) is
@@ -107,7 +138,9 @@ export function attemptGatherStrike(
   skill: SkillState,
   tool: ToolTier,
   depletion: NodeDepletionState,
-  roll: number
+  roll: number,
+  gemRoll: number = 1,
+  gemDropChanceBonus: number = 0
 ): GatherStrikeResult {
   if (skill.level < node.requiredLevel) {
     throw new Error(`Level ${skill.level} is below required ${node.requiredLevel} for ${node.id}`);
@@ -131,6 +164,7 @@ export function attemptGatherStrike(
       newLevel: oldLevel,
       leveledUp: false,
       newDepletion: depletion,
+      gemGained: null,
     };
   }
 
@@ -145,6 +179,18 @@ export function attemptGatherStrike(
   const newXp = skill.xp + xpGained;
   const newLevel = levelForXp(newXp);
 
+  // Gem drop - only rolled at all if this node has a gemDrop config
+  // (Woodcraft's wood formations never do). A failed STRIKE (handled
+  // above) never reaches this point at all, so a gem can only ever
+  // drop alongside a successful strike, never instead of one.
+  let gemGained: MaterialId | null = null;
+  if (node.gemDrop) {
+    const totalGemChance = Math.min(1, node.gemDrop.baseChance + gemDropChanceBonus);
+    if (gemRoll < totalGemChance) {
+      gemGained = node.gemDrop.materialId;
+    }
+  }
+
   return {
     success: true,
     xpGained,
@@ -153,10 +199,15 @@ export function attemptGatherStrike(
     newLevel,
     leveledUp: newLevel > oldLevel,
     newDepletion: { totalYielded: depletion.totalYielded + amountGained },
+    gemGained,
   };
 }
 
 export function applyGatherResult(inventory: ResourceBag, result: GatherStrikeResult): ResourceBag {
   if (!result.success || result.amountGained === 0) return inventory;
-  return addMaterial(inventory, result.materialId, result.amountGained);
+  let updated = addMaterial(inventory, result.materialId, result.amountGained);
+  if (result.gemGained) {
+    updated = addMaterial(updated, result.gemGained, 1);
+  }
+  return updated;
 }

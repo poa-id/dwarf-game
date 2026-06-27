@@ -78,9 +78,25 @@ function backfillMissingFields(state: any): any {
       state.world.smelterTier = 0;
       state.world.trueMetalSpentOnXpPerk = 0;
     }
+    if (state.world.trueMetalSpentOnYieldPerk === undefined) {
+      state.world.trueMetalSpentOnYieldPerk = 0;
+    }
+    if (state.world.gemcuttingBuilt === undefined) {
+      // Old saves predate the Gemcutting station/Tinkering economy
+      // entirely - same generous, no-retroactive-grant backfill as
+      // the Smelter above.
+      state.world.gemcuttingBuilt = false;
+      state.world.gemcuttingTier = 0;
+      state.world.cutGemsSpentOnPerk = 0;
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };
+  }
+  if (state.vessel?.skills && state.vessel.skills.tinkering === undefined) {
+    // Old saves predate the Tinkering skill entirely - backfill at
+    // level 1, same fresh-skill default any new dwarf gets.
+    state.vessel.skills.tinkering = { id: "tinkering", level: 1, xp: 0 };
   }
   return state;
 }

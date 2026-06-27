@@ -102,6 +102,28 @@ describe("attemptMineStrike", () => {
   });
 });
 
+describe("gem drops per vein (added 2026-06-23, alongside the Gemcutting station)", () => {
+  it("copper_vein drops Rough Quartz (the common tier)", () => {
+    expect(copperVein.gemDrop?.materialId).toBe("rough_quartz");
+  });
+
+  it("iron_vein drops Rough Garnet (the uncommon tier)", () => {
+    expect(ironVein.gemDrop?.materialId).toBe("rough_garnet");
+  });
+
+  it("deepstone drops Rough Amethyst (the rare tier), and its base chance is the LOWEST of the three - rarer veins drop their own gem less often too, by explicit design", () => {
+    const deepstone = ROCK_NODES.find((n) => n.id === "deepstone")!;
+    expect(deepstone.gemDrop?.materialId).toBe("rough_amethyst");
+    expect(deepstone.gemDrop!.baseChance).toBeLessThan(ironVein.gemDrop!.baseChance);
+    expect(ironVein.gemDrop!.baseChance).toBeLessThan(copperVein.gemDrop!.baseChance);
+  });
+
+  it("coal_seam has NO gem drop at all - not gem-bearing rock thematically", () => {
+    const coalSeam = ROCK_NODES.find((n) => n.id === "coal_seam")!;
+    expect(coalSeam.gemDrop).toBeUndefined();
+  });
+});
+
 describe("depletion", () => {
   it("a fresh node has its full capacity remaining", () => {
     expect(remainingYield(finiteTestNode, fresh())).toBe(finiteTestNode.totalYieldCapacity);

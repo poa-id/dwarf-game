@@ -67,6 +67,7 @@ export function createFreshVessel(): VesselState {
       smithing: freshSkill("smithing"),
       hearthkeeping: freshSkill("hearthkeeping"),
       woodcraft: freshSkill("woodcraft"),
+      tinkering: freshSkill("tinkering"),
     },
     inventory: {},
     hasRekindled: false,
@@ -94,6 +95,10 @@ export function createInitialWorld(now: number): WorldState {
     smelterBuilt: false,
     smelterTier: 0,
     trueMetalSpentOnXpPerk: 0,
+    trueMetalSpentOnYieldPerk: 0,
+    gemcuttingBuilt: false,
+    gemcuttingTier: 0,
+    cutGemsSpentOnPerk: 0,
   };
 }
 

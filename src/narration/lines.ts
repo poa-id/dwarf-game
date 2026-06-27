@@ -38,6 +38,11 @@ export const NARRATOR_LINES: Record<NarratorTrigger, string[]> = {
     "Not much of a tree, down here. It didn't need to be much, to be enough.",
   ],
 
+  gem_found: [
+    "Something catches the light that has no business catching it. He stops. He looks again.",
+    "Not ore. Not rock. Something the mountain kept for itself, until now.",
+  ],
+
   level_up: [
     "His hands remember this now. They didn't, this morning.",
     "Something in him settles into place, the way a tool settles into a worn grip.",

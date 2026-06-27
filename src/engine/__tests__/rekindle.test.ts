@@ -29,6 +29,10 @@ function makeStateWithProgress(): GameState {
       smelterBuilt: true,
       smelterTier: 2,
       trueMetalSpentOnXpPerk: 3,
+      trueMetalSpentOnYieldPerk: 1,
+      gemcuttingBuilt: true,
+      gemcuttingTier: 1,
+      cutGemsSpentOnPerk: 2,
     },
     vessel: {
       skills: {
@@ -36,6 +40,7 @@ function makeStateWithProgress(): GameState {
         smithing: { id: "smithing", level: 15, xp: 30000 },
         hearthkeeping: { id: "hearthkeeping", level: 5, xp: 1000 },
         woodcraft: { id: "woodcraft", level: 3, xp: 200 },
+        tinkering: { id: "tinkering", level: 2, xp: 100 },
       },
       inventory: { copper_ore: 40, copper_ingot: 12, coal: 8 },
       hasRekindled: false,
@@ -51,14 +56,14 @@ function makeStateWithProgress(): GameState {
 describe("calculateRekindleInsight", () => {
   it("scales with total levels across all skills, at full multiplier when growth clears the threshold", () => {
     const state = makeStateWithProgress(); // lifetimeFuel 1500, lifetimeFuelAtLastRekindle 0 - growth 1500, well past the 500 threshold
-    // mining 20 + smithing 15 + hearthkeeping 5 + woodcraft 3 = 43 total levels * 5 = 215, full multiplier (1.0)
-    expect(calculateRekindleInsight(state.vessel, state.world)).toBe(215);
+    // mining 20 + smithing 15 + hearthkeeping 5 + woodcraft 3 + tinkering 2 = 45 total levels * 5 = 225, full multiplier (1.0)
+    expect(calculateRekindleInsight(state.vessel, state.world)).toBe(225);
   });
 
   it("is 20 for a fresh vessel against a world with full growth (all 4 skills at level 1 -> total 4 -> 20 insight)", () => {
     const fresh = createFreshVessel();
     const world = makeStateWithProgress().world;
-    expect(calculateRekindleInsight(fresh, world)).toBe(20); // 1+1+1+1=4 levels * 5, full multiplier
+    expect(calculateRekindleInsight(fresh, world)).toBe(25); // 1+1+1+1+1=5 levels (incl. tinkering) * 5, full multiplier
   });
 
   it("diminishing returns: zero growth since the last rekindle yields ZERO insight, regardless of skill levels", () => {
@@ -77,8 +82,8 @@ describe("calculateRekindleInsight", () => {
       hearth: { ...state.world.hearth, lifetimeFuel: 250 },
       lifetimeFuelAtLastRekindle: 0, // grew from 0 to 250 - half of the 500 threshold
     };
-    // 43 total levels * 5 = 215 base, * 0.5 scale = 107.5, rounds to 108
-    expect(calculateRekindleInsight(state.vessel, halfGrowthWorld)).toBe(108);
+    // 45 total levels (incl. tinkering) * 5 = 225 base, * 0.5 scale = 112.5, JS Math.round rounds half-up -> 113
+    expect(calculateRekindleInsight(state.vessel, halfGrowthWorld)).toBe(113);
   });
 
   it("diminishing returns: growth beyond a full threshold's worth still caps at the full multiplier (no bonus for over-waiting)", () => {
@@ -88,7 +93,7 @@ describe("calculateRekindleInsight", () => {
       hearth: { ...state.world.hearth, lifetimeFuel: 100_000 },
       lifetimeFuelAtLastRekindle: 0,
     };
-    expect(calculateRekindleInsight(state.vessel, massiveGrowthWorld)).toBe(215); // same as exactly-enough growth, not more
+    expect(calculateRekindleInsight(state.vessel, massiveGrowthWorld)).toBe(225); // same as exactly-enough growth, not more
   });
 
   it("the very first rekindle (lifetimeFuelAtLastRekindle starts at 0) is never penalized, even if lifetimeFuel just barely cleared the threshold", () => {
@@ -98,7 +103,7 @@ describe("calculateRekindleInsight", () => {
       hearth: { ...state.world.hearth, lifetimeFuel: 500 }, // exactly at the threshold, first time ever
       lifetimeFuelAtLastRekindle: 0,
     };
-    expect(calculateRekindleInsight(state.vessel, justClearedWorld)).toBe(215); // full multiplier - 500 growth from 0 clears the threshold exactly
+    expect(calculateRekindleInsight(state.vessel, justClearedWorld)).toBe(225); // full multiplier - 500 growth from 0 clears the threshold exactly
   });
 });
 
@@ -119,6 +124,14 @@ describe("rekindle", () => {
     expect(newState.world.smelterBuilt).toBe(true);
     expect(newState.world.smelterTier).toBe(2);
     expect(newState.world.trueMetalSpentOnXpPerk).toBe(3);
+    // Same World-level persistence for the Hearth's yield-perk spend
+    // (a SEPARATE running total from the XP-perk spend above, even
+    // though both draw on the same True-metal currency) and the
+    // Gemcutting station (built status, tier, cut-gem perk spend).
+    expect(newState.world.trueMetalSpentOnYieldPerk).toBe(1);
+    expect(newState.world.gemcuttingBuilt).toBe(true);
+    expect(newState.world.gemcuttingTier).toBe(1);
+    expect(newState.world.cutGemsSpentOnPerk).toBe(2);
   });
 
   it("VESSEL state is fully reset: skills back to level 1, inventory emptied", () => {
@@ -128,6 +141,7 @@ describe("rekindle", () => {
     expect(newState.vessel.skills.mining.xp).toBe(0);
     expect(newState.vessel.skills.smithing.level).toBe(1);
     expect(newState.vessel.skills.woodcraft.level).toBe(1); // catches any future skill silently missed from the reset
+    expect(newState.vessel.skills.tinkering.level).toBe(1); // the newest skill - confirms the "catches any future skill" comment above still holds
     expect(newState.vessel.inventory).toEqual({});
     expect(newState.vessel.hasRekindled).toBe(false); // fresh dwarf hasn't rekindled himself yet
   });
@@ -171,8 +185,8 @@ describe("rekindle", () => {
   it("Insight earned is added to world.insightBanked, not reset", () => {
     const state = makeStateWithProgress();
     const { newState, insightEarned } = rekindle(state);
-    expect(insightEarned).toBe(215);
-    expect(newState.world.insightBanked).toBe(100 + 215);
+    expect(insightEarned).toBe(225);
+    expect(newState.world.insightBanked).toBe(100 + 225);
   });
 
   it("records lifetimeFuelAtLastRekindle at the moment of rekindling, for the NEXT rekindle's diminishing-returns check", () => {

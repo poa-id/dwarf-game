@@ -47,6 +47,15 @@ export const ROCK_NODES: RockNode[] = [
     // mine is what makes unlocking it meaningful - the starter vein
     // was never meant to be the thing that runs out and ends the game.
     totalYieldCapacity: null,
+    // Rough Quartz - the common gem tier, added 2026-06-23 alongside
+    // the Tinkering skill and Gemcutting station. See
+    // gathering.ts's GatherableNode.gemDrop doc comment for the full
+    // rationale. 2% base chance is the highest of the three gem tiers
+    // (per explicit design: rarer veins drop their OWN gem less often
+    // too, compounding rarity rather than offsetting it) - upgradeable
+    // via the Gemcutting station's own tier track and, eventually,
+    // better tools/global perks (not yet built).
+    gemDrop: { materialId: "rough_quartz", baseChance: 0.02 },
   },
   {
     id: "iron_vein",
@@ -64,6 +73,9 @@ export const ROCK_NODES: RockNode[] = [
     // and the mine's depth-gating already provides progression
     // pressure without needing depletion on top of it.
     totalYieldCapacity: null,
+    // Rough Garnet - the uncommon gem tier. See copper_vein's comment
+    // above for the full rationale.
+    gemDrop: { materialId: "rough_garnet", baseChance: 0.01 },
   },
   {
     id: "coal_seam",
@@ -88,6 +100,9 @@ export const ROCK_NODES: RockNode[] = [
     baseYield: 2,
     baseSuccessChance: 0.6,
     totalYieldCapacity: null,
+    // Rough Amethyst - the rare gem tier, the rarest of the three.
+    // See copper_vein's comment above for the full rationale.
+    gemDrop: { materialId: "rough_amethyst", baseChance: 0.003 },
   },
 ];
 
@@ -109,10 +124,12 @@ export function attemptMineStrike(
   miningSkill: SkillState,
   forgedPickaxeTier: number,
   depletion: NodeDepletionState,
-  roll: number
+  roll: number,
+  gemRoll: number = 1,
+  gemDropChanceBonus: number = 0
 ): MineStrikeResult {
   const pickaxe = bestAvailablePickaxe(forgedPickaxeTier);
-  return attemptGatherStrike(node, miningSkill, pickaxe, depletion, roll);
+  return attemptGatherStrike(node, miningSkill, pickaxe, depletion, roll, gemRoll, gemDropChanceBonus);
 }
 
 export function applyMineResult(inventory: ResourceBag, result: MineStrikeResult): ResourceBag {
