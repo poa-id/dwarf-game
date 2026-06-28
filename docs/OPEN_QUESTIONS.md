@@ -337,8 +337,46 @@ once resolved (and reflect the resolution in the relevant section above).
     (`docs/reference-art/`) but is NOT yet integrated - still renders
     as a placeholder; see the dedicated entry on this further down.
   - **(4) A Hearth-room station for permanent, account-wide passive
-    perks** ("improve the Mountain itself," distinct from the Smelter's
-    Smithing-side sink) - concept only, no mechanical shape decided yet.
+    perks - RESOLVED, fully built 2026-06-23, and grew into a much
+    larger feature than originally scoped.** What started as "a Hearth
+    station for passive perks" turned into THREE coordinated permanent-
+    multiplier tracks, each with its own currency and effect, per
+    explicit direction ("let's not have this overlap with other
+    upgrade stations" + "always think about how everything ties with
+    idle mechanics - Bitcoin Billionaire, Cookie Clicker"):
+    1. The Smelter's XP perk (already resolved above) - True-metals →
+       faster leveling, all skills.
+    2. **The Hearth's yield perk (new)** - True-metals → more output
+       per action, all skills. Genuine Cookie-Clicker-style "each click
+       does more" lever, explicitly chosen over passive-idle-generation
+       or offline-acceleration alternatives that were also considered.
+       Mirrors the XP perk's tier shape exactly but tracks a SEPARATE
+       running total, so the player allocates each True-metal
+       independently between the two trees - real design tension,
+       explicitly accepted as fine ("sharing the CURRENCY is fine, the
+       mechanic and tracking are separate, that's not the overlap I
+       wanted to avoid").
+    3. **Tinkering (new 5th skill) + the Gemcutting station (new)** - a
+       third, fully independent currency (cut gems, not True-metals) and
+       a self-reinforcing loop (more gems found → more cut → bigger
+       loop bonus → easier to find/cut more) rather than another global
+       multiplier. This is the biggest single addition of the whole
+       session - a new skill touches `SkillId`, `VesselState`, save
+       migration, the stats panel, and more.
+    - **Real corrections made during design, worth recording**: the
+      True-metal drop-chance curve was originally proposed at
+      3/8/15/25% and explicitly corrected down to a far more
+      conservative 0.05/0.2/0.5/1% once framed against "permanent,
+      account-wide upgrades" rather than a per-craft ingredient.
+      Similarly, gem rarity was explicitly INVERTED from an initial
+      "rarer veins drop gems more often" instinct to "rarer veins drop
+      their OWN gem less often too" - compounding rarity on both axes
+      rather than one offsetting the other.
+    - See MECHANICS.md's full writeups (Smelter, Hearth yield perk,
+      Tinkering/Gemcutting) for every number, file, and design
+      rationale. `yieldCurve.ts` (new) holds the shared yield-
+      multiplier function, deliberately kept separate from
+      `xpCurve.ts` despite structural similarity.
   - **(5) Tools should GATE access to better materials, RuneScape-style**
     - not just "mine faster," but "you cannot mine iron at all without at
     least a Copper Pickaxe," etc. Currently tool tiers only affect

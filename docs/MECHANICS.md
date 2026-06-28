@@ -18,12 +18,17 @@ This is the foundational architecture decision everything else hangs off.
 
 ## 4. Skills
 
-Four skills currently defined: **Mining**, **Smithing**, **Hearthkeeping**,
-**Woodcraft**.
+Five skills currently defined: **Mining**, **Smithing**, **Hearthkeeping**,
+**Woodcraft**, **Tinkering** (added 2026-06-23, alongside the Gemcutting
+station — see §5's Tinkering/Gemcutting writeup for the full mechanic).
 
-- Mining, Smithing, and Woodcraft are **active** (player-initiated strikes).
+- Mining, Smithing, Woodcraft, and Tinkering are **active** (player-
+  initiated strikes/attempts). Tinkering currently has exactly ONE
+  action (cutting gems at the Gemcutting station) — more (jewelry,
+  gadgets) are deferred to later backlog items, not yet designed.
 - Hearthkeeping is **idle** (ticks via real elapsed time, including while
-  the tab is closed, capped at 24h offline catch-up).
+  the tab is closed, capped at 24h offline catch-up) AND has a real
+  active source too (the Charcoal Kiln's burning action) - see §5.
 - XP curve is polynomial (`BASE_XP × level^EXPONENT`), not RuneScape's
   exact table — tuned to be ~400x harder at level 99 vs level 1, gentler
   than pure exponential. Dwarves are persistent, not naturally gifted;
@@ -268,6 +273,111 @@ those metals are real, reachable content — deliberately not added yet).
   convention. The Smelter currently renders as a placeholder (reused
   ore texture, tinted) in both ASCII and tileset mode — real slicing/
   integration work is still open, see OPEN_QUESTIONS.md.
+
+**The Hearth's global yield perk — built 2026-06-23, the genuine
+counterpart to the Smelter's XP perk:** that one governs HOW FAST you
+level; this one governs HOW MUCH you get per action — every action,
+any skill, per explicit project direction ("applied everywhere
+uniformly"). `hearth.ts`'s `YIELD_PERK_TIERS` mirrors `XP_PERK_TIERS`'
+shape exactly (1/3/6 cumulative True-metal spend → +5%/+10%/+15%), but
+tracks a SEPARATE running total (`WorldState.trueMetalSpentOnYieldPerk`,
+distinct from `trueMetalSpentOnXpPerk`) — the player allocates each
+True-metal independently between the two trees, a real resource-
+allocation choice even though both spend the same currency. Per
+explicit direction ("let's not have this overlap with other upgrade
+stations"): sharing the CURRENCY is fine, the mechanic and the spend-
+tracking stay fully separate.
+
+- **`yieldCurve.ts`'s `applyHearthYieldBonus`** is the single shared
+  function every yield-producing call site uses — applied ON TOP of
+  whatever yield-variance an action already had (Mining/Woodcraft's
+  existing tool-based `yieldMultiplier`), additive, capped at the same
+  3x ceiling as the XP multiplier.
+- **Wired into every real yield call site**: `gathering.ts`'s
+  `attemptGatherStrike` (Mining/Woodcraft), `smithing.ts`'s
+  `attemptSmith` (ingots), `kiln.ts`'s `attemptCharcoalBurn`.
+  Deliberately NOT applied to tool-forging (`attemptForgeTool`) —
+  tools produce a discrete tier, not a multipliable quantity, there's
+  nothing for a yield bonus to act on.
+- **Honest caveat**: every current Smithing/Kiln recipe has a flat-1
+  yield (`ingotYield`/`charcoalYield`), so at low perk tiers
+  `Math.round(1 * 1.05)` etc. rounds right back down to 1 — the bonus
+  has NO visible effect there yet. Not a bug; the effect becomes real
+  once either base yields increase elsewhere or a future bulk-action
+  multiplier (still on the backlog) lets multiple attempts compound.
+  Mining/Woodcraft, whose yields can already exceed 1 at higher tool
+  tiers, are where this perk is actually visible today.
+- **Spent via the Hearth panel** (`hearthPanel.ts`'s
+  `performSpendTrueMetalOnYield`), same discovery-gating principle as
+  everywhere else — the perk row only renders once actually
+  affordable.
+
+**Tinkering — a new 5th skill, and the Gemcutting station — built
+2026-06-23, the third permanent-multiplier track:** alongside the
+Smelter's XP perk and the Hearth's yield perk, Tinkering's own
+self-reinforcing loop (more gem-drop chance → more cut gems → more
+loop bonus) is funded by **cut gems**, a third currency, genuinely
+separate from True-metals. Tinkering launches with exactly one action
+(Gemcutting) — more (jewelry, gadgets) are deferred to later backlog
+items.
+
+- **Gems are a MINING byproduct, not a Smithing one** — added to
+  `gathering.ts`'s `GatherableNode` as an optional `gemDrop` config
+  (`materialId` + `baseChance`), checked via a SECOND, independent
+  roll (`gemRoll`) from the strike's own success roll. Reusing one
+  roll for both would incorrectly couple two unrelated probabilities.
+  A failed strike never reaches the gem check at all. Only Mining's
+  rock nodes populate `gemDrop` — Woodcraft's wood formations never
+  do, since `GatherableNode` is shared infrastructure between the two
+  skills.
+- **One gem type per ore vein TIER, rarity compounding with vein
+  rarity** (an explicit design call — rarer veins drop their OWN gem
+  less often too, rather than offsetting their rarity): `copper_vein`
+  → Rough Quartz (2% base), `iron_vein` → Rough Garnet (1%),
+  `deepstone` → Rough Amethyst (0.3%, the rarest of both axes).
+  `coal_seam` deliberately drops nothing — not gem-bearing rock
+  thematically.
+- **The Gemcutting station** (`gemcutting.ts`, `gemcuttingPanel.ts`,
+  sits at `GEMCUTTING_POSITION` — col 37, row 28, in the Hearth Hall
+  near the copper vein, NOT the Forge Room — gems are a Mining
+  byproduct, so the station belongs near where the player already
+  gathers) refines rough gems into cut gems. Build cost: 800 Insight +
+  15 Copper Ingot + 20 Wood (`GEMCUTTING_BUILD_COST`/
+  `GEMCUTTING_BUILD_INSIGHT_COST`) — below the Smelter's 1200 ceiling,
+  reachable a bit earlier; iron-free for the same circular-dependency
+  reason as the Smelter.
+- **Cutting has a REAL success/failure chance**, unlike the Smelter's
+  always-succeeds purification — an explicit design call ("mirrors
+  most other crafting actions in this game"): a failed cut wastes the
+  rough gem entirely, no XP, no cut gem. Base 60% (`CUT_BASE_SUCCESS_CHANCE`,
+  deliberately lower than most starter-tier actions — "gem-cutting is
+  meant to be a real craft you get better at"), governed by Tinkering,
+  granting 10 XP per attempt (`CUTTING_BASE_XP`) regardless of
+  success/failure status at the call site (the XP only actually lands
+  on success, per `attemptCutGem`'s result).
+- **The Gemcutting station's own tier track** (`GEMCUTTING_TIERS` —
+  "Steadier Hands," "Loupe and Wheel," "Master's Bench," 300/700/1500
+  Insight, mirroring `SMELTER_TIERS`' costs exactly) raises BOTH the
+  raw gem-drop chance AND the cutting-success chance TOGETHER — one
+  combined track, not two separate ones, unlike the Smelter's single-
+  effect tiers.
+- **Tinkering's self-reinforcing perk tree** (`TINKERING_PERK_TIERS` —
+  1/3/6 cumulative cut-gem spend, mirroring `XP_PERK_TIERS`'/
+  `YIELD_PERK_TIERS`' shape, +5%/+10%/+15% to BOTH drop chance and
+  cutting success) is the loop's reinforcement: better tools (Tinkering
+  level gates what's available at the station) and more cut gems spent
+  here make future gems easier to find AND cut, which makes the next
+  perk tier easier to reach. `totalGemDropChanceBonus`/
+  `totalCuttingSuccessBonus` combine the station's own tier with this
+  perk tree into the single numbers actually used by
+  `attemptMineStrike`/`attemptCutGem`.
+- **Three rough gem types, each independently discovery-gated in the
+  UI** — `gemcuttingPanel.ts` only shows a cutting row for a gem type
+  the player actually holds at least one of, never a permanently
+  visible disabled row for a gem never found.
+- **`gem_found` narrator trigger** — always fires (not throttled, since
+  the drop chance itself already gates rarity), distinct from routine
+  `mine_strike` lines, marking a genuinely rare event as one.
 
 **Coal/wood allocation (Smithing vs. Hearthkeeping) — RESOLVED AND
 BUILT:** the Hearth has its OWN fuel stockpile, `WorldState.fuelReserve`
