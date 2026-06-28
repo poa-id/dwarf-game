@@ -21,7 +21,13 @@ import {
   isNearSmelter,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool } from "../ui/smithingPanel";
-import { renderHearthPanel, performStoke, performHearthUpgrade, performRekindle } from "../ui/hearthPanel";
+import {
+  renderHearthPanel,
+  performStoke,
+  performHearthUpgrade,
+  performSpendTrueMetalOnYield,
+  performRekindle,
+} from "../ui/hearthPanel";
 import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
 import {
   renderSmelterPanel,
@@ -241,6 +247,10 @@ function updateContextualPanel(): void {
         if (!wasBefriendedBefore && getState().world.companion.befriended) {
           narrate("companion_befriended");
         }
+        render();
+      },
+      () => {
+        setState(performSpendTrueMetalOnYield(getState()));
         render();
       },
       () => {

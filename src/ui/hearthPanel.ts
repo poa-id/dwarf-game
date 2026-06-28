@@ -7,6 +7,8 @@ import {
   isAutoTendingUnlocked,
   reserveBurnSecondsRemaining,
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
+  nextYieldPerkTier,
+  trueMetalNeededForNextYieldPerkTier,
 } from "../engine/hearth";
 import { rekindle, REKINDLE_FUEL_THRESHOLD } from "../engine/rekindle";
 import type { RekindleResult } from "../engine/rekindle";
@@ -58,6 +60,7 @@ export function renderHearthPanel(
   container: HTMLElement,
   onStoke: (materialId: MaterialId, target: StokeTarget) => void,
   onUpgrade: () => void,
+  onSpendTrueMetalOnYield: () => void,
   onRekindle: () => void
 ): void {
   // Only render a fuel row for materials the player actually holds -
@@ -148,6 +151,31 @@ export function renderHearthPanel(
     `
     : "";
 
+  // The Hearth's global yield perk (added 2026-06-23) - the genuine
+  // counterpart to the Smelter's XP perk tree. Same discovery-gating
+  // principle: only renders once the player actually holds enough
+  // True-metal to afford the next tier, never as a permanently visible
+  // disabled row. Mirrors smelterPanel.ts's perk-section markup
+  // exactly - SEPARATE running total (trueMetalSpentOnYieldPerk) from
+  // the Smelter's own (trueMetalSpentOnXpPerk), even though both
+  // spend the same True-metal currency.
+  const nextYieldTier = nextYieldPerkTier(state.world.trueMetalSpentOnYieldPerk);
+  const trueMetalNeededForYield = trueMetalNeededForNextYieldPerkTier(state.world.trueMetalSpentOnYieldPerk);
+  const heldTrueMetalTotal = Object.keys(MATERIALS)
+    .filter((id) => MATERIALS[id]?.category === "true_metal")
+    .reduce((sum, id) => sum + getMaterialAmount(state.vessel.inventory, id), 0);
+
+  const yieldPerkSection =
+    nextYieldTier && trueMetalNeededForYield !== null && heldTrueMetalTotal >= trueMetalNeededForYield
+      ? `
+        <h2>the hearth provides</h2>
+        <div class="recipe-row" data-action="spend-true-metal-yield">
+          <div class="recipe-name">Tier ${nextYieldTier.tier}: +${Math.round(nextYieldTier.yieldBonus * 100)}% all yield, permanently</div>
+          <div class="recipe-status">Spend ${trueMetalNeededForYield} True-metal</div>
+        </div>
+      `
+      : "";
+
   // The rekindle option - see REKINDLE_FUEL_THRESHOLD's comment above
   // for why this checks lifetimeFuel directly rather than a separate
   // flag, and why it must give no warning beforehand. No status text,
@@ -169,6 +197,7 @@ export function renderHearthPanel(
     ${burnGauge}
     <div class="stoke-flash ${stokeFlashActive ? "stoke-flash-active" : ""}" id="stoke-flash"></div>
     ${upgradeSection}
+    ${yieldPerkSection}
     ${rekindleSection}
   `;
 
@@ -190,6 +219,11 @@ export function renderHearthPanel(
   // upgradeSection above) - no disabled-class check needed here.
   const upgradeEl = container.querySelector<HTMLDivElement>("[data-hearth-upgrade]");
   upgradeEl?.addEventListener("click", onUpgrade);
+
+  // Same "always affordable when rendered at all" discovery-gating
+  // principle as the upgrade row above.
+  const yieldPerkEl = container.querySelector<HTMLDivElement>('[data-action="spend-true-metal-yield"]');
+  yieldPerkEl?.addEventListener("click", onSpendTrueMetalOnYield);
 
   // Rekindling is permanent and irreversible (the current dwarf is
   // gone, his skills and inventory with him) - a confirm dialog is
@@ -303,4 +337,39 @@ export function performHearthUpgrade(state: GameState): GameState {
 export function performRekindle(state: GameState): RekindleResult | null {
   if (state.world.hearth.lifetimeFuel < REKINDLE_FUEL_THRESHOLD) return null;
   return rekindle(state);
+}
+
+/**
+ * Spends True-metal toward the Hearth's yield-perk tree's next tier.
+ * Mirrors smelterPanel.ts's performSpendTrueMetalOnPerk exactly, but
+ * updates the SEPARATE trueMetalSpentOnYieldPerk running total
+ * instead of the Smelter's trueMetalSpentOnXpPerk - the two trees
+ * track independently even though both draw from the same True-metal
+ * materials in inventory.
+ */
+export function performSpendTrueMetalOnYield(state: GameState): GameState {
+  const needed = trueMetalNeededForNextYieldPerkTier(state.world.trueMetalSpentOnYieldPerk);
+  if (needed === null || needed <= 0) return state;
+
+  const trueMetalIds = Object.keys(MATERIALS).filter((id) => MATERIALS[id]?.category === "true_metal");
+  let remaining = needed;
+  let newInventory = { ...state.vessel.inventory };
+
+  for (const id of trueMetalIds) {
+    if (remaining <= 0) break;
+    const held = getMaterialAmount(newInventory, id);
+    const spend = Math.min(held, remaining);
+    if (spend > 0) {
+      newInventory = { ...newInventory, [id]: held - spend };
+      remaining -= spend;
+    }
+  }
+
+  if (remaining > 0) return state;
+
+  return {
+    ...state,
+    world: { ...state.world, trueMetalSpentOnYieldPerk: state.world.trueMetalSpentOnYieldPerk + needed },
+    vessel: { ...state.vessel, inventory: newInventory },
+  };
 }
