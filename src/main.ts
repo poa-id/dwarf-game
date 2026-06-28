@@ -39,6 +39,10 @@ app.innerHTML = `
             <p id="stat-woodcraft">Woodcraft 1</p>
             <div class="skill-bar"><div class="skill-bar-fill" id="bar-woodcraft"></div></div>
           </div>
+          <div class="skill-row">
+            <p id="stat-tinkering">Tinkering 1</p>
+            <div class="skill-bar"><div class="skill-bar-fill" id="bar-tinkering"></div></div>
+          </div>
         </div>
         <div class="stats-section">
           <h2>tools</h2>
@@ -100,10 +104,12 @@ initRenderRefs({
     smithing: document.querySelector<HTMLParagraphElement>("#stat-smithing")!,
     hearthkeeping: document.querySelector<HTMLParagraphElement>("#stat-hearthkeeping")!,
     woodcraft: document.querySelector<HTMLParagraphElement>("#stat-woodcraft")!,
+    tinkering: document.querySelector<HTMLParagraphElement>("#stat-tinkering")!,
     barMining: document.querySelector<HTMLDivElement>("#bar-mining")!,
     barSmithing: document.querySelector<HTMLDivElement>("#bar-smithing")!,
     barHearthkeeping: document.querySelector<HTMLDivElement>("#bar-hearthkeeping")!,
     barWoodcraft: document.querySelector<HTMLDivElement>("#bar-woodcraft")!,
+    barTinkering: document.querySelector<HTMLDivElement>("#bar-tinkering")!,
     inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
     toolsList: document.querySelector<HTMLDivElement>("#tools-list")!,
     insightDisplay: document.querySelector<HTMLParagraphElement>("#stat-insight")!,

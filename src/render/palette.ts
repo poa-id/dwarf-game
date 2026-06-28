@@ -26,6 +26,7 @@ export type CellKind =
   | "forge_broken"
   | "kiln"
   | "smelter"
+  | "gemcutting"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -46,6 +47,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "forge_broken",
   "kiln",
   "smelter",
+  "gemcutting",
   "ore_copper",
   "ore_iron",
   "ore_deep",
@@ -92,6 +94,7 @@ const STAGE_0: StagePalette = {
     forge_broken: "#9a9a9a",
     kiln: "#9a9a9a",
     smelter: "#9a9a9a",
+    gemcutting: "#9a9a9a",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     // Torches now follow the SAME flat-gray Stage 0 rule as everything
@@ -150,6 +153,7 @@ const STAGE_2: StagePalette = {
     forge_broken: "#5a4a3a", // dull, cold - the forge that hasn't caught yet, distinct from the live forge's orange
     kiln: "#8a5a3a", // warm clay/brick tone - distinct from both the bright live forge and plain stone, reads as "fired earth"
     smelter: "#c4441a", // richer, more saturated red-orange than the kiln - this is intensified, purifying heat, not just a warm structure
+    gemcutting: "#8a6fa8", // pale violet/lavender - distinct from the warm Smelter/Kiln tones, fitting a station about light and clarity rather than heat
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -182,6 +186,7 @@ const STAGE_3: StagePalette = {
     forge_broken: "#6a5a48",
     kiln: "#9a6a45",
     smelter: "#d8501e",
+    gemcutting: "#a586c8",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -212,6 +217,7 @@ export const GLYPHS: Record<CellKind, string> = {
   forge_broken: "ñ", // a near-miss of the working forge's glyph - recognizably related, visibly wrong/incomplete
   kiln: "k",
   smelter: "S",
+  gemcutting: "g",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea

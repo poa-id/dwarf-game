@@ -11,6 +11,7 @@ import {
   WOOD_NODE_PLACEMENTS,
   KILN_POSITION,
   SMELTER_POSITION,
+  GEMCUTTING_POSITION,
   FORGE_BUILDING_FOOTPRINT,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
@@ -177,7 +178,8 @@ export function hubCellAt(
   veinDepletion: WorldState["veinDepletion"] = {},
   woodDepletion: WorldState["veinDepletion"] = {},
   forgeTier: number = 0,
-  smelterBuilt: boolean = false
+  smelterBuilt: boolean = false,
+  gemcuttingBuilt: boolean = false
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -205,6 +207,12 @@ export function hubCellAt(
   // starting from ordinary floor instead of a ruin glyph.
   if (smelterBuilt && col === SMELTER_POSITION.col && row === SMELTER_POSITION.row) {
     return { kind: "smelter" };
+  }
+
+  // The Gemcutting station - same "no static stamp, dynamic override
+  // once built" pattern as the Smelter above.
+  if (gemcuttingBuilt && col === GEMCUTTING_POSITION.col && row === GEMCUTTING_POSITION.row) {
+    return { kind: "gemcutting" };
   }
 
   const vein = ORE_VEINS.find((v) => v.position.col === col && v.position.row === row);

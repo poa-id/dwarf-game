@@ -69,6 +69,10 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   // decide how a multi-cell room concept maps onto this single-cell
   // CellKind - deliberately deferred rather than rushed.
   smelter: { assetUrl: oreBaseUrl, tint: "#c4441a" },
+  // No dedicated gemcutting sprite exists yet - reusing the ore vein
+  // texture, tinted toward the same pale violet as STAGE_2/3's
+  // gemcutting color in palette.ts, as a placeholder.
+  gemcutting: { assetUrl: oreBaseUrl, tint: "#8a6fa8" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   // No dedicated torch sprite sliced from the tileset yet - reusing the
   // forge's glow art as a placeholder, tinted to distinguish broken

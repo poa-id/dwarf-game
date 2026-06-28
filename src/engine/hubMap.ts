@@ -209,3 +209,17 @@ export const KILN_POSITION: Position = { col: 43, row: 23 };
  * WorldState.smelterBuilt and smelterPanel.ts.
  */
 export const SMELTER_POSITION: Position = { col: 49, row: 26 };
+
+/**
+ * The Gemcutting station (added 2026-06-23, alongside the Tinkering
+ * skill) - placed in the Hearth Hall, near the copper vein and kiln,
+ * rather than the Forge Room like the Smelter. Thematic reasoning:
+ * gems are a MINING byproduct (gathering.ts's gemDrop config on rock
+ * nodes), not a Smithing one - it makes more sense for the cutting
+ * station to sit near where the player is already gathering, not
+ * bundled into "Forge Room addons." Clear of the corridor (row 25,
+ * and the vertical legs at col 36/44) and every existing Hearth Hall
+ * fixture (copper vein at 36,23; wood node at 44,23; kiln at 43,23;
+ * hearth at 40,25).
+ */
+export const GEMCUTTING_POSITION: Position = { col: 37, row: 28 };

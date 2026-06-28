@@ -7,6 +7,7 @@ import {
   KILN_POSITION,
   FORGE_BUILDING_FOOTPRINT,
   SMELTER_POSITION,
+  GEMCUTTING_POSITION,
 } from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
 import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted } from "../engine/mining";
@@ -118,5 +119,13 @@ export function isNearSmelter(): boolean {
   return (
     Math.abs(position.col - SMELTER_POSITION.col) <= 1 &&
     Math.abs(position.row - SMELTER_POSITION.row) <= 1
+  );
+}
+
+export function isNearGemcutting(): boolean {
+  const { position } = getState().vessel;
+  return (
+    Math.abs(position.col - GEMCUTTING_POSITION.col) <= 1 &&
+    Math.abs(position.row - GEMCUTTING_POSITION.row) <= 1
   );
 }

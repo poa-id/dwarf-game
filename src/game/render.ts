@@ -19,6 +19,7 @@ import {
   isNearHearth,
   isNearKiln,
   isNearSmelter,
+  isNearGemcutting,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool } from "../ui/smithingPanel";
 import {
@@ -36,6 +37,13 @@ import {
   performSmelterTierUpgrade,
   performSpendTrueMetalOnPerk,
 } from "../ui/smelterPanel";
+import {
+  renderGemcuttingPanel,
+  performGemcuttingBuild,
+  performCutGem,
+  performGemcuttingTierUpgrade,
+  performSpendCutGemOnPerk,
+} from "../ui/gemcuttingPanel";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
 export interface RenderRefs {
@@ -49,10 +57,12 @@ export interface RenderRefs {
     smithing: HTMLElement;
     hearthkeeping: HTMLElement;
     woodcraft: HTMLElement;
+    tinkering: HTMLElement;
     barMining: HTMLElement;
     barSmithing: HTMLElement;
     barHearthkeeping: HTMLElement;
     barWoodcraft: HTMLElement;
+    barTinkering: HTMLElement;
     inventoryList: HTMLElement;
     toolsList: HTMLElement;
     insightDisplay: HTMLElement;
@@ -97,11 +107,13 @@ function updateStatsPanel(): void {
   refs.statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
   refs.statEls.hearthkeeping.textContent = `Hearthkeeping ${skills.hearthkeeping.level}`;
   refs.statEls.woodcraft.textContent = `Woodcraft ${skills.woodcraft.level}`;
+  refs.statEls.tinkering.textContent = `Tinkering ${skills.tinkering.level}`;
 
   (refs.statEls.barMining as HTMLDivElement).style.width = `${levelProgressPercent(skills.mining.xp)}%`;
   (refs.statEls.barSmithing as HTMLDivElement).style.width = `${levelProgressPercent(skills.smithing.xp)}%`;
   (refs.statEls.barHearthkeeping as HTMLDivElement).style.width = `${levelProgressPercent(skills.hearthkeeping.xp)}%`;
   (refs.statEls.barWoodcraft as HTMLDivElement).style.width = `${levelProgressPercent(skills.woodcraft.xp)}%`;
+  (refs.statEls.barTinkering as HTMLDivElement).style.width = `${levelProgressPercent(skills.tinkering.xp)}%`;
 
   // Tools - shows what's CURRENTLY equipped per slot (bestAvailablePickaxe/
   // bestAvailableAxe already pick the right ToolTier given the forged
@@ -186,7 +198,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "forge" | "hearth" | "kiln" | "smelter" | "none" = "none";
+let lastActivePanelKind: "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -313,6 +325,36 @@ function updateContextualPanel(): void {
     return;
   }
 
+  if (isNearGemcutting()) {
+    if (lastActivePanelKind !== "gemcutting") resetPanelHighlight();
+    lastActivePanelKind = "gemcutting";
+    renderGemcuttingPanel(
+      state,
+      refs.contextualPanel,
+      () => {
+        const outcome = performGemcuttingBuild(getState());
+        setState(outcome.newState);
+        render();
+      },
+      (roughMaterialId) => {
+        const outcome = performCutGem(getState(), roughMaterialId);
+        setState(outcome.newState);
+        if (outcome.leveledUp) narrate("level_up");
+        render();
+      },
+      () => {
+        setState(performGemcuttingTierUpgrade(getState()));
+        render();
+      },
+      () => {
+        setState(performSpendCutGemOnPerk(getState()));
+        render();
+      }
+    );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   lastActivePanelKind = "none";
   refs.contextualPanel.innerHTML = "";
 }
@@ -348,7 +390,8 @@ export function render(): void {
         state.world.veinDepletion,
         state.world.woodDepletion,
         state.world.forgeTier,
-        state.world.smelterBuilt
+        state.world.smelterBuilt,
+        state.world.gemcuttingBuilt
       );
     },
     (col, row) =>
