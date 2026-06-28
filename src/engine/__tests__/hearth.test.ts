@@ -14,6 +14,11 @@ import {
   canAffordHearthUpgrade,
   isAutoTendingUnlocked,
   HEARTH_UPGRADES,
+  YIELD_PERK_TIERS,
+  activeYieldPerkTier,
+  yieldPerkBonus,
+  nextYieldPerkTier,
+  trueMetalNeededForNextYieldPerkTier,
 } from "../hearth";
 import { COLOR_STAGES } from "../colorStages";
 import type { ResourceBag, HearthState } from "../types";
@@ -362,5 +367,41 @@ describe("colorStage capped before the first rekindle (fixed 2026-06-23 - was a 
     // 1 coal = 10 fuel value, pushes lifetimeFuel to 5009, past the Stage 2 threshold (5000)
     const result = stokeFireDirectly(hearth, inv, "coal", 1, 1000, true);
     expect(result.hearth.colorStage).toBe(2);
+  });
+});
+
+describe("the Hearth's global yield perk (added 2026-06-23) - the genuine counterpart to the Smelter's XP perk", () => {
+  it("mirrors XP_PERK_TIERS' shape exactly: 1/3/6 cumulative spend thresholds, +5/10/15%", () => {
+    expect(YIELD_PERK_TIERS.map((t) => t.cumulativeTrueMetalCost)).toEqual([1, 3, 6]);
+    expect(YIELD_PERK_TIERS.map((t) => t.yieldBonus)).toEqual([0.05, 0.1, 0.15]);
+  });
+
+  it("activeYieldPerkTier/yieldPerkBonus behave identically in shape to the Smelter's XP-perk equivalents", () => {
+    expect(activeYieldPerkTier(0)).toBeNull();
+    expect(yieldPerkBonus(0)).toBe(0);
+    expect(activeYieldPerkTier(1)?.tier).toBe(1);
+    expect(yieldPerkBonus(1)).toBe(0.05);
+  });
+
+  it("nextYieldPerkTier/trueMetalNeededForNextYieldPerkTier agree with each other", () => {
+    const spent = 2;
+    expect(nextYieldPerkTier(spent)?.tier).toBe(2);
+    expect(trueMetalNeededForNextYieldPerkTier(spent)).toBe(1); // 3 - 2
+  });
+
+  it("trueMetalNeededForNextYieldPerkTier is null once every tier is purchased", () => {
+    const maxCost = YIELD_PERK_TIERS[YIELD_PERK_TIERS.length - 1].cumulativeTrueMetalCost;
+    expect(trueMetalNeededForNextYieldPerkTier(maxCost)).toBeNull();
+  });
+
+  it("is a genuinely SEPARATE tracker from the Smelter's XP perk, even sharing the same True-metal currency and tier shape - two independent spend totals", () => {
+    // Spending 1 True-metal on the YIELD tree should have no bearing on
+    // the XP tree's own state - they're tracked via separate
+    // WorldState fields (trueMetalSpentOnYieldPerk vs
+    // trueMetalSpentOnXpPerk), this test just confirms the TIER LOOKUP
+    // functions themselves are independent pure functions, not
+    // accidentally sharing module-level state.
+    expect(activeYieldPerkTier(1)?.tier).toBe(1);
+    expect(activeYieldPerkTier(0)).toBeNull(); // a separate call with 0 is unaffected by the call above
   });
 });

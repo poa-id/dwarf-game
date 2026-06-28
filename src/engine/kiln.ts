@@ -1,6 +1,7 @@
 import type { SkillState, ResourceBag } from "./types";
 import { getMaterialAmount, deductMaterials, canAffordMaterials, addMaterial } from "./types";
 import { levelForXp } from "./xpCurve";
+import { applyHearthYieldBonus } from "./yieldCurve";
 
 /**
  * The Charcoal Kiln - a standing structure in the Hearth Hall (see
@@ -47,7 +48,8 @@ export function canAffordCharcoalBurn(inventory: ResourceBag): boolean {
 export function attemptCharcoalBurn(
   hearthkeepingSkill: SkillState,
   inventory: ResourceBag,
-  roll: number
+  roll: number,
+  hearthYieldBonus: number = 0
 ): KilnAttemptResult {
   if (hearthkeepingSkill.level < CHARCOAL_RECIPE.requiredLevel) {
     throw new Error(
@@ -84,7 +86,11 @@ export function attemptCharcoalBurn(
     success: true,
     xpGained: CHARCOAL_RECIPE.baseXp,
     woodSpent: CHARCOAL_RECIPE.woodCost,
-    charcoalGained: CHARCOAL_RECIPE.charcoalYield,
+    // Hearth's global yield perk (added 2026-06-23), same "applied
+    // everywhere uniformly" + "no visible effect at low tiers since
+    // charcoalYield is flat 1" caveat as smithing.ts's ingotsGained -
+    // see yieldCurve.ts.
+    charcoalGained: applyHearthYieldBonus(CHARCOAL_RECIPE.charcoalYield, hearthYieldBonus),
     newLevel,
     leveledUp: newLevel > oldLevel,
   };

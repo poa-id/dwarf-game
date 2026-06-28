@@ -1,6 +1,7 @@
 import type { SkillState, ResourceBag, MaterialId, ToolSlot, ToolsForgedState } from "./types";
 import { getMaterialAmount, deductMaterials, canAffordMaterials, addMaterial, materialDef } from "./types";
 import { levelForXp } from "./xpCurve";
+import { applyHearthYieldBonus } from "./yieldCurve";
 
 export interface SmithRecipe {
   id: string;
@@ -119,7 +120,8 @@ export function attemptSmith(
   smithingSkill: SkillState,
   inventory: ResourceBag,
   roll: number,
-  chosenFuel: MaterialId = recipe.acceptedFuels[0]
+  chosenFuel: MaterialId = recipe.acceptedFuels[0],
+  hearthYieldBonus: number = 0
 ): SmithAttemptResult {
   if (smithingSkill.level < recipe.requiredLevel) {
     throw new Error(
@@ -176,7 +178,15 @@ export function attemptSmith(
     success: true,
     xpGained: recipe.baseXp,
     ingotMaterialId: recipe.ingotMaterialId,
-    ingotsGained: recipe.ingotYield,
+    // Hearth's global yield perk (added 2026-06-23) applied on top of
+    // the recipe's own ingotYield - per explicit direction this is
+    // "applied everywhere uniformly," but worth noting: every current
+    // SMITH_RECIPES entry has ingotYield exactly 1, so at low perk
+    // tiers Math.round(1 * 1.05) etc. rounds right back down to 1 -
+    // the bonus has NO visible effect here until either yields
+    // increase elsewhere or a future bulk-action multiplier lets
+    // multiple attempts compound. Not a bug; see yieldCurve.ts.
+    ingotsGained: applyHearthYieldBonus(recipe.ingotYield, hearthYieldBonus),
     oreMaterialId: recipe.oreMaterialId,
     oreSpent: recipe.oreCost,
     fuelMaterialId: chosenFuel,

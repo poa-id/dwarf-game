@@ -7,6 +7,7 @@ import {
 import { MATERIALS } from "../engine/types";
 import type { GameState } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
+import { yieldPerkBonus } from "../engine/hearth";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 /**
@@ -57,7 +58,12 @@ export interface KilnOutcome {
 
 /** Applies a charcoal-burn attempt to state - mirrors performSmith's split between rendering and state mutation. */
 export function performCharcoalBurn(state: GameState): KilnOutcome {
-  const result = attemptCharcoalBurn(state.vessel.skills.hearthkeeping, state.vessel.inventory, Math.random());
+  const result = attemptCharcoalBurn(
+    state.vessel.skills.hearthkeeping,
+    state.vessel.inventory,
+    Math.random(),
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk)
+  );
   const newInventory = applyCharcoalBurnResult(state.vessel.inventory, result);
 
   const oldLevel = state.vessel.skills.hearthkeeping.level;

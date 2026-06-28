@@ -13,6 +13,7 @@ import {
 import { canAffordMaterials, MATERIALS } from "../engine/types";
 import type { GameState, ToolSlot } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
+import { yieldPerkBonus } from "../engine/hearth";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 
 /**
@@ -158,7 +159,8 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
     state.vessel.skills.smithing,
     state.vessel.inventory,
     Math.random(),
-    chosenFuel
+    chosenFuel,
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk)
   );
   const newInventory = applySmithResult(state.vessel.inventory, result);
 

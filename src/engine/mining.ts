@@ -126,10 +126,20 @@ export function attemptMineStrike(
   depletion: NodeDepletionState,
   roll: number,
   gemRoll: number = 1,
-  gemDropChanceBonus: number = 0
+  gemDropChanceBonus: number = 0,
+  hearthYieldBonus: number = 0
 ): MineStrikeResult {
   const pickaxe = bestAvailablePickaxe(forgedPickaxeTier);
-  return attemptGatherStrike(node, miningSkill, pickaxe, depletion, roll, gemRoll, gemDropChanceBonus);
+  return attemptGatherStrike(
+    node,
+    miningSkill,
+    pickaxe,
+    depletion,
+    roll,
+    gemRoll,
+    gemDropChanceBonus,
+    hearthYieldBonus
+  );
 }
 
 export function applyMineResult(inventory: ResourceBag, result: MineStrikeResult): ResourceBag {

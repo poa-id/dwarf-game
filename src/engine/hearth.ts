@@ -356,6 +356,65 @@ export function canAffordHearthUpgrade(insightBanked: number, currentTier: numbe
   return insightBanked >= next.insightCost;
 }
 
+/**
+ * The Hearth's permanent GLOBAL YIELD perk tree - added 2026-06-23.
+ * The genuine counterpart to the Smelter's XP perk tree
+ * (smelter.ts's XP_PERK_TIERS): that one governs HOW FAST you level,
+ * this one governs HOW MUCH you get per action. Both spend the same
+ * True-metal currency, but track SEPARATE running totals
+ * (WorldState.trueMetalSpentOnYieldPerk here, vs.
+ * trueMetalSpentOnXpPerk for the Smelter's tree) - the player
+ * allocates each True-metal independently between the two, a real
+ * resource-allocation choice, by explicit project direction ("let's
+ * not have this overlap with other upgrade stations" - sharing the
+ * CURRENCY is fine, the MECHANIC and the spend-tracking are fully
+ * separate).
+ *
+ * Mirrors XP_PERK_TIERS' shape exactly: 3 cumulative-spend tiers
+ * (1/3/6 total True-metals), +5/10/15% each. Applied ADDITIVELY on
+ * top of the existing tool-based yieldMultiplier (gathering.ts's
+ * ToolTier) wherever a quantity gets produced - mining, woodcraft,
+ * smithing, the kiln - per explicit direction ("applied everywhere
+ * uniformly"). See yieldCurve.ts's applyYieldMultiplier, the single
+ * shared function every yield-producing call site uses.
+ */
+export interface YieldPerkTier {
+  tier: number;
+  cumulativeTrueMetalCost: number;
+  yieldBonus: number; // additive, e.g. 0.05 = +5%
+}
+
+export const YIELD_PERK_TIERS: YieldPerkTier[] = [
+  { tier: 1, cumulativeTrueMetalCost: 1, yieldBonus: 0.05 },
+  { tier: 2, cumulativeTrueMetalCost: 3, yieldBonus: 0.1 },
+  { tier: 3, cumulativeTrueMetalCost: 6, yieldBonus: 0.15 },
+];
+
+export function activeYieldPerkTier(trueMetalSpent: number): YieldPerkTier | null {
+  let active: YieldPerkTier | null = null;
+  for (const tier of YIELD_PERK_TIERS) {
+    if (trueMetalSpent >= tier.cumulativeTrueMetalCost) active = tier;
+  }
+  return active;
+}
+
+/** The additive yield bonus from the active tier, 0 if none purchased yet - what yieldCurve.ts's multiplier formula adds on top of the tool's own yieldMultiplier. */
+export function yieldPerkBonus(trueMetalSpent: number): number {
+  return activeYieldPerkTier(trueMetalSpent)?.yieldBonus ?? 0;
+}
+
+export function nextYieldPerkTier(trueMetalSpent: number): YieldPerkTier | null {
+  const current = activeYieldPerkTier(trueMetalSpent);
+  const currentTierNum = current?.tier ?? 0;
+  return YIELD_PERK_TIERS.find((t) => t.tier === currentTierNum + 1) ?? null;
+}
+
+export function trueMetalNeededForNextYieldPerkTier(trueMetalSpent: number): number | null {
+  const next = nextYieldPerkTier(trueMetalSpent);
+  if (!next) return null;
+  return Math.max(0, next.cumulativeTrueMetalCost - trueMetalSpent);
+}
+
 /** Whether tickHearth's passive continuous draw should run at all - false until Friend of Burden (tier 1) is bought. */
 export function isAutoTendingUnlocked(hearthTier: number): boolean {
   return hearthTier >= 1;

@@ -165,3 +165,28 @@ describe("gem drops (added 2026-06-23, alongside the Gemcutting station)", () =>
     expect(newInv.rough_quartz ?? 0).toBe(0);
   });
 });
+
+describe("Hearth's global yield perk (added 2026-06-23, hearthYieldBonus parameter)", () => {
+  it("defaults to 0 (no change) for callers not yet passing it", () => {
+    const result = attemptGatherStrike(testNode, skillLvl1, testTiers[0], fresh(), 0.01);
+    expect(result.amountGained).toBe(testNode.baseYield); // tool tier 0 has yieldMultiplier 1, no bonus -> unchanged
+  });
+
+  it("applies additively ON TOP of the tool's own yieldMultiplier, not replacing it", () => {
+    // A node with baseYield high enough that the bonus survives rounding
+    const highYieldNode: GatherableNode = { ...testNode, baseYield: 10, totalYieldCapacity: null };
+    const withoutBonus = attemptGatherStrike(highYieldNode, skillLvl1, testTiers[1], fresh(), 0.01, 1, 0, 0);
+    const withBonus = attemptGatherStrike(highYieldNode, skillLvl1, testTiers[1], fresh(), 0.01, 1, 0, 0.1);
+    // testTiers[1] (Copper Axe) has yieldMultiplier 1.5: 10*1.5=15 base tool yield
+    expect(withoutBonus.amountGained).toBe(15);
+    // +10% Hearth bonus on top of that 15: round(15*1.1)=17 (not round(10*1.5*1.1)=17 coincidentally same here, but the function applies it as a SEPARATE step on top of the tool-multiplied amount)
+    expect(withBonus.amountGained).toBe(17);
+  });
+
+  it("respects the depletion cap even with a yield-boosted strike - can't pull more than remains", () => {
+    const almostGone: GatherableNode = { ...testNode, baseYield: 10, totalYieldCapacity: 12 };
+    const depletion = { totalYielded: 10 }; // only 2 remaining
+    const result = attemptGatherStrike(almostGone, skillLvl1, testTiers[1], depletion, 0.01, 1, 0, 1); // huge bonus
+    expect(result.amountGained).toBeLessThanOrEqual(2);
+  });
+});

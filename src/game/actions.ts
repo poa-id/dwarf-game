@@ -6,6 +6,7 @@ import { WOOD_NODES, isExhausted as isWoodExhausted, attemptWoodGather, applyWoo
 import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "../engine/smithing";
 import { repairTorch } from "../engine/torches";
 import { xpPerkBonus } from "../engine/smelter";
+import { yieldPerkBonus } from "../engine/hearth";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
 import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
 import { showNarratorToast } from "../narration/toast";
@@ -44,6 +45,11 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   // reusing one roll for both would be wrong), weighted by the
   // combined Gemcutting-station-tier + Tinkering-perk bonus.
   const gemDropChanceBonus = totalGemDropChanceBonus(state.world.gemcuttingTier, state.world.cutGemsSpentOnPerk);
+  // Hearth's global yield perk (added 2026-06-23) - applies "everywhere
+  // uniformly" per explicit direction, not just to gathering, but
+  // Mining/Woodcraft are where it's most visible since their yields
+  // can already exceed 1 at higher tool tiers.
+  const hearthYieldBonus = yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk);
   const result = attemptMineStrike(
     rockNode,
     miningSkill,
@@ -51,7 +57,8 @@ export function handleMineStrike(actionHint: HTMLElement): void {
     depletion,
     Math.random(),
     Math.random(),
-    gemDropChanceBonus
+    gemDropChanceBonus,
+    hearthYieldBonus
   );
 
   setState({
@@ -112,7 +119,14 @@ export function handleWoodGather(): void {
   }
 
   const isFirstStrikeEver = !state.narrator.firedOnceTriggers.includes("wood_first_strike");
-  const result = attemptWoodGather(woodNode, woodcraftSkill, state.world.toolsForged.axe, depletion, Math.random());
+  const result = attemptWoodGather(
+    woodNode,
+    woodcraftSkill,
+    state.world.toolsForged.axe,
+    depletion,
+    Math.random(),
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk)
+  );
 
   setState({
     ...state,

@@ -1,6 +1,7 @@
 import type { SkillState, ResourceBag, MaterialId } from "./types";
 import { addMaterial } from "./types";
 import { levelForXp } from "./xpCurve";
+import { applyHearthYieldBonus } from "./yieldCurve";
 
 /**
  * A gatherable node - the generic shape behind both Mining's rock veins
@@ -128,6 +129,15 @@ export interface GatherStrikeResult {
  * Gemcutting station's own tier bonus on top of the node's baseChance -
  * see gemcutting.ts.
  *
+ * `hearthYieldBonus` (also added 2026-06-23, also defaults to 0) is
+ * the Hearth's global yield perk (hearth.ts's yieldPerkBonus) -
+ * applied via yieldCurve.ts's applyHearthYieldBonus ON TOP of the
+ * tool's own yieldMultiplier (this function's pre-existing
+ * tool-based multiplier is unchanged; the Hearth's bonus stacks
+ * additively beyond it), BEFORE the depletion cap below - so a
+ * yield-boosted strike still correctly can't pull more material out
+ * of an almost-exhausted node than actually remains.
+ *
  * Throws if level or exhaustion preconditions aren't met - same
  * defensive pattern throughout the engine; the caller (UI layer) is
  * responsible for not offering an unavailable/exhausted node in the
@@ -140,7 +150,8 @@ export function attemptGatherStrike(
   depletion: NodeDepletionState,
   roll: number,
   gemRoll: number = 1,
-  gemDropChanceBonus: number = 0
+  gemDropChanceBonus: number = 0,
+  hearthYieldBonus: number = 0
 ): GatherStrikeResult {
   if (skill.level < node.requiredLevel) {
     throw new Error(`Level ${skill.level} is below required ${node.requiredLevel} for ${node.id}`);
@@ -169,7 +180,8 @@ export function attemptGatherStrike(
   }
 
   const xpGained = node.baseXp;
-  const rawYield = Math.round(node.baseYield * tool.yieldMultiplier);
+  const toolYield = Math.round(node.baseYield * tool.yieldMultiplier);
+  const rawYield = applyHearthYieldBonus(toolYield, hearthYieldBonus);
   // Cap the actual yield at whatever remains, so a lucky high-yield
   // strike on an almost-exhausted node can't pull MORE material out of
   // it than it actually has left.

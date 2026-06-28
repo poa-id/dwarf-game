@@ -71,10 +71,16 @@ export function attemptWoodGather(
   woodcraftSkill: SkillState,
   forgedAxeTier: number,
   depletion: NodeDepletionState,
-  roll: number
+  roll: number,
+  hearthYieldBonus: number = 0
 ): WoodGatherResult {
   const axe = bestAvailableAxe(forgedAxeTier);
-  return attemptGatherStrike(node, woodcraftSkill, axe, depletion, roll);
+  // Gem params are left at attemptGatherStrike's own defaults (1, 0) -
+  // wood nodes never have a gemDrop config (see gathering.ts's
+  // GatherableNode doc comment), so there's nothing for a real roll to
+  // ever win here regardless. hearthYieldBonus (added 2026-06-23) IS
+  // real and applies uniformly, per explicit direction.
+  return attemptGatherStrike(node, woodcraftSkill, axe, depletion, roll, undefined, undefined, hearthYieldBonus);
 }
 
 export function applyWoodGatherResult(
