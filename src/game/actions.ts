@@ -8,7 +8,7 @@ import { repairTorch } from "../engine/torches";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
-import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 import { showNarratorToast } from "../narration/toast";
 
 /**
@@ -87,9 +87,15 @@ export function handleMineStrike(actionHint: HTMLElement): void {
     level: levelForXp(newTotalXp),
     xp: newTotalXp,
   };
+  // Insight - per explicit direction, EVERY XP-granting action also
+  // grants Insight (5% of the already-multiplied XP) - see
+  // xpCurve.ts's insightFromXp for the full rationale. Accumulates
+  // fractionally; only the UI display rounds.
+  const newInsightBanked = afterMiss.world.insightBanked + insightFromXp(multipliedXp);
 
   setState({
     ...afterMiss,
+    world: { ...afterMiss.world, insightBanked: newInsightBanked },
     vessel: {
       ...afterMiss.vessel,
       inventory: newInventory,
@@ -152,9 +158,11 @@ export function handleWoodGather(): void {
     level: levelForXp(newTotalXp),
     xp: newTotalXp,
   };
+  const newInsightBanked = afterMiss.world.insightBanked + insightFromXp(multipliedXp);
 
   setState({
     ...afterMiss,
+    world: { ...afterMiss.world, insightBanked: newInsightBanked },
     vessel: {
       ...afterMiss.vessel,
       inventory: newInventory,

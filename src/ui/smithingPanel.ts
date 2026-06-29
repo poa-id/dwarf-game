@@ -14,7 +14,7 @@ import { canAffordMaterials, MATERIALS } from "../engine/types";
 import type { GameState, ToolSlot } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
-import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 
 /**
  * Renders the Smithing recipe list into a container. Pure rendering -
@@ -178,6 +178,7 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
 
   const newState: GameState = {
     ...state,
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
     vessel: {
       ...state.vessel,
       inventory: newInventory,
@@ -222,7 +223,11 @@ export function performForgeTool(state: GameState, recipe: ToolRecipe): ForgeToo
 
   const newState: GameState = {
     ...state,
-    world: { ...state.world, toolsForged: newToolsForged },
+    world: {
+      ...state.world,
+      toolsForged: newToolsForged,
+      insightBanked: state.world.insightBanked + insightFromXp(multipliedXp),
+    },
     vessel: {
       ...state.vessel,
       inventory: newInventory,

@@ -6,6 +6,7 @@ import {
   xpIntoCurrentLevel,
   xpNeededForNextLevel,
   applyDwarfCountXpMultiplier,
+  insightFromXp,
 } from "../xpCurve";
 
 describe("xpForLevel", () => {
@@ -119,5 +120,30 @@ describe("applyDwarfCountXpMultiplier", () => {
     // dwarfCount=20 alone already exceeds the cap (1+3=4x -> capped to 3x);
     // adding a perk bonus on top must NOT push it past 3x either
     expect(applyDwarfCountXpMultiplier(100, 20, 0.15)).toBe(300);
+  });
+});
+
+describe("insightFromXp (added 2026-06-23 - fixes a real gap: LORE.md always described Insight as earned from everyday actions AND rekindling, but only rekindling was ever implemented)", () => {
+  it("is exactly 5% of the given (already-multiplied) XP value", () => {
+    expect(insightFromXp(100)).toBe(5);
+    expect(insightFromXp(20)).toBe(1);
+  });
+
+  it("is 0 for 0 XP", () => {
+    expect(insightFromXp(0)).toBe(0);
+  });
+
+  it("is DELIBERATELY fractional, not rounded - most common actions grant well under 20 XP, and rounding would silently grant 0 Insight for many of the cheapest, most frequent actions", () => {
+    // 8 XP (e.g. a copper_vein strike) * 0.05 = 0.4 - would round to 0,
+    // but the explicit ask was that EVERY action contributes something
+    const result = insightFromXp(8);
+    expect(result).toBeCloseTo(0.4, 6);
+    expect(Number.isInteger(result)).toBe(false);
+  });
+
+  it("scales up proportionally with larger (e.g. perk-boosted) XP values, consistent with 'Insight is a synonym for experience'", () => {
+    const baseline = insightFromXp(10);
+    const boosted = insightFromXp(30); // as if a 3x XP multiplier had already been applied upstream
+    expect(boosted).toBeCloseTo(baseline * 3, 6);
   });
 });

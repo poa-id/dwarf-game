@@ -101,7 +101,14 @@ function updateStatsPanel(): void {
   // "Progress Should Be Visible." Shown under "the mountain," not "the
   // dwarf," since Insight is World-level (survives rekindling), not a
   // personal stat that resets with the Vessel.
-  refs.statEls.insightDisplay.textContent = `Insight: ${insightBanked}`;
+  // Insight - per explicit direction, EVERY XP-granting action also
+  // grants a small fractional amount (see xpCurve.ts's insightFromXp),
+  // so the underlying world.insightBanked accumulates fractionally.
+  // Math.floor here is presentation-only - never shows a fractional
+  // Insight to the player, but never rounds UP either (so the display
+  // doesn't show an amount the player can't yet actually afford to
+  // spend).
+  refs.statEls.insightDisplay.textContent = `Insight: ${Math.floor(insightBanked)}`;
 
   refs.statEls.mining.textContent = `Mining ${skills.mining.level}`;
   refs.statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;

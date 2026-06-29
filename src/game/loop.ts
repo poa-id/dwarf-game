@@ -9,7 +9,7 @@ import {
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
 } from "../engine/hearth";
 import { xpPerkBonus } from "../engine/smelter";
-import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -34,10 +34,16 @@ function gameTick(): void {
         xp: newHearthkeepingXp,
       };
       const leveledUp = newHearthkeeping.level > state.vessel.skills.hearthkeeping.level;
+      // Insight - this passive Hearthkeeping tick is literally the
+      // "slow trickle over time" LORE.md always described Insight as
+      // earning from, alongside rekindling - see xpCurve.ts's
+      // insightFromXp for the full rationale behind this being wired
+      // in everywhere, not just here.
+      const newInsightBanked = state.world.insightBanked + insightFromXp(multipliedXp);
 
       setState({
         ...state,
-        world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve },
+        world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve, insightBanked: newInsightBanked },
         vessel: { ...state.vessel, skills: { ...state.vessel.skills, hearthkeeping: newHearthkeeping } },
       });
       state = getState();

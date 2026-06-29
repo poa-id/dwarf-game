@@ -633,3 +633,36 @@ item now either resolved or confirmed not needed.
     "the dwarf"'s personal skill stats, since Insight survives
     rekindling and isn't a personal stat.
 
+- **Insight only ever earnable from rekindling - RESOLVED, a real gap,
+  not a balance tweak (2026-06-23):** reported directly during
+  playtesting - "How do I gain insight? I'm sitting at 105 and it
+  doesn't move up." Investigation found `LORE.md` always described
+  Insight as earned "BOTH from Hearth-tending (slow trickle) AND from
+  rekindling itself," but only the rekindling half was EVER actually
+  implemented - the lore doc was right all along, the implementation
+  had simply never caught up to it. Project owner's reframe went
+  further than just "add the trickle back": "Insight is a synonym for
+  experience, and we are using it as a resource... every single
+  pickaxe swing, charcoal burning, ore smelting, rebuilding, repairing"
+  should grant it - a universal experience-derived resource, not a
+  Hearth-only one.
+  - **Resolved**: every XP-granting action now also grants Insight (5%
+    of the action's already-multiplied XP - `xpCurve.ts`'s
+    `insightFromXp`), wired into all 8 real XP call sites (mining,
+    woodcraft, Hearthkeeping's passive tick AND direct stoke, Smithing
+    ingots/tools, the Kiln, the Smelter, Gemcutting). Deliberately
+    fractional (never rounded per-action - most common actions grant
+    under 20 XP, and 5% of that rounds to 0 for many of the cheapest,
+    most frequent ones, which would have silently broken the feature
+    for early-game play); only the UI display floors for presentation.
+    Rekindling's lump-sum payout is unchanged and stacks on top, per
+    explicit direction ("rekindling should still give a real lump-sum
+    bonus on top of whatever was earned passively along the way").
+  - **Side effect, also fixed**: Tinkering's XP previously did NOT get
+    the `dwarfCount`/True-metal-perk multiplier every other skill's XP
+    already got - a gap explicitly flagged in an earlier session's
+    code comment as "not yet decided." Now extended to Tinkering too,
+    for consistency, per explicit direction.
+  - See MECHANICS.md's new Insight writeup (§5) and LORE.md's updated
+    Rekindling section for the full account.
+

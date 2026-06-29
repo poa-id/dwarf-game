@@ -14,7 +14,8 @@ import {
 } from "../engine/gemcutting";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
-import { levelForXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { xpPerkBonus } from "../engine/smelter";
 
 /**
  * Renders the Gemcutting station's panel - the same three-state
@@ -175,15 +176,19 @@ export function performCutGem(state: GameState, roughMaterialId: MaterialId): Cu
   const newInventory = applyCutGemResult(state.vessel.inventory, result);
 
   const oldLevel = state.vessel.skills.tinkering.level;
-  // Tinkering's XP is NOT run through the dwarfCount/yield-perk-style
-  // global multiplier here - cutting's xpGained is already the
-  // skill's baseline rate (see gemcutting.ts's CUTTING_BASE_XP), and
-  // unlike Mining/Smithing/Hearthkeeping's established pattern, there
-  // is no separate "apply the multiplier at the call site" step needed
-  // for THIS skill's only action yet - revisit if/when
-  // applyDwarfCountXpMultiplier's scope is deliberately extended to
-  // Tinkering too (not yet decided).
-  const newTinkeringXp = state.vessel.skills.tinkering.xp + result.xpGained;
+  // Fixed 2026-06-23 - this previously-flagged gap is now closed:
+  // Tinkering's XP now gets the SAME dwarfCount/True-metal multiplier
+  // every other skill gets, for consistency ("Insight and faster
+  // leveling should apply there consistently with every other
+  // skill," per explicit direction). Uses the XP-perk's bonus
+  // (xpPerkBonus), the same one every other skill's XP already uses -
+  // Tinkering doesn't get its own separate global XP multiplier.
+  const multipliedXp = applyDwarfCountXpMultiplier(
+    result.xpGained,
+    state.world.dwarfCount,
+    xpPerkBonus(state.world.trueMetalSpentOnXpPerk)
+  );
+  const newTinkeringXp = state.vessel.skills.tinkering.xp + multipliedXp;
   const newTinkering = {
     ...state.vessel.skills.tinkering,
     level: levelForXp(newTinkeringXp),
@@ -192,6 +197,7 @@ export function performCutGem(state: GameState, roughMaterialId: MaterialId): Cu
 
   const newState: GameState = {
     ...state,
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
     vessel: {
       ...state.vessel,
       inventory: newInventory,

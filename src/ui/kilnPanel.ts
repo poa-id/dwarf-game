@@ -8,7 +8,7 @@ import { MATERIALS } from "../engine/types";
 import type { GameState } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
-import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 
 /**
  * Renders the Charcoal Kiln's single-action panel into a container.
@@ -80,6 +80,7 @@ export function performCharcoalBurn(state: GameState): KilnOutcome {
 
   const newState: GameState = {
     ...state,
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
     vessel: {
       ...state.vessel,
       inventory: newInventory,

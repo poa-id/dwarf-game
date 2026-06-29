@@ -181,6 +181,49 @@ Currently defined: `copper_ore`, `iron_ore`, `coal` (heatValue 10),
 fuel not just a construction material), `copper_ingot`, `iron_ingot`,
 `insight`.
 
+**Insight — earned two ways, not one (fixed 2026-06-23, a real gap, not
+just a balance tweak):** `LORE.md` always described Insight as "earned
+BOTH from Hearth-tending (slow trickle over time) AND from rekindling
+itself," but for a long stretch of the project's life only the
+rekindling half was ever implemented - a player who hadn't rekindled
+recently had no way to earn Insight at all, directly contradicting
+"Insight is a synonym for experience, used as a resource" (the
+project's own framing for what Insight is meant to be). Found via a
+direct playtesting question ("How do I gain insight? I'm sitting at 105
+and it doesn't move up").
+
+- **Per-action trickle**: EVERY XP-granting action across every skill
+  now also grants Insight - 5% of that action's already-multiplied XP
+  (`xpCurve.ts`'s `insightFromXp`), using the post-`dwarfCount`/True-
+  metal-perk-bonus value, so Insight scales up right alongside however
+  fast the player is currently leveling. Deliberately broader than
+  "Hearth-tending" alone, per explicit direction - Mining, Smithing, the
+  Kiln, the Smelter, Gemcutting all contribute, not only Hearthkeeping.
+  **Deliberately fractional, never rounded per-action** -
+  `WorldState.insightBanked` accumulates the raw fractional value (same
+  precedent as `hearth.ts`'s `HEARTHKEEPING_XP_PER_FUEL_VALUE`); only
+  the UI display (`Math.floor`, in `render.ts`) rounds, and only down,
+  so the number shown never overstates what's actually spendable. This
+  matters because most common actions grant under 20 XP, and 5% of that
+  rounds to exactly 0 for many of the cheapest, most frequent ones
+  (copper strikes, charcoal burns, copper smelts) - rounding per-action
+  would have silently broken the entire feature for early-game play.
+- **Tinkering's XP multiplier gap closed in the same pass**: Tinkering
+  previously did NOT get the `dwarfCount`/True-metal-perk multiplier
+  every other skill's XP already got (a gap explicitly flagged in an
+  earlier comment, left for "revisit if/when... not yet decided") -
+  now fixed, for consistency, so Insight (and faster leveling) applies
+  there the same way it does everywhere else.
+- **Rekindling's lump-sum payout is unchanged** and stacks on top of
+  whatever was earned passively along the way - see §13's Rekindling
+  section below for the full diminishing-returns mechanic. Per explicit
+  direction, rekindling should still feel like a real event, not be
+  made redundant by the per-action trickle existing alongside it.
+- **Spent on**: Forge tier upgrades, Hearth tier upgrades AND its yield-
+  perk tree, the Smelter (build cost + its own tier track), the
+  Gemcutting station (build cost + its own tier track) - see each
+  structure's own writeup below for exact costs.
+
 **Fuel philosophy:** coal is mined directly (not a smithing byproduct,
 which was the old design — explicitly removed). Purer, rarer fuels are
 planned for later, with higher `heatValue`, unlocking recipes a weak fire
@@ -453,11 +496,14 @@ met him - a real violation of UI-as-progression (§15). The row now
 renders nothing at all - no header, no row, no hint - until
 `insightBanked` actually reaches the cost; reaching it IS the discovery
 moment. This is also why the cost itself needed raising from 30 to 250:
-Insight only comes from rekindling (`calculateRekindleInsight`, 5 per
-total skill level), so the old 30 cost was reachable after almost no
-play at all - far too cheap a gate for something meant to be rare and
-major, and not even a meaningful threshold for discovery-gating
-purposes.
+at the time this fix was made, Insight only came from rekindling
+(`calculateRekindleInsight`, 5 per total skill level), so the old 30
+cost was reachable after almost no play at all - far too cheap a gate
+for something meant to be rare and major, and not even a meaningful
+threshold for discovery-gating purposes. (Insight gained a second,
+broader source later - see §5's Insight writeup below - but the 250
+cost still stands as the right number; nothing about that conclusion
+depended on Insight being rekindle-only.)
 
 **Rekindling has a UI affordance now, and it must stay silent
 beforehand (added 2026-06-22):** the "Rekindle" option appears in the

@@ -128,10 +128,23 @@ mechanic, reframed as myth rather than "start over."
 - **What resets:** skill levels/XP, inventory, position.
 - **What persists:** literally everything on World — forge tier, mine
   depth, hearth state, lore, torches, vein depletion.
-- **Insight** — the kinship currency. Earned BOTH from Hearth-tending
-  (slow trickle over time) and from rekindling itself (lump sum, scaled
-  by the dwarf's total skill levels at time of death — `5 × total levels`
-  currently). Spent on Forge upgrades (World-permanent).
+- **Insight** — the kinship currency. Earned from EVERY XP-granting
+  action across every skill (a small fractional trickle, 5% of that
+  action's XP — see `xpCurve.ts`'s `insightFromXp`) AND from rekindling
+  itself (lump sum, scaled by the dwarf's total skill levels at time of
+  death — `5 × total levels` currently, with a diminishing-returns
+  penalty if rekindled too soon after the last one — see
+  `rekindle.ts`'s `calculateRekindleInsight`). This corrects a real gap
+  found in playtesting (2026-06-23): this passage always described
+  Insight as earned "BOTH from Hearth-tending and from rekindling," but
+  for a long stretch of the project's life, only the rekindling half
+  was ever actually implemented — a player who hadn't rekindled
+  recently had no way to earn Insight at all, which contradicted
+  "Insight is a synonym for experience, used as a resource." The
+  per-action trickle is now real, and deliberately broader than just
+  Hearth-tending — every skill's actions contribute, not only
+  Hearthkeeping's. Spent on Forge/Hearth/Smelter/Gemcutting upgrades
+  (World-permanent).
 - **First rekindling specifically** triggers the world's first color
   (Hearth colorStage 0→1). Later rekindlings do NOT grant color directly
   — color progress is purely a function of the Hearth's lifetime fuel,

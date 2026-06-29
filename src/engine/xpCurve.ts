@@ -104,3 +104,40 @@ export function applyDwarfCountXpMultiplier(
   const multiplier = Math.min(3, 1 + dwarfCount * 0.15 + trueMetalXpBonus);
   return Math.round(baseXp * multiplier);
 }
+
+/**
+ * Converts an XP grant into Insight - fixing a real gap found in
+ * playtesting (2026-06-23): LORE.md always described Insight as
+ * "earned BOTH from Hearth-tending (slow trickle) AND from rekindling
+ * itself," but the only implementation that ever existed was
+ * rekindle.ts's lump-sum payout. A player who hadn't rekindled
+ * recently (or rekindled "too soon" and hit the diminishing-returns
+ * penalty) had no way to earn Insight AT ALL - directly contradicting
+ * "Insight is a synonym for experience, used as a resource," which
+ * should never be fully gated behind one specific, occasional action.
+ *
+ * Per explicit project direction: every XP-granting action across
+ * every skill ALSO grants Insight, as 5% of that action's XP - using
+ * the ALREADY-MULTIPLIED xp value (post dwarfCount/True-metal-perk
+ * bonus), so Insight scales up right alongside however fast the
+ * player is currently leveling, consistent with "Insight is a
+ * synonym for experience."
+ *
+ * Deliberately returns a FRACTIONAL value, not rounded - most common
+ * actions grant well under 20 XP, and 5% of that rounds to 0 for many
+ * of the cheapest, most frequent actions (copper strikes, charcoal
+ * burns, copper smelts) - which would silently grant nothing despite
+ * the explicit ask that EVERY action contributes. WorldState.insightBanked
+ * accumulates this fractional value directly (same precedent as
+ * hearth.ts's HEARTHKEEPING_XP_PER_FUEL_VALUE); only the UI DISPLAY
+ * rounds for presentation, the underlying stored value never does.
+ *
+ * Rekindling's own lump-sum Insight payout (rekindle.ts's
+ * calculateRekindleInsight) is UNCHANGED and stacks on top of
+ * whatever was earned passively along the way via this function - per
+ * explicit direction, rekindling should still feel like a real event,
+ * not be made redundant by the per-action trickle.
+ */
+export function insightFromXp(multipliedXp: number): number {
+  return multipliedXp * 0.05;
+}

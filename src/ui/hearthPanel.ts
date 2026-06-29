@@ -15,7 +15,7 @@ import type { RekindleResult } from "../engine/rekindle";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
-import { applyDwarfCountXpMultiplier, levelForXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 
 const STOKE_AMOUNT = 1; // fixed burst size for now - see DESIGN.md's x1/x5/x10/MAX open item for the eventual bulk-action upgrade
 
@@ -276,7 +276,11 @@ export function performStoke(state: GameState, materialId: MaterialId, target: S
 
     const newState: GameState = {
       ...state,
-      world: { ...state.world, hearth: result.hearth },
+      world: {
+        ...state.world,
+        hearth: result.hearth,
+        insightBanked: state.world.insightBanked + insightFromXp(multipliedXp),
+      },
       vessel: {
         ...state.vessel,
         inventory: result.inventory,
