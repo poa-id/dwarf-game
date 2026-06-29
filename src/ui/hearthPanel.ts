@@ -6,6 +6,8 @@ import {
   canAffordHearthUpgrade,
   isAutoTendingUnlocked,
   reserveBurnSecondsRemaining,
+  nextHaulMaterial,
+  secondsUntilNextHaul,
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
   nextYieldPerkTier,
   trueMetalNeededForNextYieldPerkTier,
@@ -129,6 +131,33 @@ export function renderHearthPanel(
     `
     : "";
 
+  // Narag-Bund's hauling indicator - added 2026-06-23, fixing a real
+  // reported gap: "you unlock it and it just disappears" - the only
+  // feedback that existed anywhere was a one-time narrator toast at
+  // the moment of befriending, then total silence while fuel quietly
+  // moved from carried inventory into the reserve every 10 seconds
+  // with zero attribution. Only shown once befriended at all - before
+  // that, there's nothing to show. Pulls live, derived values
+  // (nextHaulMaterial, secondsUntilNextHaul) rather than waiting for
+  // an actual haul event, so it reads as a real-time status, not a
+  // log of past events.
+  const companionIndicator = state.world.companion.befriended
+    ? (() => {
+        const haulTarget = nextHaulMaterial(state.vessel.inventory);
+        const haulLabel = haulTarget ? MATERIALS[haulTarget]?.name ?? haulTarget : null;
+        const secondsLeft = Math.ceil(secondsUntilNextHaul(state.world.companion.lastHaulAt, Date.now()));
+        const statusText = haulLabel
+          ? `Hauling ${haulLabel} to the reserve in ~${secondsLeft}s`
+          : `Nothing to haul right now - carry some fuel`;
+        return `
+          <div class="companion-status-row">
+            <div class="companion-status-label">Narag-Bund</div>
+            <div class="companion-status-detail">${statusText}</div>
+          </div>
+        `;
+      })()
+    : "";
+
   // Discovery gating: an upgrade the player can't yet afford doesn't
   // render AT ALL - no header, no disabled row, no hint of its name or
   // existence. This is deliberate (2026-06-22) - Friend of Burden's
@@ -195,6 +224,7 @@ export function renderHearthPanel(
     ${fuelRows}
     <p class="reserve-status">Reserve: ${reserveText}</p>
     ${burnGauge}
+    ${companionIndicator}
     <div class="stoke-flash ${stokeFlashActive ? "stoke-flash-active" : ""}" id="stoke-flash"></div>
     ${upgradeSection}
     ${yieldPerkSection}

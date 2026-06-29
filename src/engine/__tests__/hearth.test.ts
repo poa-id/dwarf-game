@@ -8,6 +8,8 @@ import {
   stokeReserve,
   deductFuelValueFromReserve,
   advanceCompanionHauling,
+  nextHaulMaterial,
+  secondsUntilNextHaul,
   HAUL_INTERVAL_MS,
   HAUL_AMOUNT_PER_TRIP,
   nextHearthUpgrade,
@@ -254,6 +256,45 @@ describe("deductFuelValueFromReserve", () => {
     const reserve: ResourceBag = { coal: 5 };
     deductFuelValueFromReserve(reserve, 10);
     expect(reserve.coal).toBe(5);
+  });
+});
+
+describe("nextHaulMaterial (added 2026-06-23, extracted from advanceCompanionHauling so the UI can preview without waiting for an actual haul)", () => {
+  it("picks the fuel material the player holds the MOST of", () => {
+    expect(nextHaulMaterial({ wood: 3, coal: 10 })).toBe("coal");
+    expect(nextHaulMaterial({ wood: 10, coal: 3 })).toBe("wood");
+  });
+
+  it("returns null if nothing haulable is held at all", () => {
+    expect(nextHaulMaterial({})).toBeNull();
+    expect(nextHaulMaterial({ copper_ore: 50 })).toBeNull(); // not a fuel material
+  });
+
+  it("ignores a fuel material at exactly 0", () => {
+    expect(nextHaulMaterial({ wood: 0, coal: 5 })).toBe("coal");
+  });
+
+  it("matches advanceCompanionHauling's actual selection exactly - same function, not a separate copy of the rule", () => {
+    const inv = { wood: 2, coal: 8, charcoal: 1 };
+    const preview = nextHaulMaterial(inv);
+    const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS);
+    expect(preview).toBe("coal");
+    expect(result.fuelReserve.coal).toBe(1); // confirms coal was what actually got hauled
+  });
+});
+
+describe("secondsUntilNextHaul (added 2026-06-23)", () => {
+  it("is the full interval right after a haul", () => {
+    expect(secondsUntilNextHaul(0, 0)).toBe(HAUL_INTERVAL_MS / 1000);
+  });
+
+  it("counts down linearly as time passes", () => {
+    const halfway = HAUL_INTERVAL_MS / 2;
+    expect(secondsUntilNextHaul(0, halfway)).toBeCloseTo(HAUL_INTERVAL_MS / 2 / 1000, 3);
+  });
+
+  it("is 0, not negative, once a trip is overdue", () => {
+    expect(secondsUntilNextHaul(0, HAUL_INTERVAL_MS * 5)).toBe(0);
   });
 });
 

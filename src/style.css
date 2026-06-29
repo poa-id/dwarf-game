@@ -319,6 +319,30 @@ canvas {
   color: #666;
 }
 
+.companion-status-row {
+  /* Mirrors .burn-gauge-row's visual weight - both are live,
+     continuously-updating status readouts, not interactive rows.
+     Added 2026-06-23 fixing a real reported gap: Narag-Bund had zero
+     persistent feedback anywhere after the one-time "befriended"
+     toast. */
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  color: #888;
+}
+
+.companion-status-label {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: #a8896a; /* warm, slightly muted tan - distinct from the burn gauge's ember-red, this is a creature, not fire */
+}
+
+.companion-status-detail {
+  color: #666;
+}
+
 .stoke-flash {
   height: 0;
   background: #ff8c3a;

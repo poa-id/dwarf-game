@@ -169,6 +169,34 @@ personality/mood, distinct from the mechanical color-stage truth.
 `heatValue` - "the hearth can be powered by other means," unlike the
 Forge, which has hard per-recipe heat minimums it won't compromise on.
 
+**Narag-Bund, the Companion** — befriended via the "Friend of Burden"
+Hearth upgrade (tier 1, 250 Insight - see §5 for the full discovery-
+gating rationale on that cost). Once befriended
+(`WorldState.companion.befriended`), he hauls 1 unit
+(`HAUL_AMOUNT_PER_TRIP`) of whichever fuel material the player
+currently holds the MOST of (`hearth.ts`'s `nextHaulMaterial` - coal,
+wood, or charcoal, never a fixed preference order) from carried
+inventory into the Hearth's `fuelReserve`, every 10 seconds
+(`HAUL_INTERVAL_MS`), real elapsed time including offline. This is
+genuinely useful (banks fuel for `tickHearth`'s passive auto-burn
+without the player needing to manually stoke) but was, for a long
+stretch, also genuinely invisible.
+
+**Fixed 2026-06-23, a real reported gap ("you unlock it and it just
+disappears... it's mysterious"):** the ONLY feedback that ever existed
+for Narag-Bund was a one-time narrator toast at the exact moment of
+befriending (`companion_befriended`) - after that, total silence,
+forever, while fuel quietly moved from carried inventory into the
+reserve with zero attribution. Added a persistent status line in the
+Hearth panel (only shown once befriended at all), live-computing what
+he'll haul next and a countdown to his next trip
+(`nextHaulMaterial`/`secondsUntilNextHaul`, both pure presentation
+functions reading current state rather than waiting for an actual
+haul event to log). `nextHaulMaterial` was extracted out of
+`advanceCompanionHauling`'s own selection logic rather than
+duplicated, so the preview and the real mechanic can never silently
+drift apart.
+
 ## 5. Materials & Economy
 
 Flexible `MaterialId`-keyed inventory (`Partial<Record<MaterialId,
@@ -444,8 +472,8 @@ falling back to wood once coal runs out.
 This means Smithing and Hearthkeeping never actually compete for the
 same held materials in real time - Smithing always has full access to
 whatever's in personal inventory; the Hearth only ever touches what's
-been deliberately set aside for it. See §10a for Narag-Bund, who
-automates the "setting aside" step once befriended.
+been deliberately set aside for it. See §4's Narag-Bund subsection
+above, who automates the "setting aside" step once befriended.
 
 **The burn gauge — real, persisted feedback, added after playtesting
 found stoking had none (2026-06-22):** the Hearth panel shows a live
@@ -478,7 +506,8 @@ principle below for why that specific number stays hidden.
 **Hearth upgrades (`HEARTH_UPGRADES` in hearth.ts) - built, real
 content now, not just placeholder tiers:**
 - **Tier 1, "Friend of Burden" (250 Insight, raised from 30 — see
-  below):** befriends Narag-Bund (§10a) AND unlocks `tickHearth`'s
+  below):** befriends Narag-Bund (§4's Narag-Bund subsection) AND
+  unlocks `tickHearth`'s
   passive continuous draw. Before this tier, the Hearth does NOTHING
   passively - manual stoking is the entire mechanic, by deliberate
   design choice.

@@ -448,6 +448,37 @@ export interface HaulResult {
  * trips; it computes how many trips elapsed and applies them in one
  * step, capped by what the dwarf actually carries.
  */
+/**
+ * Which fuel material Narag-Bund will haul next, given current
+ * holdings - whichever HEARTH_FUEL_MATERIALS entry the dwarf currently
+ * holds the most of, or null if he's carrying nothing haulable right
+ * now. Extracted as its own function (2026-06-23, alongside the
+ * companion-visibility fix) so the UI can PREVIEW what he'll haul
+ * next without waiting for an actual haul to happen - advanceCompanionHauling
+ * below uses this same selection, not a separate copy of the rule.
+ */
+export function nextHaulMaterial(inventory: ResourceBag): MaterialId | null {
+  return HEARTH_FUEL_MATERIALS.reduce<MaterialId | null>((best, candidate) => {
+    const candidateAmount = getMaterialAmount(inventory, candidate);
+    if (candidateAmount <= 0) return best;
+    if (best === null) return candidate;
+    return candidateAmount > getMaterialAmount(inventory, best) ? candidate : best;
+  }, null);
+}
+
+/**
+ * Seconds remaining until Narag-Bund's next haul trip, given when his
+ * last one happened. Pure presentation math (added 2026-06-23,
+ * alongside nextHaulMaterial above) - mirrors reserveBurnSecondsRemaining's
+ * style. Clamped at 0 (never negative, even if a trip is overdue and
+ * just hasn't been processed by the game loop yet this tick).
+ */
+export function secondsUntilNextHaul(lastHaulAt: number, now: number): number {
+  const elapsedMs = Math.max(0, now - lastHaulAt);
+  const remainingMs = Math.max(0, HAUL_INTERVAL_MS - elapsedMs);
+  return remainingMs / 1000;
+}
+
 export function advanceCompanionHauling(
   inventory: ResourceBag,
   fuelReserve: ResourceBag,
@@ -463,12 +494,7 @@ export function advanceCompanionHauling(
 
   // Pick whichever fuel material the dwarf currently holds the most of -
   // Narag-Bund grabs what's abundant, not a fixed preference order.
-  const materialId = HEARTH_FUEL_MATERIALS.reduce<MaterialId | null>((best, candidate) => {
-    const candidateAmount = getMaterialAmount(inventory, candidate);
-    if (candidateAmount <= 0) return best;
-    if (best === null) return candidate;
-    return candidateAmount > getMaterialAmount(inventory, best) ? candidate : best;
-  }, null);
+  const materialId = nextHaulMaterial(inventory);
 
   if (materialId === null) {
     // Nothing for him to haul this time, but time still passed - advance

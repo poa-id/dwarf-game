@@ -666,3 +666,32 @@ item now either resolved or confirmed not needed.
   - See MECHANICS.md's new Insight writeup (§5) and LORE.md's updated
     Rekindling section for the full account.
 
+- **Narag-Bund had zero persistent feedback - RESOLVED (2026-06-23).**
+  Reported directly: "you unlock it and it just disappears... it's
+  mysterious." The only feedback that ever existed was a one-time
+  narrator toast at the moment of befriending - after that, total
+  silence while fuel quietly moved from carried inventory into the
+  reserve every 10 seconds. Fixed with a persistent Hearth-panel status
+  line, live-computing what he'll haul next and a countdown
+  (`hearth.ts`'s new `nextHaulMaterial`/`secondsUntilNextHaul`,
+  extracted from/alongside `advanceCompanionHauling` so the preview can
+  never drift from the real mechanic). Also fixed two genuinely
+  dangling `§10a` cross-references in MECHANICS.md (a pre-existing doc
+  bug, unrelated to this session's other work, found while documenting
+  this fix) - there was never an actual `§10a` section; added a real
+  Narag-Bund subsection under §4 instead.
+  - **Explicit note for later**: project owner flagged that companion
+    visibility specifically, and Hearth/contextual-panel UI more
+    broadly, will need a real dedicated UI pass at some point - this
+    fix addresses the immediate mystery, not a full UI redesign.
+- **Full upgrade/cost list requested** - project owner wanted
+  visibility into every stage/upgrade/cost across the game at once
+  (provided directly in the conversation, not written into a doc as a
+  static table - costs change often enough this session that a
+  duplicate written copy would risk going stale; the source files
+  themselves - `smithing.ts`'s `FORGE_UPGRADES`, `hearth.ts`'s
+  `HEARTH_UPGRADES`/`YIELD_PERK_TIERS`, `smelter.ts`'s
+  `SMELTER_TIERS`/`XP_PERK_TIERS`, `gemcutting.ts`'s
+  `GEMCUTTING_TIERS`/`TINKERING_PERK_TIERS`, plus `colorStages.ts`'s
+  `COLOR_STAGES` - remain the single source of truth).
+
