@@ -73,6 +73,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   // texture, tinted toward the same pale violet as STAGE_2/3's
   // gemcutting color in palette.ts, as a placeholder.
   gemcutting: { assetUrl: oreBaseUrl, tint: "#8a6fa8" },
+  gemcutting_unbuilt: { assetUrl: oreBaseUrl, tint: "#4a4050" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   // No dedicated torch sprite sliced from the tileset yet - reusing the
   // forge's glow art as a placeholder, tinted to distinguish broken

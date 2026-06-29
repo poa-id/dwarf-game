@@ -7,6 +7,8 @@ import {
   nextToolRecipe,
   attemptForgeTool,
   applyForgeToolResult,
+  nextForgeUpgrade,
+  canAffordForgeUpgrade,
   type SmithRecipe,
   type ToolRecipe,
 } from "../engine/smithing";
@@ -26,7 +28,8 @@ export function renderSmithingPanel(
   state: GameState,
   container: HTMLElement,
   onSmith: (recipe: SmithRecipe) => void,
-  onForgeTool: (recipe: ToolRecipe) => void
+  onForgeTool: (recipe: ToolRecipe) => void,
+  onForgeUpgrade: () => void
 ): void {
   const { smithing } = state.vessel.skills;
 
@@ -122,10 +125,30 @@ export function renderSmithingPanel(
 
   const toolsSection = toolRows ? `<h2>tools</h2>${toolRows}` : "";
 
+  // Forge upgrade section - MISSING until 2026-06-23, found via
+  // playtesting: "I already got the insight for it, but the option
+  // never appeared." nextForgeUpgrade/canAffordForgeUpgrade existed
+  // in the engine layer (smithing.ts) since much earlier, but were
+  // NEVER called from any UI. Mirroring hearthPanel.ts's upgradeSection
+  // discovery-gating pattern exactly: only renders when the next tier
+  // exists AND is currently affordable.
+  const nextUpgrade = nextForgeUpgrade(state.world.forgeTier);
+  const upgradeSection =
+    nextUpgrade && canAffordForgeUpgrade(state.world.insightBanked, state.world.forgeTier)
+      ? `
+        <h2>forge</h2>
+        <div class="recipe-row" data-forge-upgrade="true">
+          <div class="recipe-name">${nextUpgrade.name}</div>
+          <div class="recipe-status">${nextUpgrade.insightCost} Insight</div>
+        </div>
+      `
+      : "";
+
   container.innerHTML = `
     <h2>the forge</h2>
     ${rows}
     ${toolsSection}
+    ${upgradeSection}
   `;
 
   container.querySelectorAll<HTMLDivElement>("[data-recipe-id]").forEach((row) => {
@@ -143,6 +166,9 @@ export function renderSmithingPanel(
       if (recipe) onForgeTool(recipe);
     });
   });
+
+  const upgradeEl = container.querySelector<HTMLDivElement>("[data-forge-upgrade]");
+  upgradeEl?.addEventListener("click", onForgeUpgrade);
 }
 
 export interface SmithOutcome {
@@ -236,4 +262,19 @@ export function performForgeTool(state: GameState, recipe: ToolRecipe): ForgeToo
   };
 
   return { newState, success: result.success, leveledUp: newSmithing.level > oldLevel };
+}
+
+export function performForgeUpgrade(state: GameState): GameState {
+  const next = nextForgeUpgrade(state.world.forgeTier);
+  if (!next) return state;
+  if (!canAffordForgeUpgrade(state.world.insightBanked, state.world.forgeTier)) return state;
+
+  return {
+    ...state,
+    world: {
+      ...state.world,
+      forgeTier: next.tier,
+      insightBanked: state.world.insightBanked - next.insightCost,
+    },
+  };
 }

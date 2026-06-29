@@ -139,6 +139,16 @@ function buildHubContent(): GridCell[] {
   const kilnIdx = KILN_POSITION.row * HUB_WIDTH + KILN_POSITION.col;
   stamped[kilnIdx] = { kind: "kiln" };
 
+  // Place the Gemcutting station's UNBUILT marker - always visible in
+  // the static grid as a "something can be built here" cue, mirroring
+  // forge_broken's role for the Forge. The dynamic hubCellAt() override
+  // (below) replaces this with { kind: "gemcutting" } once built.
+  // Added 2026-06-23 fixing a real reported gap: without this, the
+  // buildable spot was indistinguishable plain floor until the player
+  // stumbled onto it by accident.
+  const gemcuttingIdx = GEMCUTTING_POSITION.row * HUB_WIDTH + GEMCUTTING_POSITION.col;
+  stamped[gemcuttingIdx] = { kind: "gemcutting_unbuilt" };
+
   return stamped;
 }
 
@@ -209,9 +219,10 @@ export function hubCellAt(
     return { kind: "smelter" };
   }
 
-  // The Gemcutting station - same "no static stamp, dynamic override
-  // once built" pattern as the Smelter above.
-  if (gemcuttingBuilt && col === GEMCUTTING_POSITION.col && row === GEMCUTTING_POSITION.row) {
+  // The Gemcutting station - same pattern as the Forge:
+  // gemcutting_unbuilt is always stamped statically; once built,
+  // that same cell is overridden to the real gemcutting kind.
+  if (staticCell.kind === "gemcutting_unbuilt" && gemcuttingBuilt) {
     return { kind: "gemcutting" };
   }
 

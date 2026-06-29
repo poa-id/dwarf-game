@@ -21,7 +21,7 @@ import {
   isNearSmelter,
   isNearGemcutting,
 } from "./proximity";
-import { renderSmithingPanel, performSmith, performForgeTool } from "../ui/smithingPanel";
+import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade } from "../ui/smithingPanel";
 import {
   renderHearthPanel,
   performStoke,
@@ -237,6 +237,10 @@ function updateContextualPanel(): void {
         const outcome = performForgeTool(getState(), toolRecipe);
         setState(outcome.newState);
         if (outcome.leveledUp) narrate("level_up");
+        render();
+      },
+      () => {
+        setState(performForgeUpgrade(getState()));
         render();
       }
     );
