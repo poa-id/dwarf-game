@@ -113,6 +113,49 @@ export function isWithinLightRadius(
 }
 
 /**
+ * Bresenham line-of-sight check between two grid cells. Returns true
+ * if there is a clear path from `from` to `to` without passing through
+ * any solid cell. The source and target cells themselves are not
+ * checked — only the cells in between matter for occlusion purposes
+ * (a dwarf standing inside the hall should still see the hall walls
+ * immediately around him, even though those wall cells are solid).
+ *
+ * The `isSolid` callback accepts a col/row pair and returns true if
+ * that cell blocks line of sight. Passed in rather than imported so
+ * this engine function stays decoupled from the render layer.
+ */
+export function hasLineOfSight(
+  from: Position,
+  to: Position,
+  isSolid: (col: number, row: number) => boolean
+): boolean {
+  let x0 = from.col;
+  let y0 = from.row;
+  const x1 = to.col;
+  const y1 = to.row;
+
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+
+  // Walk the line — skip the first cell (the dwarf's position) and
+  // the last cell (the target itself), only check cells in between.
+  while (true) {
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 <  dx) { err += dx; y0 += sy; }
+
+    // Reached target — clear path
+    if (x0 === x1 && y0 === y1) return true;
+
+    // Intermediate cell is solid — line of sight blocked
+    if (isSolid(x0, y0)) return false;
+  }
+}
+
+/**
  * True if any currently-LIT torch's radius reaches this cell. Broken
  * (unrepaired) torches contribute no light at all - they're just
  * inert map content (the renderer can still draw them, dimly, once
@@ -133,24 +176,39 @@ export function isWithinAnyLitTorch(col: number, row: number, world: WorldState)
  * source reaches it - this is the full "what is lit right now"
  * answer, used both for rendering and for marking new exploration.
  */
+/**
+ * Combines the dwarf's own (larger, mobile) light with every lit
+ * torch's (smaller, fixed) light, and the permanent structure lights
+ * (Hearth, Forge). A cell is actively lit if ANY source reaches it
+ * AND has clear line of sight to it.
+ *
+ * The optional `isSolid` callback enables line-of-sight occlusion —
+ * walls between the light source and the cell block the light. When
+ * omitted (e.g. in tests), falls back to the old circle-only behaviour.
+ */
 export function isActivelyLit(
   col: number,
   row: number,
   dwarfPosition: Position,
   world: WorldState,
-  dwarfRadius: number = DEFAULT_LIGHT_RADIUS
+  dwarfRadius: number = DEFAULT_LIGHT_RADIUS,
+  isSolid?: (col: number, row: number) => boolean
 ): boolean {
-  if (isWithinLightRadius(col, row, dwarfPosition, dwarfRadius)) return true;
-  if (isWithinAnyLitTorch(col, row, world)) return true;
-  // Permanent structure light sources (added 2026-06-30): the Hearth
-  // always emits light (it has a fire in it), the Forge does once
-  // repaired (forgeTier >= 1). These are not tracked in WorldState
-  // like torches because they can't be broken - they're always-on
-  // once the structure exists.
-  if (isWithinLightRadius(col, row, HEARTH_CENTER, 5)) return true;
-  if (world.forgeTier >= 1) {
-    if (isWithinLightRadius(col, row, FORGE_CENTER, 4)) return true;
+  const target = { col, row };
+
+  const los = (from: Position) =>
+    !isSolid || hasLineOfSight(from, target, isSolid);
+
+  if (isWithinLightRadius(col, row, dwarfPosition, dwarfRadius) && los(dwarfPosition)) return true;
+
+  for (const torch of LIGHT_SOURCES) {
+    if (!world.litTorches[torch.id]) continue;
+    if (isWithinLightRadius(col, row, torch.position, torch.radius) && los(torch.position)) return true;
   }
+
+  if (isWithinLightRadius(col, row, HEARTH_CENTER, 5) && los(HEARTH_CENTER)) return true;
+  if (world.forgeTier >= 1 && isWithinLightRadius(col, row, FORGE_CENTER, 4) && los(FORGE_CENTER)) return true;
+
   return false;
 }
 
@@ -180,11 +238,12 @@ export function cellVisibility(
   world: WorldState,
   exploredKey: string,
   radius: number = DEFAULT_LIGHT_RADIUS,
-  cellKind?: string
+  cellKind?: string,
+  isSolid?: (col: number, row: number) => boolean
 ): CellVisibility {
   if (!isCellPartOfUnlockedWorld(col, row, world)) return "hidden";
 
-  if (isActivelyLit(col, row, dwarfPosition, world, radius)) return "lit";
+  if (isActivelyLit(col, row, dwarfPosition, world, radius, isSolid)) return "lit";
 
   // Wall tiles and rubble never show as "remembered" (dim) — they snap
   // back to pure dark when out of the light radius. This makes corridors

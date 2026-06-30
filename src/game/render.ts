@@ -1,6 +1,7 @@
 import { GridRenderer, type Renderer } from "../render/GridRenderer";
 import { TilesetRenderer } from "../render/TilesetRenderer";
 import { hubCellAt } from "../render/hubContent";
+import { isSolidCellKind } from "../render/palette";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "../engine/visibility";
 import { cellKey, MATERIALS } from "../engine/types";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
@@ -417,7 +418,19 @@ export function render(): void {
         state.world.gemcuttingBuilt,
         state.world.companion.befriended
       );
-      return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind);
+      const isSolid = (c: number, r: number) =>
+        isSolidCellKind(
+          hubCellAt(c, r,
+            state.world.litTorches,
+            state.world.veinDepletion,
+            state.world.woodDepletion,
+            state.world.forgeTier,
+            state.world.smelterBuilt,
+            state.world.gemcuttingBuilt,
+            state.world.companion.befriended
+          ).kind
+        );
+      return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);
     },
     position.col,
     position.row,
