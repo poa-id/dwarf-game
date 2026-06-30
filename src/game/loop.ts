@@ -10,6 +10,7 @@ import {
 } from "../engine/hearth";
 import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { tickDrill, drillDefinitionByVeinId } from "../engine/drill";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -79,6 +80,27 @@ function gameTick(): void {
         },
         vessel: { ...state.vessel, inventory: haul.inventory },
       });
+      changed = true;
+    }
+  }
+
+  // Tick all built drills
+  const drillEntries = Object.entries(state.world.drills);
+  if (drillEntries.length > 0) {
+    let newDrills = { ...state.world.drills };
+    let drillChanged = false;
+    for (const [veinId, drillState] of drillEntries) {
+      const def = drillDefinitionByVeinId(veinId);
+      if (!def) continue;
+      const result = tickDrill(drillState, def, now);
+      if (result.ranCycle || result.drill.lastCycleAt !== drillState.lastCycleAt) {
+        newDrills = { ...newDrills, [veinId]: result.drill };
+        drillChanged = true;
+      }
+    }
+    if (drillChanged) {
+      setState({ ...state, world: { ...state.world, drills: newDrills } });
+      state = getState();
       changed = true;
     }
   }

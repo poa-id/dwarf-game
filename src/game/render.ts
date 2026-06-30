@@ -47,6 +47,7 @@ import {
   performGemcuttingTierUpgrade,
   performSpendCutGemOnPerk,
 } from "../ui/gemcuttingPanel";
+import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill } from "../ui/drillPanel";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
 export interface RenderRefs {
@@ -208,7 +209,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "none" = "none";
+let lastActivePanelKind: "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -374,6 +375,30 @@ function updateContextualPanel(): void {
       }
     );
     reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
+  // Drill panel — shown when near any ore vein (including those with no
+  // drill yet, so the player can build one). Uses vein proximity from
+  // the existing nearestOreVein() check rather than its own proximity fn.
+  const nearVein = nearestOreVein();
+  if (nearVein) {
+    if (lastActivePanelKind !== "drill") {
+      resetPanelHighlight();
+      refs.contextualPanel.innerHTML = "";
+    }
+    lastActivePanelKind = "drill";
+    refs.contextualPanel.innerHTML = "";
+    renderDrillSection(
+      state,
+      nearVein.id,
+      refs.contextualPanel,
+      () => { setState(performBuildDrill(getState(), nearVein.id)); render(); },
+      () => { setState(performRefuelDrill(getState(), nearVein.id)); render(); },
+      () => { setState(performCollectDrillOre(getState(), nearVein.id)); render(); },
+      () => { setState(performUpgradeDrill(getState(), nearVein.id)); render(); }
+    );
+    if (refs.contextualPanel.innerHTML) reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
 

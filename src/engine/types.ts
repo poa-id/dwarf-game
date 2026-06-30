@@ -315,6 +315,8 @@ export interface WorldState {
   veinDepletion: Record<string, { totalYielded: number }>;
   /** Same idea as veinDepletion, but for wood node placements. */
   woodDepletion: Record<string, { totalYielded: number }>;
+  /** Automated drills, keyed by OreVeinPlacement.id. Only present once a drill has been built. */
+  drills: Record<string, import("./drill").DrillState>;
   /** Narag-Bund's own state - see CompanionState above. */
   companion: CompanionState;
   /** Highest tier ever forged per tool slot - see ToolsForgedState above. */

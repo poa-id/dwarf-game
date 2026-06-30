@@ -30,6 +30,7 @@ function makeStateWithProgress(): GameState {
       smelterTier: 2,
       ironPurifyingUnlocked: false,
       ironSmelterTier: 0,
+      drills: {},
       trueMetalSpentOnXpPerk: 3,
       trueMetalSpentOnYieldPerk: 1,
       gemcuttingBuilt: true,
