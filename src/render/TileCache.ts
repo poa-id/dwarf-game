@@ -1,4 +1,4 @@
-import { TILE_MANIFEST, NATIVE_TILE_SIZE, type TileDefinition } from "./tilesetManifest";
+import { TILE_MANIFEST, type TileDefinition } from "./tilesetManifest";
 import type { CellKind } from "./palette";
 
 /**
@@ -78,25 +78,21 @@ export class TileCache {
     if (!base || !def.tint) return null;
 
     const canvas = document.createElement("canvas");
-    canvas.width = NATIVE_TILE_SIZE;
-    canvas.height = NATIVE_TILE_SIZE;
+    // Use the actual loaded image dimensions, not always NATIVE_TILE_SIZE -
+    // multi-tile sprites (forge_4x4.png = 128x128, smelter_addon.png = 64x64)
+    // need to be tinted at their real size so drawImage can read the full
+    // artwork, not just the top-left 32x32 corner.
+    canvas.width = base.naturalWidth || base.width;
+    canvas.height = base.naturalHeight || base.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    // Draw base texture, then multiply-blend the tint color over it.
-    // Multiply preserves the original texture's light/dark shading
-    // while shifting its hue toward the tint - this is what makes a
-    // gray stone texture read as "copper-tinted stone" rather than a
-    // flat color swatch.
-    ctx.drawImage(base, 0, 0, NATIVE_TILE_SIZE, NATIVE_TILE_SIZE);
+    ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = "multiply";
     ctx.fillStyle = def.tint;
-    ctx.fillRect(0, 0, NATIVE_TILE_SIZE, NATIVE_TILE_SIZE);
-    // Restore alpha from the original texture, since multiply can leak
-    // color into fully-transparent pixels' RGB channels (harmless until
-    // composited again, but cleaner to mask back to source alpha).
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = "destination-in";
-    ctx.drawImage(base, 0, 0, NATIVE_TILE_SIZE, NATIVE_TILE_SIZE);
+    ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
 
     this.tintedCanvases.set(key, canvas);
     return canvas;

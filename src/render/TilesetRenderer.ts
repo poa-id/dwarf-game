@@ -1,4 +1,4 @@
-import { NATIVE_TILE_SIZE } from "./tilesetManifest";
+import { TILE_MANIFEST } from "./tilesetManifest";
 import { TileCache } from "./TileCache";
 import type { CellLookup, VisibilityLookup, Renderer } from "./GridRenderer";
 
@@ -85,35 +85,58 @@ export class TilesetRenderer implements Renderer {
     const originCol = centerCol - Math.floor(viewportCols / 2);
     const originRow = centerRow - Math.floor(viewportRows / 2);
 
-    // True void background - same "unexplored darkness" baseline as
-    // GridRenderer, so a hidden cell looks identical regardless of
-    // which renderer is currently active.
     this.ctx.fillStyle = "#000000";
     this.ctx.fillRect(0, 0, viewportCols * cellSize, viewportRows * cellSize);
 
+    // Track viewport cells that have already been painted by a multi-tile
+    // sprite anchored at a prior cell - key: `${vCol},${vRow}`.
+    const coveredBySprite = new Set<string>();
+
     for (let vRow = 0; vRow < viewportRows; vRow++) {
       for (let vCol = 0; vCol < viewportCols; vCol++) {
+        // Skip interior cells already painted when their anchor was drawn.
+        if (coveredBySprite.has(`${vCol},${vRow}`)) continue;
+
         const mapCol = originCol + vCol;
         const mapRow = originRow + vRow;
 
         const visibility = getVisibility(mapCol, mapRow);
-        if (visibility === "hidden") continue; // leave as pure void background
+        if (visibility === "hidden") continue;
 
         const cell = getCell(mapCol, mapRow);
         if (cell.kind === "void") continue;
 
-        const drawable = this.cache.getDrawableForKind(cell.kind);
-        if (!drawable) continue; // asset not loaded yet - skip rather than throw, keeps render() safe to call anytime
+        const def = TILE_MANIFEST[cell.kind];
+        const drawable = this.cache.getDrawable(def);
+        if (!drawable) continue;
 
         this.ctx.globalAlpha = visibility === "remembered" ? REMEMBERED_OPACITY : 1;
 
         const x = vCol * cellSize;
         const y = vRow * cellSize;
-        this.ctx.drawImage(drawable, 0, 0, NATIVE_TILE_SIZE, NATIVE_TILE_SIZE, x, y, cellSize, cellSize);
+        const span = def.tileSpan ?? { cols: 1, rows: 1 };
+
+        // Draw at the sprite's natural span (multiple cells wide/tall).
+        const drawW = span.cols * cellSize;
+        const drawH = span.rows * cellSize;
+        const srcW = (drawable as HTMLCanvasElement).width ?? (drawable as HTMLImageElement).naturalWidth;
+        const srcH = (drawable as HTMLCanvasElement).height ?? (drawable as HTMLImageElement).naturalHeight;
+        this.ctx.drawImage(drawable, 0, 0, srcW, srcH, x, y, drawW, drawH);
+
+        // Mark all viewport cells this sprite covers so we don't try to
+        // draw them again when the loop reaches them.
+        if (span.cols > 1 || span.rows > 1) {
+          for (let dr = 0; dr < span.rows; dr++) {
+            for (let dc = 0; dc < span.cols; dc++) {
+              if (dr === 0 && dc === 0) continue; // anchor already drawn
+              coveredBySprite.add(`${vCol + dc},${vRow + dr}`);
+            }
+          }
+        }
       }
     }
 
-    this.ctx.globalAlpha = 1; // reset for any other consumer of this context
+    this.ctx.globalAlpha = 1;
   }
 
   get dimensions() {

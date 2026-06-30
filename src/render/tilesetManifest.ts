@@ -7,9 +7,13 @@ import rockWallUrl from "./tileset-assets/sliced/rock_wall.png";
 import rockFloorUrl from "./tileset-assets/sliced/rock_floor.png";
 import oreBaseUrl from "./tileset-assets/sliced/ore_base.png";
 import oreDeepUrl from "./tileset-assets/sliced/ore_deep.png";
-import forgeUrl from "./tileset-assets/sliced/forge.png";
 import dwarfUrl from "./tileset-assets/sliced/dwarf.png";
 import tunnelEdgeUrl from "./tileset-assets/sliced/tunnel_edge.png";
+
+// New multi-tile sprites (added 2026-06-30)
+import forge4x4Url from "./tileset-assets/sliced/forge_4x4.png";
+import hearth4x4Url from "./tileset-assets/sliced/hearth_4x4.png";
+import smelterAddonUrl from "./tileset-assets/sliced/smelter_addon.png";
 
 /**
  * Maps each CellKind to an actual tile image, instead of a glyph+color.
@@ -36,6 +40,16 @@ export interface TileDefinition {
    * instead of a flat character.
    */
   tint?: string;
+  /**
+   * For multi-tile sprites: how many grid cells this sprite spans in
+   * each dimension. Defaults to { cols: 1, rows: 1 } when absent.
+   * TilesetRenderer anchors the sprite at the top-left cell and draws
+   * it at tileSpan.cols * cellSize wide, tileSpan.rows * cellSize tall.
+   * Only the anchor cell triggers a draw; all other cells in the
+   * footprint are skipped (their CellKind is still used for collision
+   * etc. - the renderer just doesn't re-draw them).
+   */
+  tileSpan?: { cols: number; rows: number };
 }
 
 export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
@@ -45,42 +59,24 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   ore_copper: { assetUrl: oreBaseUrl, tint: "#d4894a" },
   ore_iron: { assetUrl: oreBaseUrl, tint: "#9aa3ad" },
   ore_deep: { assetUrl: oreDeepUrl }, // unique texture, no tint needed
-  ore_coal: { assetUrl: oreBaseUrl, tint: "#3a3530" }, // near-black, matching palette.ts's Stage 2/3 coal color
-  ore_exhausted: { assetUrl: rockFloorUrl }, // spent rock - same texture as plain floor
-  // No dedicated wood sprite sliced yet either - reusing the ore vein
-  // texture, tinted toward a woody brown-green, as a placeholder.
+  ore_coal: { assetUrl: oreBaseUrl, tint: "#3a3530" },
+  ore_exhausted: { assetUrl: rockFloorUrl },
   wood_node: { assetUrl: oreBaseUrl, tint: "#7a8a4a" },
   wood_exhausted: { assetUrl: rockFloorUrl },
   dwarf: { assetUrl: dwarfUrl },
-  hearth: { assetUrl: forgeUrl },
-  forge: { assetUrl: forgeUrl },
-  forge_broken: { assetUrl: forgeUrl, tint: "#5a4a3a" }, // same forge art, cold/dull tint - the unrepaired state
-  // No dedicated kiln sprite sliced yet - reusing the ore vein texture,
-  // tinted toward the same warm clay/brick tone as STAGE_2/STAGE_3's
-  // kiln color in palette.ts, as a placeholder. Swap once a real kiln
-  // tile is sliced from the sheets.
+  // Real 4x4 sprites (added 2026-06-30). tileSpan tells TilesetRenderer
+  // to draw at 4x the normal cell size, anchored at the top-left cell.
+  hearth: { assetUrl: hearth4x4Url, tileSpan: { cols: 4, rows: 4 } },
+  forge: { assetUrl: forge4x4Url, tileSpan: { cols: 4, rows: 4 } },
+  forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 4, rows: 4 } },
   kiln: { assetUrl: oreBaseUrl, tint: "#8a5a3a" },
-  // No dedicated smelter sprite sliced yet - reusing the ore vein
-  // texture, tinted toward the same intensified red-orange as
-  // STAGE_2/3's smelter color in palette.ts, as a placeholder. Real
-  // reference art exists (docs/reference-art/Smelter.png, a 96x118px
-  // multi-cell room composite, NOT a single 32x32 tile matching this
-  // file's convention) but needs real slicing/integration work to
-  // decide how a multi-cell room concept maps onto this single-cell
-  // CellKind - deliberately deferred rather than rushed.
-  smelter: { assetUrl: oreBaseUrl, tint: "#c4441a" },
-  // No dedicated gemcutting sprite exists yet - reusing the ore vein
-  // texture, tinted toward the same pale violet as STAGE_2/3's
-  // gemcutting color in palette.ts, as a placeholder.
+  // Smelter add-on: 2x2 sprite sitting below the Forge.
+  smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 2, rows: 2 } },
   gemcutting: { assetUrl: oreBaseUrl, tint: "#8a6fa8" },
   gemcutting_unbuilt: { assetUrl: oreBaseUrl, tint: "#4a4050" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
-  // No dedicated torch sprite sliced from the tileset yet - reusing the
-  // forge's glow art as a placeholder, tinted to distinguish broken
-  // (desaturated) from lit (warm). Swap for a real torch/lamp tile once
-  // one is sliced from the sheets.
-  torch_broken: { assetUrl: forgeUrl, tint: "#6a6a6a" },
-  torch_lit: { assetUrl: forgeUrl, tint: "#ff9a3a" },
+  torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
+  torch_lit: { assetUrl: oreBaseUrl, tint: "#ff9a3a" },
 };
 
 export const NATIVE_TILE_SIZE = 32;

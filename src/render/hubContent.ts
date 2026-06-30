@@ -86,23 +86,26 @@ function buildHubContent(): GridCell[] {
     row: forgeOriginRow,
   });
 
-  // Place the hearth itself at the hearth hall's center.
-  const hearthIndex = hearthCenter.row * HUB_WIDTH + hearthCenter.col;
+  // Place the hearth at the top-left of its 4x4 footprint, so the sprite
+  // renders centered in the hall. hearthCenter is the geometric center
+  // (~col 40, row 25), so the 4x4 top-left anchor is 2 cells up and left.
+  const hearthAnchorCol = hearthCenter.col - 2;
+  const hearthAnchorRow = hearthCenter.row - 2;
+  const hearthIndex = hearthAnchorRow * HUB_WIDTH + hearthAnchorCol;
   stamped[hearthIndex] = { kind: "hearth" };
 
   // The forge building's CENTER cells start as forge_broken - hubCellAt
   // overrides to "forge" once World.forgeTier >= 1 (repaired). The
   // surrounding wall-frame cells of FORGE_BUILDING stay rock_wall as-is.
-  const forgeCenterOffsets = [
-    { dc: 1, dr: 1 },
-    { dc: 2, dr: 1 },
-    { dc: 1, dr: 2 },
-    { dc: 2, dr: 2 },
-  ];
-  for (const { dc, dr } of forgeCenterOffsets) {
-    const idx = (forgeOriginRow + dr) * HUB_WIDTH + (forgeOriginCol + dc);
-    stamped[idx] = { kind: "forge_broken" };
-  }
+  // The top-left cell of the forge building becomes forge_broken in the
+  // static grid. This is the ANCHOR for the 4x4 sprite in tileset mode -
+  // TilesetRenderer draws the full 4x4 sprite starting from this cell.
+  // Previously, the center 4 cells (offsets 1,1 / 2,1 / 1,2 / 2,2) were
+  // all stamped forge_broken, but only the top-left anchor cell is needed
+  // since the renderer handles the multi-tile span itself via tileSpan.
+  // The outer wall cells remain rock_wall for collision purposes.
+  const forgeAnchorIdx = forgeOriginRow * HUB_WIDTH + forgeOriginCol;
+  stamped[forgeAnchorIdx] = { kind: "forge_broken" };
 
   // Place every torch's terrain marker - always "broken" in the static
   // content; hubCellAt overrides to "torch_lit" dynamically per the
