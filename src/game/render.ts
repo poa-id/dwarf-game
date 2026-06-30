@@ -406,8 +406,19 @@ export function render(): void {
         state.world.companion.befriended
       );
     },
-    (col, row) =>
-      cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS),
+    (col, row) => {
+      const cell = hubCellAt(
+        col, row,
+        state.world.litTorches,
+        state.world.veinDepletion,
+        state.world.woodDepletion,
+        state.world.forgeTier,
+        state.world.smelterBuilt,
+        state.world.gemcuttingBuilt,
+        state.world.companion.befriended
+      );
+      return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind);
+    },
     position.col,
     position.row,
     colorStage

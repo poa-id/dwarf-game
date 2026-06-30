@@ -179,11 +179,20 @@ export function cellVisibility(
   dwarfPosition: Position,
   world: WorldState,
   exploredKey: string,
-  radius: number = DEFAULT_LIGHT_RADIUS
+  radius: number = DEFAULT_LIGHT_RADIUS,
+  cellKind?: string
 ): CellVisibility {
   if (!isCellPartOfUnlockedWorld(col, row, world)) return "hidden";
 
   if (isActivelyLit(col, row, dwarfPosition, world, radius)) return "lit";
+
+  // Wall tiles and rubble never show as "remembered" (dim) — they snap
+  // back to pure dark when out of the light radius. This makes corridors
+  // and rooms read as islands of light in true darkness, rather than a
+  // dim grey fog-of-war that reveals all geometry everywhere.
+  // Floor tiles, ores, structures etc. still use the standard
+  // remembered/explored map so the player retains spatial memory.
+  if (cellKind === "rock_wall" || cellKind === "rubble") return "hidden";
 
   if (world.exploredCells[exploredKey]) return "remembered";
 
