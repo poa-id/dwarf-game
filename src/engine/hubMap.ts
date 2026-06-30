@@ -188,8 +188,8 @@ export const ORE_VEINS: OreVeinPlacement[] = [
   },
 ];
 
-/** The broken mine shaft — menu-accessed in future, visual marker now. */
-export const MINE_SHAFT_POSITION: Position = { col: 8, row: 25 };
+/** The broken mine shaft — menu-accessed in future, visual marker now. Far west wall, 1 tile inside. */
+export const MINE_SHAFT_POSITION: Position = { col: 7, row: 25 };
 
 // ── Wood node placements ──────────────────────────────────────────────────────
 
@@ -212,41 +212,42 @@ export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
 // ── Torches ───────────────────────────────────────────────────────────────────
 
 export const LIGHT_SOURCES: LightSourceDefinition[] = [
-  // NE corridor (to Forge Room) — one torch at each leg of the L
+  // NE corridor (to Forge Room) — vertical leg midpoint
   {
     id: "torch_ne_vert",
-    name: "Corridor Torch (Forge Road, vertical leg)",
-    position: { col: 49, row: 21 },
+    name: "Corridor Torch (Forge Road)",
+    position: { col: 50, row: 15 },
     radius: 2,
     repairCost: { copper_ingot: 3 },
   },
+  // W corridor (to Mine) — midpoint of straight shot
   {
-    id: "torch_ne_horiz",
-    name: "Corridor Torch (Forge Road, horizontal leg)",
-    position: { col: 50, row: 18 },
-    radius: 2,
-    repairCost: { copper_ingot: 3 },
-  },
-  // W corridor (to Mine Room) — straight shot, one torch midway
-  {
-    id: "torch_w_corridor",
+    id: "torch_w",
     name: "Corridor Torch (Mine Road)",
-    position: { col: 25, row: 24 },
+    position: { col: 19, row: 24 },
     radius: 2,
     repairCost: { copper_ingot: 3 },
   },
-  // SW corridor (to Garden) — two torches for the L
+  // SE corridor (to Tinkering) — vertical leg midpoint
+  {
+    id: "torch_se_vert",
+    name: "Corridor Torch (Tinkering Road)",
+    position: { col: 50, row: 32 },
+    radius: 2,
+    repairCost: { copper_ingot: 3 },
+  },
+  // SW corridor (to Garden) — two torches for the long L
   {
     id: "torch_sw_vert",
     name: "Corridor Torch (Garden Road, vertical leg)",
-    position: { col: 31, row: 30 },
+    position: { col: 30, row: 36 },
     radius: 2,
     repairCost: { copper_ingot: 3 },
   },
   {
     id: "torch_sw_horiz",
     name: "Corridor Torch (Garden Road, horizontal leg)",
-    position: { col: 25, row: 34 },
+    position: { col: 19, row: 43 },
     radius: 2,
     repairCost: { copper_ingot: 3 },
   },
