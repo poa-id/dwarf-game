@@ -3,7 +3,6 @@ import {
   LIGHT_SOURCES,
   ORE_VEINS,
   WOOD_NODE_PLACEMENTS,
-  HEARTH_SPAWN_POSITION,
   KILN_POSITION,
   FORGE_BUILDING_FOOTPRINT,
   SMELTER_POSITION,
@@ -101,10 +100,14 @@ export function isForgeRepaired(): boolean {
 
 export function isNearHearth(): boolean {
   const { position } = getState().vessel;
-  return (
-    Math.abs(position.col - HEARTH_SPAWN_POSITION.col) <= 1 &&
-    Math.abs(position.row - HEARTH_SPAWN_POSITION.row) <= 1
-  );
+  // Hearth is a 4x4 structure anchored at (38, 23) — hearthCenter(40,25)
+  // minus 2 in each direction. Check proximity to the full footprint
+  // rather than a single center point.
+  const HEARTH_ANCHOR_COL = 38;
+  const HEARTH_ANCHOR_ROW = 23;
+  const nearCol = position.col >= HEARTH_ANCHOR_COL - 1 && position.col <= HEARTH_ANCHOR_COL + 4;
+  const nearRow = position.row >= HEARTH_ANCHOR_ROW - 1 && position.row <= HEARTH_ANCHOR_ROW + 4;
+  return nearCol && nearRow;
 }
 
 export function isNearKiln(): boolean {
@@ -116,10 +119,12 @@ export function isNearKiln(): boolean {
 
 export function isNearSmelter(): boolean {
   const { position } = getState().vessel;
-  return (
-    Math.abs(position.col - SMELTER_POSITION.col) <= 1 &&
-    Math.abs(position.row - SMELTER_POSITION.row) <= 1
-  );
+  // Check proximity to the full 2x2 footprint (cols 49-50, rows 26-27),
+  // not just the anchor cell - otherwise the player can't reach it from
+  // the bottom or right sides.
+  const nearCol = position.col >= SMELTER_POSITION.col - 1 && position.col <= SMELTER_POSITION.col + 2;
+  const nearRow = position.row >= SMELTER_POSITION.row - 1 && position.row <= SMELTER_POSITION.row + 2;
+  return nearCol && nearRow;
 }
 
 export function isNearGemcutting(): boolean {

@@ -91,21 +91,25 @@ function buildHubContent(): GridCell[] {
   // (~col 40, row 25), so the 4x4 top-left anchor is 2 cells up and left.
   const hearthAnchorCol = hearthCenter.col - 2;
   const hearthAnchorRow = hearthCenter.row - 2;
-  const hearthIndex = hearthAnchorRow * HUB_WIDTH + hearthAnchorCol;
-  stamped[hearthIndex] = { kind: "hearth" };
+  // Stamp ALL 16 cells of the 4x4 hearth footprint as solid "hearth" -
+  // previously only the anchor cell was stamped, leaving the other 15
+  // as walkable rock_floor. The player could walk through the sprite.
+  for (let dr = 0; dr < 4; dr++) {
+    for (let dc = 0; dc < 4; dc++) {
+      const idx = (hearthAnchorRow + dr) * HUB_WIDTH + (hearthAnchorCol + dc);
+      stamped[idx] = { kind: "hearth" };
+    }
+  }
 
-  // The forge building's CENTER cells start as forge_broken - hubCellAt
-  // overrides to "forge" once World.forgeTier >= 1 (repaired). The
-  // surrounding wall-frame cells of FORGE_BUILDING stay rock_wall as-is.
-  // The top-left cell of the forge building becomes forge_broken in the
-  // static grid. This is the ANCHOR for the 4x4 sprite in tileset mode -
-  // TilesetRenderer draws the full 4x4 sprite starting from this cell.
-  // Previously, the center 4 cells (offsets 1,1 / 2,1 / 1,2 / 2,2) were
-  // all stamped forge_broken, but only the top-left anchor cell is needed
-  // since the renderer handles the multi-tile span itself via tileSpan.
-  // The outer wall cells remain rock_wall for collision purposes.
-  const forgeAnchorIdx = forgeOriginRow * HUB_WIDTH + forgeOriginCol;
-  stamped[forgeAnchorIdx] = { kind: "forge_broken" };
+  // All 16 cells of the 4x4 forge footprint become forge_broken.
+  // Previously only the top-left anchor was stamped, same walkthrough bug.
+  // hubCellAt overrides forge_broken -> forge at runtime once repaired.
+  for (let dr = 0; dr < 4; dr++) {
+    for (let dc = 0; dc < 4; dc++) {
+      const idx = (forgeOriginRow + dr) * HUB_WIDTH + (forgeOriginCol + dc);
+      stamped[idx] = { kind: "forge_broken" };
+    }
+  }
 
   // Place every torch's terrain marker - always "broken" in the static
   // content; hubCellAt overrides to "torch_lit" dynamically per the
@@ -211,14 +215,17 @@ export function hubCellAt(
     return { kind: "forge" };
   }
 
-  // The Smelter (added 2026-06-23) has NO static stamp at all in the
-  // grid - unlike the Forge (which is always "forge_broken" rubble
-  // until repaired), the Smelter simply doesn't exist as a structure
-  // until built. The cell is plain rock_floor right up until
-  // smelterBuilt flips true, at which point it dynamically becomes
-  // the "smelter" CellKind - same override pattern as the Forge, just
-  // starting from ordinary floor instead of a ruin glyph.
-  if (smelterBuilt && col === SMELTER_POSITION.col && row === SMELTER_POSITION.row) {
+  // The Smelter - covers a 2x2 footprint once built. Only the top-left
+  // (anchor) cell gets the "smelter" kind for rendering (TilesetRenderer
+  // draws the full sprite from there). The other 3 cells get "smelter"
+  // too so they're solid and un-walkable, matching the visual.
+  if (
+    smelterBuilt &&
+    col >= SMELTER_POSITION.col &&
+    col < SMELTER_POSITION.col + 2 &&
+    row >= SMELTER_POSITION.row &&
+    row < SMELTER_POSITION.row + 2
+  ) {
     return { kind: "smelter" };
   }
 
