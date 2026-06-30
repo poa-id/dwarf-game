@@ -52,9 +52,9 @@ describe("isUnlockConditionMet", () => {
 });
 
 describe("zoneContaining / isZoneUnlocked / unlockedZones", () => {
-  it("hearth_hall is unlocked from a fresh world (type: always)", () => {
+  it("central_hall is unlocked from a fresh world (type: always)", () => {
     const world = createInitialWorld(0);
-    const hearthHall = ZONES.find((z) => z.id === "hearth_hall")!;
+    const hearthHall = ZONES.find((z) => z.id === "central_hall")!;
     expect(isZoneUnlocked(hearthHall, world)).toBe(true);
   });
 
@@ -64,32 +64,32 @@ describe("zoneContaining / isZoneUnlocked / unlockedZones", () => {
     expect(isZoneUnlocked(forgeRoom, world)).toBe(true);
   });
 
-  it("tunnel_entrance is locked on a fresh world", () => {
+  it("tinkering_room is locked on a fresh world", () => {
     const world = createInitialWorld(0);
-    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    const tunnelEntrance = ZONES.find((z) => z.id === "tinkering_room")!;
     expect(isZoneUnlocked(tunnelEntrance, world)).toBe(false);
   });
 
-  it("tunnel_entrance unlocks once forgeTier reaches its requirement (changed 2026-06-23 from hearth colorStage - see hubMap.ts)", () => {
+  it("tinkering_room unlocks once forgeTier reaches its requirement (changed 2026-06-23 from hearth colorStage - see hubMap.ts)", () => {
     const world = worldWith({ forgeTier: 2 });
-    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    const tunnelEntrance = ZONES.find((z) => z.id === "tinkering_room")!;
     expect(isZoneUnlocked(tunnelEntrance, world)).toBe(true);
   });
 
-  it("tunnel_entrance stays locked at forgeTier 1, even with a high hearth colorStage - the two are deliberately decoupled now", () => {
+  it("tinkering_room stays locked at forgeTier 1, even with a high hearth colorStage - the two are deliberately decoupled now", () => {
     const world = worldWith({
       forgeTier: 1,
       hearth: { ...createInitialWorld(0).hearth, colorStage: 3 },
     });
-    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    const tunnelEntrance = ZONES.find((z) => z.id === "tinkering_room")!;
     expect(isZoneUnlocked(tunnelEntrance, world)).toBe(false);
   });
 
   it("zoneContaining finds the correct zone for a coordinate inside it", () => {
-    const hearthHall = ZONES.find((z) => z.id === "hearth_hall")!;
+    const hearthHall = ZONES.find((z) => z.id === "central_hall")!;
     const insideCol = hearthHall.bounds.col + 1;
     const insideRow = hearthHall.bounds.row + 1;
-    expect(zoneContaining(insideCol, insideRow)?.id).toBe("hearth_hall");
+    expect(zoneContaining(insideCol, insideRow)?.id).toBe("central_hall");
   });
 
   it("zoneContaining returns null for open hallway coordinates outside any zone", () => {
@@ -99,9 +99,9 @@ describe("zoneContaining / isZoneUnlocked / unlockedZones", () => {
   it("unlockedZones returns only zones whose condition is currently met", () => {
     const world = createInitialWorld(0);
     const ids = unlockedZones(world).map((z) => z.id);
-    expect(ids).toContain("hearth_hall");
+    expect(ids).toContain("central_hall");
     expect(ids).toContain("forge_room"); // always unlocked now - the forge itself, not the room, is what's broken
-    expect(ids).not.toContain("tunnel_entrance");
+    expect(ids).not.toContain("tinkering_room");
   });
 });
 
@@ -111,16 +111,16 @@ describe("isCellPartOfUnlockedWorld", () => {
     expect(isCellPartOfUnlockedWorld(0, 0, world)).toBe(true);
   });
 
-  it("cells inside a locked zone (tunnel_entrance) are NOT part of the unlocked world", () => {
+  it("cells inside a locked zone (tinkering_room) are NOT part of the unlocked world", () => {
     const world = createInitialWorld(0);
-    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    const tunnelEntrance = ZONES.find((z) => z.id === "tinkering_room")!;
     expect(
       isCellPartOfUnlockedWorld(tunnelEntrance.bounds.col, tunnelEntrance.bounds.row, world)
     ).toBe(false);
   });
 
   it("cells inside an unlocked zone ARE part of the unlocked world", () => {
-    const hearthHall = ZONES.find((z) => z.id === "hearth_hall")!;
+    const hearthHall = ZONES.find((z) => z.id === "central_hall")!;
     const world = createInitialWorld(0);
     expect(
       isCellPartOfUnlockedWorld(hearthHall.bounds.col, hearthHall.bounds.row, world)
@@ -170,7 +170,7 @@ describe("cellVisibility", () => {
   });
 
   it("returns 'hidden' for a cell in a locked zone, even if somehow marked explored", () => {
-    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    const tunnelEntrance = ZONES.find((z) => z.id === "tinkering_room")!;
     const col = tunnelEntrance.bounds.col;
     const row = tunnelEntrance.bounds.row;
     const world = worldWith({ exploredCells: { [cellKey(col, row)]: true } });

@@ -5,123 +5,91 @@ import {
   WOOD_NODE_PLACEMENTS,
   KILN_POSITION,
   FORGE_BUILDING_FOOTPRINT,
+  HEARTH_FOOTPRINT,
   SMELTER_POSITION,
   GEMCUTTING_POSITION,
 } from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
-import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted } from "../engine/mining";
-import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
 
-export function nearestUnrepairedTorch() {
+export function nearestUnlitTorch() {
   const { position } = getState().vessel;
   const { litTorches } = getState().world;
   return LIGHT_SOURCES.find((t) => !litTorches[t.id] && isNearTorch(position.col, position.row, t));
 }
 
+export function nearestUnrepairedTorch() {
+  return nearestUnlitTorch();
+}
+
 export function nearestOreVein() {
   const { position } = getState().vessel;
-  const { veinDepletion } = getState().world;
   return ORE_VEINS.find((v) => {
-    const inRange =
-      Math.abs(v.position.col - position.col) <= 1 && Math.abs(v.position.row - position.row) <= 1;
-    if (!inRange) return false;
-    const rockNode = ROCK_NODES.find((n) => n.id === v.rockNodeId);
-    if (!rockNode) return false;
-    const depletion = veinDepletion[v.id] ?? createFreshDepletionState();
-    return !isOreExhausted(rockNode, depletion);
+    return (
+      Math.abs(position.col - v.position.col) <= 1 &&
+      Math.abs(position.row - v.position.row) <= 1
+    );
   });
 }
 
-export function nearestAnyVein() {
-  const { position } = getState().vessel;
-  return ORE_VEINS.find(
-    (v) => Math.abs(v.position.col - position.col) <= 1 && Math.abs(v.position.row - position.row) <= 1
-  );
-}
+export const nearestAnyVein = nearestOreVein;
+export const nearestMinedOreVein = nearestOreVein;
 
 export function nearestWoodNode() {
   const { position } = getState().vessel;
-  const { woodDepletion } = getState().world;
   return WOOD_NODE_PLACEMENTS.find((w) => {
-    const inRange =
-      Math.abs(w.position.col - position.col) <= 1 && Math.abs(w.position.row - position.row) <= 1;
-    if (!inRange) return false;
-    const woodNode = WOOD_NODES.find((n) => n.id === w.woodNodeId);
-    if (!woodNode) return false;
-    const depletion = woodDepletion[w.id] ?? createFreshDepletionState();
-    return !isWoodExhausted(woodNode, depletion);
+    return (
+      Math.abs(position.col - w.position.col) <= 1 &&
+      Math.abs(position.row - w.position.row) <= 1
+    );
   });
 }
 
-export function nearestAnyWoodNode() {
-  const { position } = getState().vessel;
-  return WOOD_NODE_PLACEMENTS.find(
-    (w) => Math.abs(w.position.col - position.col) <= 1 && Math.abs(w.position.row - position.row) <= 1
-  );
-}
-
-/**
- * Is the player standing on open floor immediately adjacent to the
- * Forge building (any of its four sides or corners), but not on one
- * of the building's own solid cells? Replaces an earlier FORGE_CENTER-
- * plus-1-tile-radius check that pointed at one of the building's own
- * SOLID interior cells - since that point itself was walled in on
- * every side except one lucky diagonal corner, "near the forge" was
- * only ever reachable from that single corner. Fixed 2026-06-23 by
- * checking against the building's REAL footprint (shared with
- * hubContent.ts via hubMap.ts's FORGE_BUILDING_FOOTPRINT) instead of a
- * separately-guessed center point. Per explicit project direction, all
- * four sides are walkable/interactable - "the illusion of a huge
- * masterforge" you can walk all the way around.
- */
-export function isNearForge(): boolean {
-  const { position } = getState().vessel;
-  const { originCol, originRow, width, height } = FORGE_BUILDING_FOOTPRINT;
-
-  // Inside the building's own bounding box (walls or forge cells
-  // themselves) doesn't count - the player can never stand there, but
-  // checking explicitly keeps this correct even if that ever changes.
-  const insideBuilding =
-    position.col >= originCol &&
-    position.col < originCol + width &&
-    position.row >= originRow &&
-    position.row < originRow + height;
-  if (insideBuilding) return false;
-
-  // Within 1 tile of the building's bounding box on any side.
-  const nearCol = position.col >= originCol - 1 && position.col <= originCol + width;
-  const nearRow = position.row >= originRow - 1 && position.row <= originRow + height;
-  return nearCol && nearRow;
-}
+export const nearestAnyWoodNode = nearestWoodNode;
+export const nearestGatheredWoodNode = nearestWoodNode;
 
 export function isForgeRepaired(): boolean {
   return getState().world.forgeTier >= 1;
 }
 
+export function isNearForge(): boolean {
+  const { position } = getState().vessel;
+  const { originCol, originRow, width, height } = FORGE_BUILDING_FOOTPRINT;
+
+  const insideBuilding =
+    position.col >= originCol &&
+    position.col < originCol + width &&
+    position.row >= originRow &&
+    position.row < originRow + height;
+
+  if (insideBuilding) return false;
+
+  return (
+    position.col >= originCol - 1 &&
+    position.col <= originCol + width &&
+    position.row >= originRow - 1 &&
+    position.row <= originRow + height
+  );
+}
+
 export function isNearHearth(): boolean {
   const { position } = getState().vessel;
-  // Hearth is a 4x4 structure anchored at (38, 23) — hearthCenter(40,25)
-  // minus 2 in each direction. Check proximity to the full footprint
-  // rather than a single center point.
-  const HEARTH_ANCHOR_COL = 38;
-  const HEARTH_ANCHOR_ROW = 23;
-  const nearCol = position.col >= HEARTH_ANCHOR_COL - 1 && position.col <= HEARTH_ANCHOR_COL + 4;
-  const nearRow = position.row >= HEARTH_ANCHOR_ROW - 1 && position.row <= HEARTH_ANCHOR_ROW + 4;
+  const { originCol, originRow, width, height } = HEARTH_FOOTPRINT;
+  // Check proximity to the full 4×4 footprint perimeter
+  const nearCol = position.col >= originCol - 1 && position.col <= originCol + width;
+  const nearRow = position.row >= originRow - 1 && position.row <= originRow + height;
   return nearCol && nearRow;
 }
 
 export function isNearKiln(): boolean {
   const { position } = getState().vessel;
   return (
-    Math.abs(position.col - KILN_POSITION.col) <= 1 && Math.abs(position.row - KILN_POSITION.row) <= 1
+    Math.abs(position.col - KILN_POSITION.col) <= 1 &&
+    Math.abs(position.row - KILN_POSITION.row) <= 1
   );
 }
 
 export function isNearSmelter(): boolean {
   const { position } = getState().vessel;
-  // Check proximity to the full 2x2 footprint (cols 49-50, rows 26-27),
-  // not just the anchor cell - otherwise the player can't reach it from
-  // the bottom or right sides.
   const nearCol = position.col >= SMELTER_POSITION.col - 1 && position.col <= SMELTER_POSITION.col + 2;
   const nearRow = position.row >= SMELTER_POSITION.row - 1 && position.row <= SMELTER_POSITION.row + 2;
   return nearCol && nearRow;
@@ -129,8 +97,8 @@ export function isNearSmelter(): boolean {
 
 export function isNearGemcutting(): boolean {
   const { position } = getState().vessel;
-  return (
-    Math.abs(position.col - GEMCUTTING_POSITION.col) <= 1 &&
-    Math.abs(position.row - GEMCUTTING_POSITION.row) <= 1
-  );
+  // 4×4 footprint
+  const nearCol = position.col >= GEMCUTTING_POSITION.col - 1 && position.col <= GEMCUTTING_POSITION.col + 4;
+  const nearRow = position.row >= GEMCUTTING_POSITION.row - 1 && position.row <= GEMCUTTING_POSITION.row + 4;
+  return nearCol && nearRow;
 }

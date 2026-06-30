@@ -40,10 +40,10 @@ describe("attemptMove", () => {
   });
 
   it("blocks movement INTO a locked zone, reporting blockedReason='locked_zone' and the specific zone", () => {
-    const world = createInitialWorld(0); // tunnel_entrance is locked here
-    const tunnelEntrance = ZONES.find((z) => z.id === "tunnel_entrance")!;
+    const world = createInitialWorld(0); // tinkering_room is locked here (requires forge tier 2)
+    const tinkeringRoom = ZONES.find((z) => z.id === "tinkering_room")!;
     // approach from just outside its left edge
-    const justOutside = { col: tunnelEntrance.bounds.col - 1, row: tunnelEntrance.bounds.row };
+    const justOutside = { col: tinkeringRoom.bounds.col - 1, row: tinkeringRoom.bounds.row };
     const result = attemptMove(justOutside, "right", world, neverSolid);
     expect(result.moved).toBe(false);
     expect(result.position).toEqual(justOutside);
@@ -51,7 +51,7 @@ describe("attemptMove", () => {
     // Added 2026-06-23 (real reported gap: the blocked message gave no
     // indication of WHICH zone or what unlocks it) - blockedZone lets
     // callers build a specific message instead of a generic one.
-    expect(result.blockedZone?.id).toBe("tunnel_entrance");
+    expect(result.blockedZone?.id).toBe("tinkering_room");
   });
 
   it("allows movement freely within the hearth hall (always unlocked) from spawn", () => {

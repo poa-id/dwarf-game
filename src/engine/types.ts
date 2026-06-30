@@ -180,7 +180,16 @@ export interface HearthState {
 // dwarf just couldn't see or reach it yet.
 // ---------------------------------------------------------------------------
 
-export type ZoneId = "hearth_hall" | "forge_room" | "tunnel_entrance";
+export type ZoneId =
+  | "central_hall"
+  | "forge_room"
+  | "mine_room"
+  | "garden_room"
+  | "tinkering_room"
+  | "sealed_north"
+  | "sealed_south"
+  | "sealed_east"
+  | "sealed_northwest";
 
 export type UnlockCondition =
   | { type: "always" } // unlocked from the very start (e.g. the hearth hall itself)

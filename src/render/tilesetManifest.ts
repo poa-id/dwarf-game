@@ -14,6 +14,7 @@ import tunnelEdgeUrl from "./tileset-assets/sliced/tunnel_edge.png";
 import forge4x4Url from "./tileset-assets/sliced/forge_4x4.png";
 import hearth4x4Url from "./tileset-assets/sliced/hearth_4x4.png";
 import smelterAddonUrl from "./tileset-assets/sliced/smelter_addon.png";
+import gemcutting4x4Url from "./tileset-assets/sliced/gemcutting_4x4.png";
 
 /**
  * Maps each CellKind to an actual tile image, instead of a glyph+color.
@@ -72,8 +73,11 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   kiln: { assetUrl: oreBaseUrl, tint: "#8a5a3a" },
   // Smelter add-on: 2x2 sprite sitting below the Forge.
   smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 2, rows: 2 } },
-  gemcutting: { assetUrl: oreBaseUrl, tint: "#8a6fa8" },
-  gemcutting_unbuilt: { assetUrl: oreBaseUrl, tint: "#4a4050" },
+  gemcutting: { assetUrl: gemcutting4x4Url, tileSpan: { cols: 4, rows: 4 } },
+  // Unbuilt marker: same sprite but heavily tinted dark/cold so it reads as
+  // 'the bench is here but cold and unused' rather than the active station.
+  gemcutting_unbuilt: { assetUrl: gemcutting4x4Url, tint: "#3a3450", tileSpan: { cols: 4, rows: 4 } },
+  rubble: { assetUrl: rockWallUrl, tint: "#6a5a40" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
   torch_lit: { assetUrl: oreBaseUrl, tint: "#ff9a3a" },

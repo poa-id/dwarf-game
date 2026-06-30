@@ -1,11 +1,8 @@
-import { createEmptyGrid, type GridCell } from "./GridRenderer";
-import { stampSprite } from "./sprites";
-import { FORGE_BUILDING } from "./exampleSprites";
+import type { GridCell } from "./GridRenderer";
 import type { CellKind } from "./palette";
 import {
   HUB_WIDTH,
   HUB_HEIGHT,
-  ZONES,
   LIGHT_SOURCES,
   ORE_VEINS,
   WOOD_NODE_PLACEMENTS,
@@ -13,178 +10,149 @@ import {
   SMELTER_POSITION,
   GEMCUTTING_POSITION,
   FORGE_BUILDING_FOOTPRINT,
+  HEARTH_FOOTPRINT,
+  MAP_CENTER,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
 import type { LitTorchSet, WorldState } from "../engine/types";
 
 /**
- * Builds the Hub's static terrain content ONCE - this is hand-designed
- * level content, not generated per-playthrough. The result is cached
- * (see getHubGrid below) since it never changes; only its VISIBILITY
- * (computed separately, per-frame, from game state) changes over time.
+ * Builds the Hub's static terrain content once and caches it.
  *
- * Carves out open floor inside each zone's bounds, leaves everything
- * else as wall, and connects zones with simple straight corridors so
- * movement between unlocked areas is always possible once both ends
- * are reachable.
- *
- * Torch positions are baked into this static grid as "torch_broken" -
- * that's their permanent terrain identity. Whether a given torch
- * currently reads as broken or lit is a SEPARATE, dynamic question
- * (depends on WorldState.litTorches) answered by hubCellAt below, not
- * by this function - same split as zones (fixed bounds vs dynamic
- * unlock state).
+ * Redesigned 2026-06-30: octagonal star layout with circular central
+ * hall (r=9, carved cell-by-cell), 8 rooms, and L-shaped corridors.
+ * Sealed passages are carved as rooms but filled with rubble — the
+ * player can see a corridor ending in collapsed stone, hinting at
+ * future content.
  */
 function buildHubContent(): GridCell[] {
-  const grid = createEmptyGrid(HUB_WIDTH, HUB_HEIGHT).map(
-    () => ({ kind: "rock_wall" }) as GridCell
+  const grid: GridCell[] = Array.from(
+    { length: HUB_WIDTH * HUB_HEIGHT },
+    () => ({ kind: "rock_wall" as CellKind })
   );
 
-  const set = (col: number, row: number, kind: GridCell["kind"]) => {
+  const set = (col: number, row: number, kind: CellKind) => {
     if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) return;
     grid[row * HUB_WIDTH + col] = { kind };
   };
 
-  // Carve floor inside every zone's bounding box.
-  for (const zone of ZONES) {
-    const { col, row, width, height } = zone.bounds;
-    for (let r = row; r < row + height; r++) {
-      for (let c = col; c < col + width; c++) {
+  const fill = (c0: number, r0: number, c1: number, r1: number, kind: CellKind) => {
+    for (let r = r0; r <= r1; r++)
+      for (let c = c0; c <= c1; c++)
+        set(c, r, kind);
+  };
+
+  // ── 1. Central Hall: circular approximation r=9 ─────────────────────
+  const { col: CX, row: CY } = MAP_CENTER;
+  const HALL_R = 9;
+  for (let r = CY - HALL_R; r <= CY + HALL_R; r++) {
+    for (let c = CX - HALL_R; c <= CX + HALL_R; c++) {
+      if (Math.sqrt((c - CX) ** 2 + (r - CY) ** 2) <= HALL_R) {
         set(c, r, "rock_floor");
       }
     }
   }
 
-  // Simple straight-line corridors connecting each zone's center back to
-  // the hearth hall's center - good enough for v1, a hand-authored map
-  // could replace this with deliberate winding passages later.
-  const hearthHall = ZONES.find((z) => z.id === "hearth_hall")!;
-  const hearthCenter = {
-    col: hearthHall.bounds.col + Math.floor(hearthHall.bounds.width / 2),
-    row: hearthHall.bounds.row + Math.floor(hearthHall.bounds.height / 2),
-  };
+  // ── 2. Rooms (rectangular, carved as floor) ──────────────────────────
+  // Active rooms
+  fill(52, 9,  63, 19, "rock_floor"); // NE: Forge Room
+  fill( 6, 20, 18, 30, "rock_floor"); // W:  Mine Room
+  fill( 6, 35, 18, 45, "rock_floor"); // SW: Garden Room
+  fill(52, 36, 63, 46, "rock_floor"); // SE: Tinkering Room
+  // Sealed rooms (carved floor so the L-corridor has something to connect to,
+  // but the room interior is overwritten with rubble below)
+  fill(35,  5, 45, 12, "rock_floor"); // N:  sealed
+  fill(52, 20, 63, 30, "rock_floor"); // E:  sealed
+  fill(35, 38, 45, 45, "rock_floor"); // S:  sealed
+  fill( 6,  9, 18, 19, "rock_floor"); // NW: sealed
 
-  for (const zone of ZONES) {
-    if (zone.id === "hearth_hall") continue;
-    const center = {
-      col: zone.bounds.col + Math.floor(zone.bounds.width / 2),
-      row: zone.bounds.row + Math.floor(zone.bounds.height / 2),
-    };
-    carveCorridor(set, hearthCenter, center);
-  }
+  // ── 3. L-shaped corridors (3 tiles wide) ─────────────────────────────
+  // Each L = one horizontal leg + one vertical leg, 3 tiles wide.
+  // Width-3 means the "main" tile plus one tile on each side.
 
-  // Drop the forge building sprite into the forge room, using the
-  // shared footprint constant (see hubMap.ts's FORGE_BUILDING_FOOTPRINT)
-  // rather than recomputing the origin here - this WAS a separate
-  // local calculation until 2026-06-23, which is exactly how it drifted
-  // out of sync with proximity.ts's own guess and caused the
-  // "forge only accessible through the lower right corner" bug.
-  const { originCol: forgeOriginCol, originRow: forgeOriginRow } = FORGE_BUILDING_FOOTPRINT;
-  const stamped = stampSprite(grid, HUB_WIDTH, HUB_HEIGHT, FORGE_BUILDING, {
-    col: forgeOriginCol,
-    row: forgeOriginRow,
-  });
+  // N: straight up
+  fill(38, 13, 40, 16, "rock_floor");
 
-  // Place the hearth at the top-left of its 4x4 footprint, so the sprite
-  // renders centered in the hall. hearthCenter is the geometric center
-  // (~col 40, row 25), so the 4x4 top-left anchor is 2 cells up and left.
-  const hearthAnchorCol = hearthCenter.col - 2;
-  const hearthAnchorRow = hearthCenter.row - 2;
-  // Stamp ALL 16 cells of the 4x4 hearth footprint as solid "hearth" -
-  // previously only the anchor cell was stamped, leaving the other 15
-  // as walkable rock_floor. The player could walk through the sprite.
-  for (let dr = 0; dr < 4; dr++) {
-    for (let dc = 0; dc < 4; dc++) {
-      const idx = (hearthAnchorRow + dr) * HUB_WIDTH + (hearthAnchorCol + dc);
-      stamped[idx] = { kind: "hearth" };
-    }
-  }
+  // NE: vertical leg up from hall, then horizontal leg right to room
+  fill(48, 17, 50, 24, "rock_floor"); // vert
+  fill(48, 17, 52, 19, "rock_floor"); // horiz
 
-  // All 16 cells of the 4x4 forge footprint become forge_broken.
-  // Previously only the top-left anchor was stamped, same walkthrough bug.
-  // hubCellAt overrides forge_broken -> forge at runtime once repaired.
-  for (let dr = 0; dr < 4; dr++) {
-    for (let dc = 0; dc < 4; dc++) {
-      const idx = (forgeOriginRow + dr) * HUB_WIDTH + (forgeOriginCol + dc);
-      stamped[idx] = { kind: "forge_broken" };
-    }
-  }
+  // E: straight right (to sealed_east)
+  fill(50, 23, 53, 25, "rock_floor");
 
-  // Place every torch's terrain marker - always "broken" in the static
-  // content; hubCellAt overrides to "torch_lit" dynamically per the
-  // current WorldState.
+  // SE: vertical leg down from hall, then horizontal leg right to room
+  fill(48, 26, 50, 35, "rock_floor"); // vert
+  fill(48, 33, 52, 35, "rock_floor"); // horiz
+
+  // S: straight down
+  fill(38, 34, 40, 37, "rock_floor");
+
+  // SW: vertical leg down from hall, then horizontal leg left to room
+  fill(30, 26, 32, 35, "rock_floor"); // vert
+  fill(19, 33, 32, 35, "rock_floor"); // horiz
+
+  // W: straight left
+  fill(19, 23, 31, 25, "rock_floor");
+
+  // NW: vertical leg up from hall, then horizontal leg left to room
+  fill(30, 17, 32, 24, "rock_floor"); // vert
+  fill(19, 17, 32, 19, "rock_floor"); // horiz
+
+  // ── 4. Sealed rooms: fill interior with rubble ───────────────────────
+  // Leave a 1-tile border of floor so the room has "walls", but
+  // the interior is rubble — visually implies a collapsed passage.
+  fill(36,  6, 44, 11, "rubble"); // N
+  fill(53, 21, 62, 29, "rubble"); // E
+  fill(36, 39, 44, 44, "rubble"); // S
+  fill( 7, 10, 17, 18, "rubble"); // NW
+
+  // ── 5. Hearth 4×4 (all 16 cells solid) ──────────────────────────────
+  const { originCol: hc, originRow: hr } = HEARTH_FOOTPRINT;
+  for (let dr = 0; dr < 4; dr++)
+    for (let dc = 0; dc < 4; dc++)
+      set(hc + dc, hr + dr, "hearth");
+
+  // ── 6. Forge 4×4 (all 16 cells, overridden to 'forge' once repaired)─
+  const { originCol: fc, originRow: fr } = FORGE_BUILDING_FOOTPRINT;
+  for (let dr = 0; dr < 4; dr++)
+    for (let dc = 0; dc < 4; dc++)
+      set(fc + dc, fr + dr, "forge_broken");
+
+  // ── 7. Torches ───────────────────────────────────────────────────────
   for (const torch of LIGHT_SOURCES) {
-    const idx = torch.position.row * HUB_WIDTH + torch.position.col;
-    stamped[idx] = { kind: "torch_broken" };
+    set(torch.position.col, torch.position.row, "torch_broken");
   }
 
-  // Place ore veins - mapped by rockNodeId to the correct CellKind,
-  // not hardcoded to copper. Fixed 2026-06-23 once iron_vein/coal_seam
-  // actually got real placements (see hubMap.ts's ORE_VEINS) - before
-  // that, every vein silently rendered as ore_copper regardless of
-  // what it actually contained, since copper was the only one placed.
-  const VEIN_CELL_KIND_BY_ROCK_NODE_ID: Record<string, CellKind> = {
+  // ── 8. Ore veins ─────────────────────────────────────────────────────
+  const VEIN_KIND: Record<string, CellKind> = {
     copper_vein: "ore_copper",
-    iron_vein: "ore_iron",
-    coal_seam: "ore_coal",
-    deepstone: "ore_deep",
+    iron_vein:   "ore_iron",
+    coal_seam:   "ore_coal",
+    deepstone:   "ore_deep",
   };
   for (const vein of ORE_VEINS) {
-    const idx = vein.position.row * HUB_WIDTH + vein.position.col;
-    stamped[idx] = { kind: VEIN_CELL_KIND_BY_ROCK_NODE_ID[vein.rockNodeId] ?? "ore_copper" };
+    set(vein.position.col, vein.position.row, VEIN_KIND[vein.rockNodeId] ?? "ore_copper");
   }
 
-  // Place wood nodes.
-  for (const woodPlacement of WOOD_NODE_PLACEMENTS) {
-    const idx = woodPlacement.position.row * HUB_WIDTH + woodPlacement.position.col;
-    stamped[idx] = { kind: "wood_node" };
+  // ── 9. Wood nodes ────────────────────────────────────────────────────
+  for (const wood of WOOD_NODE_PLACEMENTS) {
+    set(wood.position.col, wood.position.row, "wood_node");
   }
 
-  // Place the Charcoal Kiln - one fixed cell, always "kiln" (no
-  // broken/repaired state to track, unlike the forge - see kiln.ts).
-  const kilnIdx = KILN_POSITION.row * HUB_WIDTH + KILN_POSITION.col;
-  stamped[kilnIdx] = { kind: "kiln" };
+  // ── 10. Kiln ─────────────────────────────────────────────────────────
+  set(KILN_POSITION.col, KILN_POSITION.row, "kiln");
 
-  // Place the Gemcutting station's UNBUILT marker - always visible in
-  // the static grid as a "something can be built here" cue, mirroring
-  // forge_broken's role for the Forge. The dynamic hubCellAt() override
-  // (below) replaces this with { kind: "gemcutting" } once built.
-  // Added 2026-06-23 fixing a real reported gap: without this, the
-  // buildable spot was indistinguishable plain floor until the player
-  // stumbled onto it by accident.
-  const gemcuttingIdx = GEMCUTTING_POSITION.row * HUB_WIDTH + GEMCUTTING_POSITION.col;
-  stamped[gemcuttingIdx] = { kind: "gemcutting_unbuilt" };
+  // ── 11. Gemcutting unbuilt marker ────────────────────────────────────
+  set(GEMCUTTING_POSITION.col, GEMCUTTING_POSITION.row, "gemcutting_unbuilt");
 
-  return stamped;
-}
-
-function carveCorridor(
-  set: (col: number, row: number, kind: GridCell["kind"]) => void,
-  from: { col: number; row: number },
-  to: { col: number; row: number }
-): void {
-  // L-shaped corridor: horizontal then vertical. Simple, readable,
-  // good enough until we want hand-placed or winding paths.
-  const startCol = Math.min(from.col, to.col);
-  const endCol = Math.max(from.col, to.col);
-  for (let c = startCol; c <= endCol; c++) {
-    set(c, from.row, "rock_floor");
-  }
-  const startRow = Math.min(from.row, to.row);
-  const endRow = Math.max(from.row, to.row);
-  for (let r = startRow; r <= endRow; r++) {
-    set(to.col, r, "rock_floor");
-  }
+  return grid;
 }
 
 let cachedHubGrid: GridCell[] | null = null;
 
-/** The Hub's static content, built once and cached - this never changes during play. */
 export function getHubGrid(): GridCell[] {
-  if (!cachedHubGrid) {
-    cachedHubGrid = buildHubContent();
-  }
+  if (!cachedHubGrid) cachedHubGrid = buildHubContent();
   return cachedHubGrid;
 }
 
@@ -204,21 +172,20 @@ export function hubCellAt(
 
   const staticCell = getHubGrid()[row * HUB_WIDTH + col];
 
+  // Torch: broken → lit if WorldState says so
   if (staticCell.kind === "torch_broken") {
-    const torch = LIGHT_SOURCES.find((t) => t.position.col === col && t.position.row === row);
-    if (torch && litTorches[torch.id]) {
-      return { kind: "torch_lit" };
-    }
+    const torch = LIGHT_SOURCES.find(
+      (t) => t.position.col === col && t.position.row === row
+    );
+    if (torch && litTorches[torch.id]) return { kind: "torch_lit" };
   }
 
+  // Forge: broken → repaired once forgeTier >= 1
   if (staticCell.kind === "forge_broken" && forgeTier >= 1) {
     return { kind: "forge" };
   }
 
-  // The Smelter - covers a 2x2 footprint once built. Only the top-left
-  // (anchor) cell gets the "smelter" kind for rendering (TilesetRenderer
-  // draws the full sprite from there). The other 3 cells get "smelter"
-  // too so they're solid and un-walkable, matching the visual.
+  // Smelter: 2×2 footprint, dynamic once built
   if (
     smelterBuilt &&
     col >= SMELTER_POSITION.col &&
@@ -229,14 +196,15 @@ export function hubCellAt(
     return { kind: "smelter" };
   }
 
-  // The Gemcutting station - same pattern as the Forge:
-  // gemcutting_unbuilt is always stamped statically; once built,
-  // that same cell is overridden to the real gemcutting kind.
+  // Gemcutting: unbuilt marker → active once built
   if (staticCell.kind === "gemcutting_unbuilt" && gemcuttingBuilt) {
     return { kind: "gemcutting" };
   }
 
-  const vein = ORE_VEINS.find((v) => v.position.col === col && v.position.row === row);
+  // Ore depletion
+  const vein = ORE_VEINS.find(
+    (v) => v.position.col === col && v.position.row === row
+  );
   if (vein) {
     const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
     const depletion = veinDepletion[vein.id] ?? createFreshDepletionState();
@@ -245,6 +213,7 @@ export function hubCellAt(
     }
   }
 
+  // Wood depletion
   const woodPlacement = WOOD_NODE_PLACEMENTS.find(
     (w) => w.position.col === col && w.position.row === row
   );

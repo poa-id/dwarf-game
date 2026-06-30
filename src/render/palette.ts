@@ -28,6 +28,7 @@ export type CellKind =
   | "smelter"
   | "gemcutting"
   | "gemcutting_unbuilt"
+  | "rubble"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -43,6 +44,7 @@ export type CellKind =
  */
 export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "rock_wall",
+  "rubble",
   "hearth",
   "forge",
   "forge_broken",
@@ -97,6 +99,7 @@ const STAGE_0: StagePalette = {
     smelter: "#9a9a9a",
     gemcutting: "#9a9a9a",
     gemcutting_unbuilt: "#9a9a9a",
+    rubble: "#7a7060",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     // Torches now follow the SAME flat-gray Stage 0 rule as everything
@@ -156,7 +159,8 @@ const STAGE_2: StagePalette = {
     kiln: "#8a5a3a", // warm clay/brick tone - distinct from both the bright live forge and plain stone, reads as "fired earth"
     smelter: "#c4441a", // richer, more saturated red-orange than the kiln - this is intensified, purifying heat, not just a warm structure
     gemcutting: "#8a6fa8", // pale violet/lavender - distinct from the warm Smelter/Kiln tones, fitting a station about light and clarity rather than heat
-    gemcutting_unbuilt: "#4a4050", // dull, cold - the cutting bench that hasn't been prepared yet, like forge_broken vs forge
+    gemcutting_unbuilt: "#4a4050",
+    rubble: "#5a5040", // warmer than rock_wall, reads as broken stone debris
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -191,6 +195,7 @@ const STAGE_3: StagePalette = {
     smelter: "#d8501e",
     gemcutting: "#a586c8",
     gemcutting_unbuilt: "#5a5060",
+    rubble: "#6a6050",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -223,6 +228,7 @@ export const GLYPHS: Record<CellKind, string> = {
   smelter: "S",
   gemcutting: "g",
   gemcutting_unbuilt: ".",
+  rubble: "x",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea
