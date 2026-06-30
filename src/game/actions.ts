@@ -30,7 +30,10 @@ export function handleMineStrike(actionHint: HTMLElement): void {
 
   const state = getState();
   const miningSkill = state.vessel.skills.mining;
-  if (miningSkill.level < rockNode.requiredLevel) return; // shouldn't happen for the starter vein, defensive only
+  if (miningSkill.level < rockNode.requiredLevel) {
+    actionHint.textContent = `Mining level ${rockNode.requiredLevel} needed. You are level ${miningSkill.level}.`;
+    return;
+  }
 
   const depletion = state.world.veinDepletion[vein.id] ?? createFreshDepletionState();
   if (isOreExhausted(rockNode, depletion)) {
@@ -117,7 +120,7 @@ export function handleWoodGather(): void {
 
   const state = getState();
   const woodcraftSkill = state.vessel.skills.woodcraft;
-  if (woodcraftSkill.level < woodNode.requiredLevel) return; // defensive, shouldn't happen for the starter node
+  if (woodcraftSkill.level < woodNode.requiredLevel) return; // defensive — starter wood node is level 1
 
   const depletion = state.world.woodDepletion[woodPlacement.id] ?? createFreshDepletionState();
   if (isWoodExhausted(woodNode, depletion)) {
