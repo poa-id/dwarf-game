@@ -182,22 +182,22 @@ export const ORE_VEINS: OreVeinPlacement[] = [
     rockNodeId: "iron_vein",
     position: { col: 8, row: 21 },
   },
-  // Coal on the east wall (right side of room).
+  // Coal on the east wall — row 27 avoids the corridor mouth (rows 23-25).
   {
     id: "mine_coal",
     rockNodeId: "coal_seam",
-    position: { col: 17, row: 25 },
+    position: { col: 17, row: 27 },
   },
-  // Deepstone near the mine shaft, far west end.
+  // Deepstone near the mine shaft, far west end — row 22, against the wall above the corridor.
   {
     id: "mine_deepstone",
     rockNodeId: "deepstone",
-    position: { col: 8, row: 25 },
+    position: { col: 8, row: 22 },
   },
 ];
 
-/** The broken mine shaft — menu-accessed in future, visual marker now. Far west wall, 1 tile inside. */
-export const MINE_SHAFT_POSITION: Position = { col: 7, row: 25 };
+/** The broken mine shaft — menu-accessed in future, visual marker now. Far west wall, 1 tile inside, above the corridor mouth. */
+export const MINE_SHAFT_POSITION: Position = { col: 7, row: 22 };
 
 // ── Wood node placements ──────────────────────────────────────────────────────
 
