@@ -63,10 +63,50 @@ export interface SmelterTier {
 }
 
 export const SMELTER_TIERS: SmelterTier[] = [
-  { tier: 1, insightCost: 300, trueMetalChance: 0.002, name: "Truer Flame" },
-  { tier: 2, insightCost: 700, trueMetalChance: 0.005, name: "Patient Crucible" },
-  { tier: 3, insightCost: 1500, trueMetalChance: 0.01, name: "Mountain's Own Heat" },
+  { tier: 1, insightCost: 300,  trueMetalChance: 0.002, name: "Truer Flame" },
+  { tier: 2, insightCost: 700,  trueMetalChance: 0.005, name: "Patient Crucible" },
+  { tier: 3, insightCost: 1500, trueMetalChance: 0.01,  name: "Mountain's Own Heat" },
 ];
+
+/**
+ * Iron smelter tiers — separate upgrade track from copper. Rarer drop
+ * rates (iron True-metal is harder to refine than copper), and double
+ * the Insight cost at every tier, consistent with idle-game scaling
+ * where each tier tier costs more than the last. The curve scales
+ * geometrically so there's always a next meaningful investment.
+ */
+export interface IronSmelterTier {
+  tier: number;
+  insightCost: number;
+  trueMetalChance: number;
+  name: string;
+}
+
+export const IRON_SMELTER_TIERS: IronSmelterTier[] = [
+  { tier: 1, insightCost: 600,  trueMetalChance: 0.001, name: "Hungry Bellows" },
+  { tier: 2, insightCost: 1400, trueMetalChance: 0.003, name: "Iron Patience" },
+  { tier: 3, insightCost: 3000, trueMetalChance: 0.007, name: "The Deep Refinery" },
+];
+
+/** Unlock iron purifying at the Smelter — a one-time Insight cost. */
+export const IRON_PURIFYING_UNLOCK_INSIGHT_COST = 500;
+
+const IRON_SMELTER_BASE_TRUE_METAL_CHANCE = 0.0002; // 0.02% — half of copper's base
+
+export function purifyIronTrueMetalChance(ironSmelterTier: number): number {
+  if (ironSmelterTier === 0) return IRON_SMELTER_BASE_TRUE_METAL_CHANCE;
+  const tier = IRON_SMELTER_TIERS.find((t) => t.tier === ironSmelterTier);
+  return tier?.trueMetalChance ?? IRON_SMELTER_BASE_TRUE_METAL_CHANCE;
+}
+
+export function nextIronSmelterTier(currentTier: number): IronSmelterTier | null {
+  return IRON_SMELTER_TIERS.find((t) => t.tier === currentTier + 1) ?? null;
+}
+
+export function canAffordIronSmelterTier(insightBanked: number, currentTier: number): boolean {
+  const next = nextIronSmelterTier(currentTier);
+  return next !== null && insightBanked >= next.insightCost;
+}
 
 /** Tier 0 (base, just-built, unupgraded) is implicit - 0.05% (0.0005), not in SMELTER_TIERS since there's no purchase for it; see purifyTrueMetalChance. */
 const SMELTER_BASE_TRUE_METAL_CHANCE = 0.0005;
@@ -87,64 +127,85 @@ export function canAffordSmelterTier(insightBanked: number, currentTier: number)
 }
 
 /**
- * Maps an ingot to its True-metal output. Only copper_ingot is real
- * content right now (true_copper) - iron_ingot deliberately has no
- * entry yet, matching the rest of this file's iron-deferred design.
- * Extend this map (and add the corresponding MaterialDefinition in
- * types.ts) once iron itself is real, reachable content.
+ * Maps an ingot to its True-metal output. Extended to include iron
+ * (added alongside IRON_SMELTER_TIERS above).
  */
 const TRUE_METAL_BY_INGOT: Record<string, MaterialId> = {
   copper_ingot: "true_copper",
+  iron_ingot:   "true_iron",
+};
+
+/**
+ * Coal consumed per purification attempt, by ingot type. Heavy by
+ * design — purifying is a real resource sink, not a passive bonus.
+ * Scales with metal tier: iron requires more than twice the coal of
+ * copper, reflecting the higher heat needed to refine harder metals.
+ * Future metals will scale geometrically from here.
+ */
+export const PURIFY_COAL_COST: Record<string, number> = {
+  copper_ingot: 5,
+  iron_ingot:   12,
 };
 
 export const PURIFY_INGOT_COST = 5; // ingots consumed per purification attempt
-export const PURIFY_BASE_XP = 12; // a bit above copper_ingot's smelting baseXp (10) - this is meant to be Smithing's best repeatable XP/effort ratio, per explicit design intent
+export const PURIFY_BASE_XP = 12;
+export const PURIFY_IRON_BASE_XP = 20; // iron purifying grants more XP — harder process
 
 export interface PurifyResult {
   ingotMaterialId: MaterialId;
   ingotsSpent: number;
+  coalSpent: number;
   xpGained: number;
-  trueMetalGained: MaterialId | null; // null on the (overwhelmingly common) non-drop outcome
+  trueMetalGained: MaterialId | null;
   newLevel: number;
   leveledUp: boolean;
 }
 
 /**
- * Attempt one purification pass. ALWAYS consumes the ingot cost and
- * grants XP (no separate success-chance roll - see this file's
- * top-level docstring for why). `roll` decides only whether a
- * True-metal also drops, weighted by purifyTrueMetalChance(smelterTier).
- * Pure function, caller supplies `roll` for determinism in tests, same
- * contract as every other attempt* function in this engine.
+ * Attempt one purification pass. ALWAYS consumes ingots and coal,
+ * grants XP. `roll` decides only whether a True-metal drops.
+ * ironSmelterTier is used when purifying iron_ingot.
  */
 export function attemptPurify(
   ingotMaterialId: MaterialId,
   smithingSkill: SkillState,
   inventory: ResourceBag,
   smelterTier: number,
-  roll: number
+  roll: number,
+  ironSmelterTier: number = 0
 ): PurifyResult {
   const trueMetalId = TRUE_METAL_BY_INGOT[ingotMaterialId];
   if (!trueMetalId) {
     throw new Error(`${ingotMaterialId} has no True-metal counterpart yet`);
   }
 
-  const held = getMaterialAmount(inventory, ingotMaterialId);
-  if (held < PURIFY_INGOT_COST) {
-    throw new Error(`Not enough ${ingotMaterialId} to purify: have ${held}, need ${PURIFY_INGOT_COST}`);
+  const heldIngots = getMaterialAmount(inventory, ingotMaterialId);
+  if (heldIngots < PURIFY_INGOT_COST) {
+    throw new Error(`Not enough ${ingotMaterialId} to purify: have ${heldIngots}, need ${PURIFY_INGOT_COST}`);
   }
 
-  const dropChance = purifyTrueMetalChance(smelterTier);
+  const coalCost = PURIFY_COAL_COST[ingotMaterialId] ?? 5;
+  const heldCoal = getMaterialAmount(inventory, "coal");
+  if (heldCoal < coalCost) {
+    throw new Error(`Not enough coal to purify: have ${heldCoal}, need ${coalCost}`);
+  }
+
+  const isIron = ingotMaterialId === "iron_ingot";
+  const dropChance = isIron
+    ? purifyIronTrueMetalChance(ironSmelterTier)
+    : purifyTrueMetalChance(smelterTier);
+  const xpGained = isIron ? PURIFY_IRON_BASE_XP : PURIFY_BASE_XP;
   const trueMetalGained = roll < dropChance ? trueMetalId : null;
 
   const oldLevel = smithingSkill.level;
-  const newXp = smithingSkill.xp + PURIFY_BASE_XP;
+  const newXp = smithingSkill.xp + xpGained;
   const newLevel = levelForXp(newXp);
 
   return {
     ingotMaterialId,
     ingotsSpent: PURIFY_INGOT_COST,
-    xpGained: PURIFY_BASE_XP,
+    coalSpent: coalCost,
+    xpGained,
     trueMetalGained,
     newLevel,
     leveledUp: newLevel > oldLevel,
@@ -152,7 +213,10 @@ export function attemptPurify(
 }
 
 export function applyPurifyResult(inventory: ResourceBag, result: PurifyResult): ResourceBag {
-  let updated = deductMaterials(inventory, { [result.ingotMaterialId]: result.ingotsSpent });
+  let updated = deductMaterials(inventory, {
+    [result.ingotMaterialId]: result.ingotsSpent,
+    coal: result.coalSpent,
+  });
   if (result.trueMetalGained) {
     updated = addMaterial(updated, result.trueMetalGained, 1);
   }

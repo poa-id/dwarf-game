@@ -6,7 +6,12 @@ import {
   nextSmelterTier,
   canAffordSmelterTier,
   purifyTrueMetalChance,
+  purifyIronTrueMetalChance,
   PURIFY_INGOT_COST,
+  PURIFY_COAL_COST,
+  IRON_PURIFYING_UNLOCK_INSIGHT_COST,
+  nextIronSmelterTier,
+  canAffordIronSmelterTier,
   attemptPurify,
   applyPurifyResult,
   nextXpPerkTier,
@@ -45,6 +50,8 @@ export function renderSmelterPanel(
   onBuild: () => void,
   onPurify: (ingotMaterialId: MaterialId) => void,
   onUpgradeTier: () => void,
+  onUnlockIronPurifying: () => void,
+  onUpgradeIronTier: () => void,
   onSpendTrueMetalOnPerk: () => void
 ): void {
   const { smelterBuilt, smelterTier, insightBanked, trueMetalSpentOnXpPerk } = state.world;
@@ -66,34 +73,83 @@ export function renderSmelterPanel(
       </div>
     `;
   } else {
-    const ingotHeld = getMaterialAmount(state.vessel.inventory, "copper_ingot");
-    const canPurify = ingotHeld >= PURIFY_INGOT_COST;
-    const ingotLabel = MATERIALS.copper_ingot?.name ?? "Copper Ingot";
-    const dropChancePercent = (purifyTrueMetalChance(smelterTier) * 100).toFixed(2);
-    const purifyStatus = canPurify
-      ? `${PURIFY_INGOT_COST} ${ingotLabel}`
-      : `Need: ${PURIFY_INGOT_COST} ${ingotLabel}`;
+    const { ironPurifyingUnlocked, ironSmelterTier } = state.world;
 
-    const purifyRow = `
-      <div class="recipe-row ${canPurify ? "" : "recipe-row-disabled"}" data-action="purify" data-ingot="copper_ingot">
+    // Copper purify row
+    const copperHeld = getMaterialAmount(state.vessel.inventory, "copper_ingot");
+    const copperCoalCost = PURIFY_COAL_COST["copper_ingot"] ?? 5;
+    const coalHeld = getMaterialAmount(state.vessel.inventory, "coal");
+    const canPurifyCopper = copperHeld >= PURIFY_INGOT_COST && coalHeld >= copperCoalCost;
+    const copperDropChance = (purifyTrueMetalChance(smelterTier) * 100).toFixed(3);
+    const copperStatus = canPurifyCopper
+      ? `${PURIFY_INGOT_COST} Copper Ingot + ${copperCoalCost} Coal`
+      : `Need: ${PURIFY_INGOT_COST} Copper Ingot + ${copperCoalCost} Coal`;
+
+    const copperRow = `
+      <div class="recipe-row ${canPurifyCopper ? "" : "recipe-row-disabled"}" data-action="purify" data-ingot="copper_ingot">
         <div class="recipe-name">Purify Copper Ingot</div>
-        <div class="recipe-status">${purifyStatus}</div>
-        <div class="recipe-success-rate">${dropChancePercent}% True Copper chance</div>
+        <div class="recipe-status">${copperStatus}</div>
+        <div class="recipe-success-rate">${copperDropChance}% True Copper</div>
       </div>
     `;
 
-    const nextTier = nextSmelterTier(smelterTier);
-    const tierRow =
-      nextTier && canAffordSmelterTier(insightBanked, smelterTier)
+    // Copper tier upgrade
+    const nextCopperTier = nextSmelterTier(smelterTier);
+    const copperTierRow =
+      nextCopperTier && canAffordSmelterTier(insightBanked, smelterTier)
         ? `
           <div class="recipe-row" data-action="upgrade-smelter-tier">
-            <div class="recipe-name">${nextTier.name}</div>
-            <div class="recipe-status">${nextTier.insightCost} Insight - raises True-metal chance to ${(nextTier.trueMetalChance * 100).toFixed(2)}%</div>
+            <div class="recipe-name">${nextCopperTier.name}</div>
+            <div class="recipe-status">${nextCopperTier.insightCost} Insight — copper True-metal to ${(nextCopperTier.trueMetalChance * 100).toFixed(3)}%</div>
           </div>
         `
         : "";
 
-    bodyHtml = purifyRow + tierRow;
+    // Iron — unlock row if not yet unlocked and player has iron ingots
+    const ironHeld = getMaterialAmount(state.vessel.inventory, "iron_ingot");
+    const ironUnlockRow =
+      !ironPurifyingUnlocked && ironHeld > 0 && insightBanked >= IRON_PURIFYING_UNLOCK_INSIGHT_COST
+        ? `
+          <div class="recipe-row" data-action="unlock-iron-purifying">
+            <div class="recipe-name">Unlock Iron Purifying</div>
+            <div class="recipe-status">${IRON_PURIFYING_UNLOCK_INSIGHT_COST} Insight — rarer than copper, costs more coal</div>
+          </div>
+        `
+        : "";
+
+    // Iron purify row (once unlocked)
+    const ironCoalCost = PURIFY_COAL_COST["iron_ingot"] ?? 12;
+    const canPurifyIron = ironPurifyingUnlocked && ironHeld >= PURIFY_INGOT_COST && coalHeld >= ironCoalCost;
+    const ironDropChance = (purifyIronTrueMetalChance(ironSmelterTier) * 100).toFixed(3);
+    const ironStatus = canPurifyIron
+      ? `${PURIFY_INGOT_COST} Iron Ingot + ${ironCoalCost} Coal`
+      : ironPurifyingUnlocked
+        ? `Need: ${PURIFY_INGOT_COST} Iron Ingot + ${ironCoalCost} Coal`
+        : "";
+
+    const ironRow = ironPurifyingUnlocked
+      ? `
+        <div class="recipe-row ${canPurifyIron ? "" : "recipe-row-disabled"}" data-action="purify" data-ingot="iron_ingot">
+          <div class="recipe-name">Purify Iron Ingot</div>
+          <div class="recipe-status">${ironStatus}</div>
+          <div class="recipe-success-rate">${ironDropChance}% True Iron</div>
+        </div>
+      `
+      : "";
+
+    // Iron tier upgrade
+    const nextIronTier = nextIronSmelterTier(ironSmelterTier);
+    const ironTierRow =
+      ironPurifyingUnlocked && nextIronTier && canAffordIronSmelterTier(insightBanked, ironSmelterTier)
+        ? `
+          <div class="recipe-row" data-action="upgrade-iron-smelter-tier">
+            <div class="recipe-name">${nextIronTier.name}</div>
+            <div class="recipe-status">${nextIronTier.insightCost} Insight — iron True-metal to ${(nextIronTier.trueMetalChance * 100).toFixed(3)}%</div>
+          </div>
+        `
+        : "";
+
+    bodyHtml = copperRow + copperTierRow + ironUnlockRow + ironRow + ironTierRow;
   }
 
   const nextPerkTier = nextXpPerkTier(trueMetalSpentOnXpPerk);
@@ -126,6 +182,8 @@ export function renderSmelterPanel(
       if (action === "build-smelter") onBuild();
       else if (action === "purify") onPurify((row.dataset.ingot as MaterialId) ?? "copper_ingot");
       else if (action === "upgrade-smelter-tier") onUpgradeTier();
+      else if (action === "unlock-iron-purifying") onUnlockIronPurifying();
+      else if (action === "upgrade-iron-smelter-tier") onUpgradeIronTier();
       else if (action === "spend-true-metal-perk") onSpendTrueMetalOnPerk();
     });
   });
@@ -161,7 +219,8 @@ export function performPurify(state: GameState, ingotMaterialId: MaterialId): Pu
     state.vessel.skills.smithing,
     state.vessel.inventory,
     state.world.smelterTier,
-    Math.random()
+    Math.random(),
+    state.world.ironSmelterTier
   );
   const newInventory = applyPurifyResult(state.vessel.inventory, result);
 
@@ -205,6 +264,34 @@ export function performSmelterTierUpgrade(state: GameState): GameState {
     world: {
       ...state.world,
       smelterTier: next.tier,
+      insightBanked: state.world.insightBanked - next.insightCost,
+    },
+  };
+}
+
+export function performUnlockIronPurifying(state: GameState): GameState {
+  if (state.world.ironPurifyingUnlocked) return state;
+  if (state.world.insightBanked < IRON_PURIFYING_UNLOCK_INSIGHT_COST) return state;
+  return {
+    ...state,
+    world: {
+      ...state.world,
+      ironPurifyingUnlocked: true,
+      insightBanked: state.world.insightBanked - IRON_PURIFYING_UNLOCK_INSIGHT_COST,
+    },
+  };
+}
+
+export function performIronSmelterTierUpgrade(state: GameState): GameState {
+  const next = nextIronSmelterTier(state.world.ironSmelterTier);
+  if (!next) return state;
+  if (!canAffordIronSmelterTier(state.world.insightBanked, state.world.ironSmelterTier)) return state;
+
+  return {
+    ...state,
+    world: {
+      ...state.world,
+      ironSmelterTier: next.tier,
       insightBanked: state.world.insightBanked - next.insightCost,
     },
   };

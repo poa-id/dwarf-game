@@ -21,7 +21,8 @@ import {
 import type { SkillState, ResourceBag } from "../types";
 
 const smithingLvl1: SkillState = { id: "smithing", level: 1, xp: 0 };
-const inventoryWith = (overrides: ResourceBag): ResourceBag => ({ ...overrides });
+// Always include plenty of coal so purify tests aren't blocked by the new coal cost
+const inventoryWith = (overrides: ResourceBag): ResourceBag => ({ coal: 100, ...overrides });
 
 describe("Smelter build cost", () => {
   it("is iron-free by design - only copper_ingot, copper_ore, and wood", () => {
@@ -80,9 +81,13 @@ describe("Smelter tier upgrades", () => {
 });
 
 describe("attemptPurify", () => {
-  it("throws for an ingot with no True-metal counterpart yet (e.g. iron_ingot)", () => {
+  it("iron_ingot now has a True-metal counterpart (true_iron) — no longer throws", () => {
     const inv = inventoryWith({ iron_ingot: 100 });
-    expect(() => attemptPurify("iron_ingot", smithingLvl1, inv, 0, 0.01)).toThrow();
+    // Should NOT throw — iron is now a valid purifiable metal
+    expect(() => attemptPurify("iron_ingot", smithingLvl1, inv, 0, 0.01)).not.toThrow();
+    const result = attemptPurify("iron_ingot", smithingLvl1, inv, 0, 0.01);
+    expect(result.coalSpent).toBe(12); // iron costs more coal than copper
+    expect(result.ingotsSpent).toBe(PURIFY_INGOT_COST);
   });
 
   it("throws if not enough ingots held", () => {

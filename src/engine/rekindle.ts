@@ -94,6 +94,8 @@ export function createInitialWorld(now: number): WorldState {
     lifetimeFuelAtLastRekindle: 0,
     smelterBuilt: false,
     smelterTier: 0,
+    ironPurifyingUnlocked: false,
+    ironSmelterTier: 0,
     trueMetalSpentOnXpPerk: 0,
     trueMetalSpentOnYieldPerk: 0,
     gemcuttingBuilt: false,

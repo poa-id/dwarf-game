@@ -28,6 +28,8 @@ function makeStateWithProgress(): GameState {
       lifetimeFuelAtLastRekindle: 0, // never rekindled before - this fixture's full 1500 counts as growth
       smelterBuilt: true,
       smelterTier: 2,
+      ironPurifyingUnlocked: false,
+      ironSmelterTier: 0,
       trueMetalSpentOnXpPerk: 3,
       trueMetalSpentOnYieldPerk: 1,
       gemcuttingBuilt: true,

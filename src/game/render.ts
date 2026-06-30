@@ -36,6 +36,8 @@ import {
   performSmelterBuild,
   performPurify,
   performSmelterTierUpgrade,
+  performUnlockIronPurifying,
+  performIronSmelterTierUpgrade,
   performSpendTrueMetalOnPerk,
 } from "../ui/smelterPanel";
 import {
@@ -326,6 +328,14 @@ function updateContextualPanel(): void {
       },
       () => {
         setState(performSmelterTierUpgrade(getState()));
+        render();
+      },
+      () => {
+        setState(performUnlockIronPurifying(getState()));
+        render();
+      },
+      () => {
+        setState(performIronSmelterTierUpgrade(getState()));
         render();
       },
       () => {

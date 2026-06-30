@@ -78,6 +78,10 @@ function backfillMissingFields(state: any): any {
       state.world.smelterTier = 0;
       state.world.trueMetalSpentOnXpPerk = 0;
     }
+    if (state.world.ironPurifyingUnlocked === undefined) {
+      state.world.ironPurifyingUnlocked = false;
+      state.world.ironSmelterTier = 0;
+    }
     if (state.world.trueMetalSpentOnYieldPerk === undefined) {
       state.world.trueMetalSpentOnYieldPerk = 0;
     }

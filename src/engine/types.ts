@@ -84,6 +84,7 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   // folding into "ingot" - these are never used as fuel or smithing
   // input, only as a perk-tree currency.
   true_copper: { id: "true_copper", name: "True Copper", category: "true_metal", tier: 1 },
+  true_iron:   { id: "true_iron",   name: "True Iron",   category: "true_metal", tier: 2 },
   insight: { id: "insight", name: "Insight", category: "currency", tier: 0 },
   // Gems - added 2026-06-23 alongside the new Tinkering skill and
   // Gemcutting station (gemcutting.ts). Rough gems drop rarely from
@@ -342,6 +343,10 @@ export interface WorldState {
    */
   smelterBuilt: boolean;
   smelterTier: number;
+  /** Unlocked via Insight spend (500) once iron ingots are in inventory.
+   *  Separate from smelterTier — each metal has its own tier track. */
+  ironPurifyingUnlocked: boolean;
+  ironSmelterTier: number;
   /**
    * How many True-metals (any type, see TRUE_METAL_PERK_TIERS in
    * smelter.ts) have been permanently spent on the Mountain's global
