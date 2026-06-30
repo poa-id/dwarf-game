@@ -1,5 +1,5 @@
 import type { WorldState, ZoneDefinition, Position, UnlockCondition } from "./types";
-import { ZONES, LIGHT_SOURCES } from "./hubMap";
+import { ZONES, LIGHT_SOURCES, HEARTH_CENTER, FORGE_CENTER } from "./hubMap";
 import { FORGE_UPGRADES } from "./smithing";
 
 // ---------------------------------------------------------------------------
@@ -141,7 +141,17 @@ export function isActivelyLit(
   dwarfRadius: number = DEFAULT_LIGHT_RADIUS
 ): boolean {
   if (isWithinLightRadius(col, row, dwarfPosition, dwarfRadius)) return true;
-  return isWithinAnyLitTorch(col, row, world);
+  if (isWithinAnyLitTorch(col, row, world)) return true;
+  // Permanent structure light sources (added 2026-06-30): the Hearth
+  // always emits light (it has a fire in it), the Forge does once
+  // repaired (forgeTier >= 1). These are not tracked in WorldState
+  // like torches because they can't be broken - they're always-on
+  // once the structure exists.
+  if (isWithinLightRadius(col, row, HEARTH_CENTER, 5)) return true;
+  if (world.forgeTier >= 1) {
+    if (isWithinLightRadius(col, row, FORGE_CENTER, 4)) return true;
+  }
+  return false;
 }
 
 /**

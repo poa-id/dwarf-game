@@ -198,6 +198,18 @@ export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
  */
 export const KILN_POSITION: Position = { col: 43, row: 23 };
 
+/** Geometric center of the Hearth Hall, also the visual/light center of the Hearth structure. */
+export const HEARTH_CENTER: Position = {
+  col: ZONES.find((z) => z.id === "hearth_hall")!.bounds.col + Math.floor(ZONES.find((z) => z.id === "hearth_hall")!.bounds.width / 2),
+  row: ZONES.find((z) => z.id === "hearth_hall")!.bounds.row + Math.floor(ZONES.find((z) => z.id === "hearth_hall")!.bounds.height / 2),
+};
+
+/** Center of the Forge building, used as the light emission point once repaired. */
+export const FORGE_CENTER: Position = {
+  col: FORGE_BUILDING_FOOTPRINT.originCol + Math.floor(FORGE_BUILDING_FOOTPRINT.width / 2),
+  row: FORGE_BUILDING_FOOTPRINT.originRow + Math.floor(FORGE_BUILDING_FOOTPRINT.height / 2),
+};
+
 /**
  * The Smelter - a Forge Room addon (added 2026-06-23, see
  * smelter.ts), centered on the bottom open-floor strip directly below
