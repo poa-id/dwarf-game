@@ -199,15 +199,23 @@ export function isActivelyLit(
   const los = (from: Position) =>
     !isSolid || hasLineOfSight(from, target, isSolid);
 
+  // Dwarf's own mobile light — strict LOS
   if (isWithinLightRadius(col, row, dwarfPosition, dwarfRadius) && los(dwarfPosition)) return true;
 
+  // Torches — strict LOS (a wall between you and a torch blocks its light)
   for (const torch of LIGHT_SOURCES) {
     if (!world.litTorches[torch.id]) continue;
     if (isWithinLightRadius(col, row, torch.position, torch.radius) && los(torch.position)) return true;
   }
 
-  if (isWithinLightRadius(col, row, HEARTH_CENTER, 5) && los(HEARTH_CENTER)) return true;
-  if (world.forgeTier >= 1 && isWithinLightRadius(col, row, FORGE_CENTER, 4) && los(FORGE_CENTER)) return true;
+  // Permanent structure lights — NO LOS check. The Hearth and Forge are
+  // ambient room lighting: the whole hall basks in hearth-warmth, the
+  // forge room glows from its furnace. Unlike a torch or the dwarf's
+  // lantern, these are not point sources — applying LOS would cause the
+  // Hearth to block its own light (its center is inside its own solid
+  // 4×4 footprint, so every ray from (40,25) immediately hits stone).
+  if (isWithinLightRadius(col, row, HEARTH_CENTER, 5)) return true;
+  if (world.forgeTier >= 1 && isWithinLightRadius(col, row, FORGE_CENTER, 4)) return true;
 
   return false;
 }
@@ -238,20 +246,12 @@ export function cellVisibility(
   world: WorldState,
   exploredKey: string,
   radius: number = DEFAULT_LIGHT_RADIUS,
-  cellKind?: string,
+  _cellKind?: string,
   isSolid?: (col: number, row: number) => boolean
 ): CellVisibility {
   if (!isCellPartOfUnlockedWorld(col, row, world)) return "hidden";
 
   if (isActivelyLit(col, row, dwarfPosition, world, radius, isSolid)) return "lit";
-
-  // Wall tiles and rubble never show as "remembered" (dim) — they snap
-  // back to pure dark when out of the light radius. This makes corridors
-  // and rooms read as islands of light in true darkness, rather than a
-  // dim grey fog-of-war that reveals all geometry everywhere.
-  // Floor tiles, ores, structures etc. still use the standard
-  // remembered/explored map so the player retains spatial memory.
-  if (cellKind === "rock_wall" || cellKind === "rubble") return "hidden";
 
   if (world.exploredCells[exploredKey]) return "remembered";
 
