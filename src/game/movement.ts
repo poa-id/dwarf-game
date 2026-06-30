@@ -13,10 +13,10 @@ export const KEY_TO_DIRECTION: Record<string, Direction> = {
 };
 
 function isSolidAt(col: number, row: number): boolean {
-  const { litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt } =
+  const { litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion } =
     getState().world;
   return isSolidCellKind(
-    hubCellAt(col, row, litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt)
+    hubCellAt(col, row, litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion.befriended)
       .kind
   );
 }

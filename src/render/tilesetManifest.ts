@@ -15,6 +15,8 @@ import forge4x4Url from "./tileset-assets/sliced/forge_4x4.png";
 import hearth4x4Url from "./tileset-assets/sliced/hearth_4x4.png";
 import smelterAddonUrl from "./tileset-assets/sliced/smelter_addon.png";
 import gemcutting4x4Url from "./tileset-assets/sliced/gemcutting_4x4.png";
+import torchLitUrl from "./tileset-assets/sliced/torch_lit.png";
+import naragBundUrl from "./tileset-assets/sliced/narag_bund.png";
 
 /**
  * Maps each CellKind to an actual tile image, instead of a glyph+color.
@@ -80,7 +82,8 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   rubble: { assetUrl: rockWallUrl, tint: "#6a5a40" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
-  torch_lit: { assetUrl: oreBaseUrl, tint: "#ff9a3a" },
+  torch_lit: { assetUrl: torchLitUrl },
+  companion: { assetUrl: naragBundUrl },
 };
 
 export const NATIVE_TILE_SIZE = 32;

@@ -152,6 +152,14 @@ export const GEMCUTTING_POSITION: Position = { col: 54, row: 38 };
 /** Charcoal Kiln in the Garden Room, beside the wood node. */
 export const KILN_POSITION: Position = { col: 10, row: 38 };
 
+/**
+ * Narag-Bund's resting spot once befriended — just south-east of the
+ * Hearth, on open hall floor. Always visible here once the player
+ * has unlocked the Friend of Burden upgrade. His map presence
+ * confirms he's real rather than just a UI panel status line.
+ */
+export const COMPANION_POSITION: Position = { col: 42, row: 27 };
+
 // ── Ore vein placements ───────────────────────────────────────────────────────
 
 export interface OreVeinPlacement {

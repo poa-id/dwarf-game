@@ -12,6 +12,7 @@ import {
   FORGE_BUILDING_FOOTPRINT,
   HEARTH_FOOTPRINT,
   MAP_CENTER,
+  COMPANION_POSITION,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
@@ -165,7 +166,8 @@ export function hubCellAt(
   woodDepletion: WorldState["veinDepletion"] = {},
   forgeTier: number = 0,
   smelterBuilt: boolean = false,
-  gemcuttingBuilt: boolean = false
+  gemcuttingBuilt: boolean = false,
+  companionBefriended: boolean = false
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -196,6 +198,12 @@ export function hubCellAt(
 
   if (staticCell.kind === "gemcutting_unbuilt" && gemcuttingBuilt) {
     return { kind: "gemcutting" };
+  }
+
+  // Narag-Bund appears at his resting spot once befriended.
+  // Walkable — the player can share the cell with him.
+  if (companionBefriended && col === COMPANION_POSITION.col && row === COMPANION_POSITION.row) {
+    return { kind: "companion" };
   }
 
   const vein = ORE_VEINS.find(

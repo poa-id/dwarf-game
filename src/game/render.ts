@@ -402,7 +402,8 @@ export function render(): void {
         state.world.woodDepletion,
         state.world.forgeTier,
         state.world.smelterBuilt,
-        state.world.gemcuttingBuilt
+        state.world.gemcuttingBuilt,
+        state.world.companion.befriended
       );
     },
     (col, row) =>
