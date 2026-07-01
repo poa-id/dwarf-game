@@ -6,6 +6,7 @@ import {
   isAutoTendingUnlocked,
   deductFuelValueFromReserve,
   advanceCompanionHauling,
+  advanceDrillHauling,
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
 } from "../engine/hearth";
 import { xpPerkBonus } from "../engine/smelter";
@@ -80,6 +81,27 @@ function gameTick(): void {
         },
         vessel: { ...state.vessel, inventory: haul.inventory },
       });
+      changed = true;
+    }
+  }
+
+  // Narag-Bund hauls coal from fuel reserve to drills (hearthTier >= 2)
+  if (state.world.companion.befriended && state.world.hearthTier >= 2) {
+    const drillHaul = advanceDrillHauling(
+      state.world.fuelReserve,
+      state.world.drills,
+      state.world.hearthTier
+    );
+    if (drillHaul.hauled) {
+      setState({
+        ...state,
+        world: {
+          ...state.world,
+          fuelReserve: drillHaul.fuelReserve,
+          drills: drillHaul.drills,
+        },
+      });
+      state = getState();
       changed = true;
     }
   }

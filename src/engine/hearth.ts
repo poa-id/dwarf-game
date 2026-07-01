@@ -1,4 +1,5 @@
 import type { HearthState, ResourceBag, MaterialId } from "./types";
+import { DRILL_COAL_BUFFER_MAX } from "./drill";
 import { getMaterialAmount, deductMaterials, addMaterial, materialDef } from "./types";
 import { colorStageForLifetimeFuel, capColorStageBeforeFirstRekindle } from "./colorStages";
 
@@ -512,4 +513,62 @@ export function advanceCompanionHauling(
     lastHaulAt: lastHaulAt + tripsElapsed * HAUL_INTERVAL_MS,
     hauled: amountToHaul > 0,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Narag-Bund: drill coal hauling
+// ---------------------------------------------------------------------------
+
+/**
+ * Narag-Bund hauls coal from the fuel reserve to drills running low.
+ * Unlocks at hearthTier >= 2 — Hearth restoration expands his role
+ * from companion to operations manager.
+ */
+export interface DrillHaulResult {
+  fuelReserve: ResourceBag;
+  drills: Record<string, import("./drill").DrillState>;
+  hauled: boolean;
+}
+
+export function advanceDrillHauling(
+  fuelReserve: ResourceBag,
+  drills: Record<string, import("./drill").DrillState>,
+  hearthTier: number
+): DrillHaulResult {
+  if (hearthTier < 2) {
+    return { fuelReserve, drills, hauled: false };
+  }
+
+  const coalInReserve = getMaterialAmount(fuelReserve, "coal");
+  if (coalInReserve === 0) {
+    return { fuelReserve, drills, hauled: false };
+  }
+
+  const drillEntries = Object.entries(drills)
+    .filter(([, d]) => d.tier > 0 && d.coalBuffer < DRILL_COAL_BUFFER_MAX / 2)
+    .sort(([, a], [, b]) => a.coalBuffer - b.coalBuffer);
+
+  if (drillEntries.length === 0) {
+    return { fuelReserve, drills, hauled: false };
+  }
+
+  let newFuelReserve = { ...fuelReserve };
+  let newDrills = { ...drills };
+  let hauled = false;
+
+  for (const [veinId, drillState] of drillEntries) {
+    const space = DRILL_COAL_BUFFER_MAX - drillState.coalBuffer;
+    const available = getMaterialAmount(newFuelReserve, "coal");
+    const toHaul = Math.min(space, available, HAUL_AMOUNT_PER_TRIP);
+    if (toHaul <= 0) break;
+
+    newFuelReserve = deductMaterials(newFuelReserve, { coal: toHaul });
+    newDrills = {
+      ...newDrills,
+      [veinId]: { ...drillState, coalBuffer: drillState.coalBuffer + toHaul },
+    };
+    hauled = true;
+  }
+
+  return { fuelReserve: newFuelReserve, drills: newDrills, hauled };
 }
