@@ -145,6 +145,12 @@ export function getRestorationScore(world: WorldState): RestorationBreakdown {
   if (world.gemcuttingBuilt) structureScore += 200;
   structureScore += world.smelterTier * 100;
 
+  // Room restoration contributes per stage
+  const stockpileStage = world.roomStates["stockpile_room"];
+  if (stockpileStage === "cleared") structureScore += 300;
+  else if (stockpileStage === "restored") structureScore += 700;
+  else if (stockpileStage === "masterwork") structureScore += 1500;
+
   const torchScore = Object.values(world.litTorches).filter(Boolean).length * 100;
 
   let drillScore = 0;

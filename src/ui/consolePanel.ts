@@ -107,6 +107,21 @@ export function renderConsolePanel(
       <div class="reserve-status"><strong>Drills</strong></div>
       ${drillRows}
     </div>
+
+    ${(() => {
+      const stockpileStage = state.world.roomStates["stockpile_room"] ?? "ruined";
+      if (stockpileStage === "ruined") return "";
+      const entries = Object.entries(state.world.stockpileOre).filter(([, v]) => v > 0);
+      const contents = entries.length > 0
+        ? entries.map(([mat, amt]) => `${amt} ${mat.replace("_ore","").replace("_"," ")}`).join(", ")
+        : "empty";
+      return `
+        <div style="margin-bottom: 4px;">
+          <div class="reserve-status"><strong>Stockpile</strong> (${stockpileStage})</div>
+          <div class="reserve-status">${contents}</div>
+        </div>
+      `;
+    })()}
   `;
 }
 

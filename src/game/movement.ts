@@ -14,9 +14,9 @@ export const KEY_TO_DIRECTION: Record<string, Direction> = {
 
 function isSolidAt(col: number, row: number): boolean {
   const world = getState().world;
-  const { litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion, consoleAwakened } = world;
+  const { litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion, consoleAwakened, roomStates } = world;
   return isSolidCellKind(
-    hubCellAt(col, row, litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion.befriended, consoleAwakened)
+    hubCellAt(col, row, litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion.befriended, consoleAwakened, roomStates["stockpile_room"] ?? "ruined")
       .kind
   );
 }

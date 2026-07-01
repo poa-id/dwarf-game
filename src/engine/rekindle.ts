@@ -93,6 +93,8 @@ export function createInitialWorld(now: number): WorldState {
     drills: {},
     consoleAwakened: false,
     rekindleMultiplier: 0,
+    roomStates: {},
+    stockpileOre: {},
     toolsForged: { pickaxe: 0, axe: 0 },
     lifetimeFuelAtLastRekindle: 0,
     smelterBuilt: false,

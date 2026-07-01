@@ -88,18 +88,39 @@ function gameTick(): void {
   const drillEntries = Object.entries(state.world.drills);
   if (drillEntries.length > 0) {
     let newDrills = { ...state.world.drills };
+    let newStockpile = { ...state.world.stockpileOre };
+    const stockpileActive =
+      (state.world.roomStates["stockpile_room"] === "cleared" ||
+       state.world.roomStates["stockpile_room"] === "restored" ||
+       state.world.roomStates["stockpile_room"] === "masterwork");
     let drillChanged = false;
+
     for (const [veinId, drillState] of drillEntries) {
       const def = drillDefinitionByVeinId(veinId);
       if (!def) continue;
       const result = tickDrill(drillState, def, now);
       if (result.ranCycle || result.drill.lastCycleAt !== drillState.lastCycleAt) {
-        newDrills = { ...newDrills, [veinId]: result.drill };
+        let finalDrill = result.drill;
+        // If stockpile is active and ore was produced, drain ore buffer
+        // into stockpile instead of holding it in the drill buffer
+        if (stockpileActive && result.oreProduced > 0) {
+          const oreMat = def.oreMaterialId;
+          newStockpile = {
+            ...newStockpile,
+            [oreMat]: (newStockpile[oreMat] ?? 0) + result.oreProduced,
+          };
+          // Clear the ore buffer so the drill keeps running
+          finalDrill = { ...finalDrill, oreBuffer: 0 };
+        }
+        newDrills = { ...newDrills, [veinId]: finalDrill };
         drillChanged = true;
       }
     }
     if (drillChanged) {
-      setState({ ...state, world: { ...state.world, drills: newDrills } });
+      setState({
+        ...state,
+        world: { ...state.world, drills: newDrills, stockpileOre: newStockpile },
+      });
       state = getState();
       changed = true;
     }

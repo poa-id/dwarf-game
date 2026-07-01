@@ -33,6 +33,8 @@ function makeStateWithProgress(): GameState {
       drills: {},
       consoleAwakened: false,
       rekindleMultiplier: 0,
+      roomStates: {},
+      stockpileOre: {},
       trueMetalSpentOnXpPerk: 3,
       trueMetalSpentOnYieldPerk: 1,
       gemcuttingBuilt: true,

@@ -50,6 +50,8 @@ import {
 } from "../ui/gemcuttingPanel";
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill } from "../ui/drillPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
+import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
+import { getRestorationScore, estimatedInsightPerMin } from "../engine/production";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
 export interface RenderRefs {
@@ -72,6 +74,8 @@ export interface RenderRefs {
     inventoryList: HTMLElement;
     toolsList: HTMLElement;
     insightDisplay: HTMLElement;
+    restorationDisplay: HTMLElement;
+    insightRateDisplay: HTMLElement;
   };
 }
 
@@ -98,23 +102,28 @@ function levelProgressPercent(totalXp: number): number {
 
 function updateStatsPanel(): void {
   const { skills, inventory } = getState().vessel;
-  const { toolsForged, insightBanked } = getState().world;
-  // Insight - a real, persistent gap fixed 2026-06-23: insightBanked
-  // was only ever used internally to gate whether an upgrade row
-  // showed, never actually displayed as a number anywhere. A player
-  // could have 0 or 900 Insight and see identical UI until crossing
-  // whatever threshold made a row appear - directly undercutting
-  // "Progress Should Be Visible." Shown under "the mountain," not "the
-  // dwarf," since Insight is World-level (survives rekindling), not a
-  // personal stat that resets with the Vessel.
-  // Insight - per explicit direction, EVERY XP-granting action also
-  // grants a small fractional amount (see xpCurve.ts's insightFromXp),
-  // so the underlying world.insightBanked accumulates fractionally.
-  // Math.floor here is presentation-only - never shows a fractional
-  // Insight to the player, but never rounds UP either (so the display
-  // doesn't show an amount the player can't yet actually afford to
-  // spend).
+  const world = getState().world;
+  const { toolsForged, insightBanked } = world;
+
+  // Restoration score — the primary "how alive is this mountain" number.
+  // Only shown once the console is awakened (the mountain is self-aware).
+  const restoration = getRestorationScore(world);
+  if (world.consoleAwakened) {
+    refs.statEls.restorationDisplay.textContent = `Restoration: ${restoration.total.toLocaleString()}`;
+    refs.statEls.restorationDisplay.style.display = "";
+  } else {
+    refs.statEls.restorationDisplay.style.display = "none";
+  }
+
+  // Insight display + estimated rate from idle production
   refs.statEls.insightDisplay.textContent = `Insight: ${Math.floor(insightBanked)}`;
+  const insightMin = estimatedInsightPerMin(world);
+  if (world.consoleAwakened && insightMin > 0.05) {
+    refs.statEls.insightRateDisplay.textContent = `+${insightMin.toFixed(1)}/min (idle est.)`;
+    refs.statEls.insightRateDisplay.style.display = "";
+  } else {
+    refs.statEls.insightRateDisplay.style.display = "none";
+  }
 
   refs.statEls.mining.textContent = `Mining ${skills.mining.level}`;
   refs.statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
@@ -219,7 +228,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "none" = "none";
+let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -234,6 +243,7 @@ let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "
  */
 function updateContextualPanel(): void {
   const state = getState();
+  const { position } = state.vessel;
 
   if (isNearConsole()) {
     if (lastActivePanelKind !== "console") resetPanelHighlight();
@@ -406,6 +416,31 @@ function updateContextualPanel(): void {
     return;
   }
 
+  // Stockpile room panel — east wing. Shown when near the rubble face or chest.
+  const stockpileStage = state.world.roomStates["stockpile_room"] ?? "ruined";
+  if (isNearStockpile(position, stockpileStage)) {
+    if (lastActivePanelKind !== "stockpile") resetPanelHighlight();
+    lastActivePanelKind = "stockpile";
+    refs.contextualPanel.innerHTML = "";
+    renderStockpilePanel(
+      state,
+      refs.contextualPanel,
+      () => {
+        const s = getState();
+        const currentStage = s.world.roomStates["stockpile_room"] ?? "ruined";
+        const hasOre = Object.values(s.world.stockpileOre).some(v => (v as number) > 0);
+        if (hasOre && currentStage !== "ruined") {
+          setState(performCollectStockpile(s));
+        } else {
+          setState(performAdvanceStockpileRoom(s));
+        }
+        render();
+      }
+    );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   // Drill panel — shown when near any ore vein (including those with no
   // drill yet, so the player can build one). Uses vein proximity from
   // the existing nearestOreVein() check rather than its own proximity fn.
@@ -468,7 +503,8 @@ export function render(): void {
         state.world.smelterBuilt,
         state.world.gemcuttingBuilt,
         state.world.companion.befriended,
-        state.world.consoleAwakened
+        state.world.consoleAwakened,
+        state.world.roomStates["stockpile_room"] ?? "ruined"
       );
     },
     (col, row) => {
@@ -481,7 +517,8 @@ export function render(): void {
         state.world.smelterBuilt,
         state.world.gemcuttingBuilt,
         state.world.companion.befriended,
-        state.world.consoleAwakened
+        state.world.consoleAwakened,
+        state.world.roomStates["stockpile_room"] ?? "ruined"
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -493,7 +530,8 @@ export function render(): void {
             state.world.smelterBuilt,
             state.world.gemcuttingBuilt,
             state.world.companion.befriended,
-            state.world.consoleAwakened
+            state.world.consoleAwakened,
+            state.world.roomStates["stockpile_room"] ?? "ruined"
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

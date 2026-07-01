@@ -338,6 +338,16 @@ export interface WorldState {
    * memory. Applied in yieldCurve.ts alongside the yield perk.
    */
   rekindleMultiplier: number;
+  /**
+   * Room restoration states, keyed by room ID (from rooms.ts).
+   * Absent key = room not yet interacted with (defaults to "ruined").
+   */
+  roomStates: Record<string, import("./rooms").RoomStage>;
+  /**
+   * Shared ore stockpile — drills drain into this automatically once
+   * the stockpile_room is at "cleared" stage or above.
+   */
+  stockpileOre: Record<string, number>;
   /** Narag-Bund's own state - see CompanionState above. */
   companion: CompanionState;
   /** Highest tier ever forged per tool slot - see ToolsForgedState above. */

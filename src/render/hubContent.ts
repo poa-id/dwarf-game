@@ -14,6 +14,7 @@ import {
   MAP_CENTER,
   COMPANION_POSITION,
   CONSOLE_POSITION,
+  STOCKPILE_CHEST_POSITION,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
@@ -174,7 +175,8 @@ export function hubCellAt(
   smelterBuilt: boolean = false,
   gemcuttingBuilt: boolean = false,
   companionBefriended: boolean = false,
-  _consoleAwakened: boolean = false
+  _consoleAwakened: boolean = false,
+  stockpileRoomStage: string = "ruined"
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -211,6 +213,25 @@ export function hubCellAt(
   // Walkable — the player can share the cell with him.
   if (companionBefriended && col === COMPANION_POSITION.col && row === COMPANION_POSITION.row) {
     return { kind: "companion" };
+  }
+
+  // Stockpile room — east wing (cols 52-63, rows 20-30).
+  // When cleared+, rubble dissolves and the room opens.
+  const inEastRoom = col >= 52 && col <= 63 && row >= 20 && row <= 30;
+  const stockpileCleared =
+    stockpileRoomStage === "cleared" ||
+    stockpileRoomStage === "restored" ||
+    stockpileRoomStage === "masterwork";
+
+  if (inEastRoom && stockpileCleared) {
+    if (col === STOCKPILE_CHEST_POSITION.col && row === STOCKPILE_CHEST_POSITION.row) {
+      return { kind: "stockpile_chest" };
+    }
+    const staticCell = getHubGrid()[row * HUB_WIDTH + col];
+    if (staticCell.kind === "rubble" || staticCell.kind === "rock_wall") {
+      return { kind: "rock_floor" };
+    }
+    return staticCell;
   }
 
   const vein = ORE_VEINS.find(

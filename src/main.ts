@@ -21,7 +21,9 @@ app.innerHTML = `
       <div class="stats-panel stats-panel-left">
         <div class="stats-section">
           <h2>the mountain</h2>
+          <p id="stat-restoration">Restoration: 0</p>
           <p id="stat-insight">Insight: 0</p>
+          <p id="stat-insight-rate" style="font-size:0.8em;opacity:0.6;margin-top:-4px;"></p>
         </div>
         <div class="stats-section">
           <h2>the dwarf</h2>
@@ -115,6 +117,8 @@ initRenderRefs({
     inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
     toolsList: document.querySelector<HTMLDivElement>("#tools-list")!,
     insightDisplay: document.querySelector<HTMLParagraphElement>("#stat-insight")!,
+    restorationDisplay: document.querySelector<HTMLParagraphElement>("#stat-restoration")!,
+    insightRateDisplay: document.querySelector<HTMLParagraphElement>("#stat-insight-rate")!,
   },
 });
 

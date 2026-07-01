@@ -92,9 +92,9 @@ export const ZONES: ZoneDefinition[] = [
   },
   {
     id: "sealed_east",
-    name: "Collapsed Passage",
+    name: "The Stockpile",
     bounds: { col: 52, row: 20, width: 12, height: 11 },
-    unlock: { type: "always" },
+    unlock: { type: "always" }, // passage exists; rubble blocks until stockpile_room cleared
   },
   {
     id: "sealed_northwest",
@@ -160,18 +160,14 @@ export const KILN_POSITION: Position = { col: 10, row: 38 };
  */
 export const COMPANION_POSITION: Position = { col: 42, row: 27 };
 
-/**
- * The Mountain Console — an ancient stone terminal in the northwest
- * quadrant of the central hall. The first interactive object the dwarf
- * encounters (before mining, before anything). Awakening it is the
- * first unlock in the game — it turns on the production metrics panel
- * and gives the player their first window into what the mountain
- * actually knows about itself.
- *
- * Lore: operated by the spirit of past dwarves. The mountain's memory.
- * Lives of dwarves are whispers that the mountain keeps.
- */
+/** The Mountain Console — ancient stone terminal in the northwest quadrant of the central hall. */
 export const CONSOLE_POSITION: Position = { col: 35, row: 22 };
+
+/**
+ * Stockpile chest — the ore storage anchor in the east wing once
+ * the stockpile_room is cleared. Centered in the east room (cols 52-63, rows 20-30).
+ */
+export const STOCKPILE_CHEST_POSITION: Position = { col: 57, row: 25 };
 
 // ── Ore vein placements ───────────────────────────────────────────────────────
 

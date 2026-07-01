@@ -31,6 +31,7 @@ export type CellKind =
   | "rubble"
   | "companion"
   | "mountain_console"
+  | "stockpile_chest"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -48,6 +49,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "rock_wall",
   "rubble",
   "mountain_console",
+  "stockpile_chest",
   "hearth",
   "forge",
   "forge_broken",
@@ -105,6 +107,7 @@ const STAGE_0: StagePalette = {
     rubble: "#7a7060",
     companion: "#c87820",
     mountain_console: "#7ab8d4",
+    stockpile_chest: "#b89a4a",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     // Torches now follow the SAME flat-gray Stage 0 rule as everything
@@ -167,7 +170,8 @@ const STAGE_2: StagePalette = {
     gemcutting_unbuilt: "#4a4050",
     rubble: "#5a5040",
     companion: "#d4890a",
-    mountain_console: "#5a9ab8", // cold blue-grey — old stone, old light
+    mountain_console: "#5a9ab8",
+    stockpile_chest: "#c8a830",
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -205,6 +209,7 @@ const STAGE_3: StagePalette = {
     rubble: "#6a6050",
     companion: "#e09a20",
     mountain_console: "#8accd8",
+    stockpile_chest: "#d4b840",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -240,6 +245,7 @@ export const GLYPHS: Record<CellKind, string> = {
   rubble: "x",
   companion: "N",
   mountain_console: "Ω",
+  stockpile_chest: "S",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea
