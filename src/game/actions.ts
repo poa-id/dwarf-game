@@ -8,7 +8,7 @@ import { repairTorch } from "../engine/torches";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
-import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
 import { showNarratorToast } from "../narration/toast";
 import { rollSeedDrop } from "../engine/garden";
 import { addMaterial } from "../engine/types";
@@ -96,7 +96,7 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   // grants Insight (5% of the already-multiplied XP) - see
   // xpCurve.ts's insightFromXp for the full rationale. Accumulates
   // fractionally; only the UI display rounds.
-  const newInsightBanked = afterMiss.world.insightBanked + insightFromXp(multipliedXp);
+  const newInsightBanked = afterMiss.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(afterMiss.world.roomStates);
 
   setState({
     ...afterMiss,
@@ -163,7 +163,7 @@ export function handleWoodGather(): void {
     level: levelForXp(newTotalXp),
     xp: newTotalXp,
   };
-  const newInsightBanked = afterMiss.world.insightBanked + insightFromXp(multipliedXp);
+  const newInsightBanked = afterMiss.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(afterMiss.world.roomStates);
 
   // Seed drop — 2% chance of a stoneshroom spore per wood gather
   const seedDrop = rollSeedDrop(Math.random());

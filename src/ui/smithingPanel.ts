@@ -9,6 +9,7 @@ import {
   applyForgeToolResult,
   nextForgeUpgrade,
   canAffordForgeUpgrade,
+  foundrySuccessBonus,
   type SmithRecipe,
   type ToolRecipe,
 } from "../engine/smithing";
@@ -16,7 +17,7 @@ import { canAffordMaterials, MATERIALS } from "../engine/types";
 import type { GameState, ToolSlot } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
-import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
 
 /**
  * Renders the Smithing recipe list into a container. Pure rendering -
@@ -186,7 +187,8 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
     state.vessel.inventory,
     Math.random(),
     chosenFuel,
-    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier,
+    foundrySuccessBonus(state.world.roomStates)
   );
   const newInventory = applySmithResult(state.vessel.inventory, result);
 
@@ -204,7 +206,7 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
 
   const newState: GameState = {
     ...state,
-    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
     vessel: {
       ...state.vessel,
       inventory: newInventory,
@@ -252,7 +254,7 @@ export function performForgeTool(state: GameState, recipe: ToolRecipe): ForgeToo
     world: {
       ...state.world,
       toolsForged: newToolsForged,
-      insightBanked: state.world.insightBanked + insightFromXp(multipliedXp),
+      insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates),
     },
     vessel: {
       ...state.vessel,

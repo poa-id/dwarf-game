@@ -20,7 +20,7 @@ import {
 } from "../engine/smelter";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
-import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
 
 /**
  * Renders the Smelter's panel - one of three distinct states depending
@@ -239,7 +239,7 @@ export function performPurify(state: GameState, ingotMaterialId: MaterialId): Pu
 
   const newState: GameState = {
     ...state,
-    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
     vessel: {
       ...state.vessel,
       inventory: newInventory,

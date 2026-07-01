@@ -144,8 +144,10 @@ function buildHubContent(): GridCell[] {
     set(wood.position.col, wood.position.row, "wood_node");
   }
 
-  // ── 10. Kiln ─────────────────────────────────────────────────────────
-  set(KILN_POSITION.col, KILN_POSITION.row, "kiln");
+  // ── 10. Kiln 2×2 ─────────────────────────────────────────────────────
+  for (let dr = 0; dr < 2; dr++)
+    for (let dc = 0; dc < 2; dc++)
+      set(KILN_POSITION.col + dc, KILN_POSITION.row + dr, "kiln");
 
   // ── 11. Gemcutting unbuilt marker ────────────────────────────────────
   set(GEMCUTTING_POSITION.col, GEMCUTTING_POSITION.row, "gemcutting_unbuilt");

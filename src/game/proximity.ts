@@ -97,9 +97,12 @@ export function isNearHearth(): boolean {
 
 export function isNearKiln(): boolean {
   const { position } = getState().vessel;
+  // Kiln 2×2 footprint: cols 10-11, rows 38-39
   return (
-    Math.abs(position.col - KILN_POSITION.col) <= 1 &&
-    Math.abs(position.row - KILN_POSITION.row) <= 1
+    position.col >= KILN_POSITION.col - 1 &&
+    position.col <= KILN_POSITION.col + 2 &&
+    position.row >= KILN_POSITION.row - 1 &&
+    position.row <= KILN_POSITION.row + 2
   );
 }
 

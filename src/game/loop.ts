@@ -10,7 +10,7 @@ import {
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
 } from "../engine/hearth";
 import { xpPerkBonus } from "../engine/smelter";
-import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
 import { tickDrill, drillDefinitionByVeinId } from "../engine/drill";
 import { getRestorationScore } from "../engine/production";
 import { tickGarden } from "../engine/garden";
@@ -44,7 +44,7 @@ function gameTick(): void {
       // earning from, alongside rekindling - see xpCurve.ts's
       // insightFromXp for the full rationale behind this being wired
       // in everywhere, not just here.
-      const newInsightBanked = state.world.insightBanked + insightFromXp(multipliedXp);
+      const newInsightBanked = state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates);
 
       setState({
         ...state,

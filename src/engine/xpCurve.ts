@@ -141,3 +141,16 @@ export function applyDwarfCountXpMultiplier(
 export function insightFromXp(multipliedXp: number): number {
   return multipliedXp * 0.05;
 }
+
+/**
+ * The Archive's permanent Insight bonus. Returns 1.0 normally, 1.2
+ * when the archive is "restored", 1.25 when "masterwork". Applied
+ * multiplicatively to all Insight earned — the mountain's own records
+ * make every dwarf more effective.
+ */
+export function archiveInsightBonus(roomStates: Record<string, string>): number {
+  const stage = roomStates["the_archive"] ?? "ruined";
+  if (stage === "masterwork") return 1.25;
+  if (stage === "restored") return 1.2;
+  return 1.0;
+}

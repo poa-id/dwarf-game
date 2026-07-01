@@ -54,6 +54,7 @@ import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
 import { renderGardenPanel, performAdvanceGardenRoom, performPlantSeed, performHarvestSlot } from "../ui/gardenPanel";
 import { renderTradeHallPanel, performAdvanceTradeHall, performTrade, isNearTradeHall } from "../ui/tradeHallPanel";
+import { renderRoomPanel, performAdvanceRoom, isNearDeepFoundry, isNearArchive } from "../ui/roomPanel";
 import { getRestorationScore, estimatedInsightPerMin } from "../engine/production";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
@@ -273,6 +274,22 @@ export function updateActionHint(): void {
     return;
   }
 
+  if (isNearDeepFoundry(position)) {
+    const stage = world.roomStates["deep_foundry"] ?? "ruined";
+    refs.actionHint.textContent = stage === "ruined"
+      ? "Collapsed northwest wing — the great furnace waits"
+      : `Deep Foundry (${stage})`;
+    return;
+  }
+
+  if (isNearArchive(position)) {
+    const stage = world.roomStates["the_archive"] ?? "ruined";
+    refs.actionHint.textContent = stage === "ruined"
+      ? "Sealed north passage — something was protected here"
+      : `The Archive (${stage})`;
+    return;
+  }
+
   const torch = nearestUnrepairedTorch();
   if (torch) {
     const costText = Object.entries(torch.repairCost)
@@ -318,7 +335,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "none" = "none";
+let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -578,6 +595,30 @@ function updateContextualPanel(): void {
         render();
       }
     );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
+  // Deep Foundry — NW wing
+  if (isNearDeepFoundry(position)) {
+    if (lastActivePanelKind !== "foundry") resetPanelHighlight();
+    lastActivePanelKind = "foundry";
+    refs.contextualPanel.innerHTML = "";
+    renderRoomPanel("deep_foundry", state, refs.contextualPanel, () => {
+      setState(performAdvanceRoom(getState(), "deep_foundry")); render();
+    });
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
+  // The Archive — north wing
+  if (isNearArchive(position)) {
+    if (lastActivePanelKind !== "archive") resetPanelHighlight();
+    lastActivePanelKind = "archive";
+    refs.contextualPanel.innerHTML = "";
+    renderRoomPanel("the_archive", state, refs.contextualPanel, () => {
+      setState(performAdvanceRoom(getState(), "the_archive")); render();
+    });
     reapplyPanelHighlight(refs.contextualPanel);
     return;
   }

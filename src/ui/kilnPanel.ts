@@ -12,7 +12,7 @@ import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
-import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
 
 export function renderKilnPanel(
   state: GameState,
@@ -96,7 +96,7 @@ export function performCharcoalBurn(state: GameState): KilnOutcome {
 
   const newState: GameState = {
     ...state,
-    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
     vessel: {
       ...state.vessel,
       inventory: newInventory,
@@ -126,7 +126,7 @@ export function performRenderHearthsap(state: GameState): HearthsapOutcome {
   const newSkill = { ...state.vessel.skills.hearthkeeping, level: levelForXp(newXp), xp: newXp };
   const newState: GameState = {
     ...state,
-    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
     vessel: { ...state.vessel, inventory: newInventory, skills: { ...state.vessel.skills, hearthkeeping: newSkill } },
   };
   return { newState, success: result.success, leveledUp: newSkill.level > state.vessel.skills.hearthkeeping.level };

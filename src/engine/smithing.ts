@@ -135,7 +135,8 @@ export function attemptSmith(
   inventory: ResourceBag,
   roll: number,
   chosenFuel: MaterialId = recipe.acceptedFuels[0],
-  hearthYieldBonus: number = 0
+  hearthYieldBonus: number = 0,
+  foundryBonus: number = 0
 ): SmithAttemptResult {
   if (smithingSkill.level < recipe.requiredLevel) {
     throw new Error(
@@ -164,7 +165,7 @@ export function attemptSmith(
     );
   }
 
-  const success = roll < recipe.baseSuccessChance;
+  const success = roll < Math.min(0.98, recipe.baseSuccessChance + foundryBonus);
   const oldLevel = smithingSkill.level;
 
   // Ore AND fuel are consumed on attempt regardless of success — you
@@ -549,4 +550,16 @@ export function canAffordForgeUpgrade(insightBanked: number, currentTier: number
   const next = nextForgeUpgrade(currentTier);
   if (!next) return false;
   return insightBanked >= next.insightCost;
+}
+
+/**
+ * Deep Foundry's smelt success bonus. Cleared: +5%, Restored: +12%, Masterwork: +20%.
+ * The great furnace makes the metal more cooperative.
+ */
+export function foundrySuccessBonus(roomStates: Record<string, string>): number {
+  const stage = roomStates["deep_foundry"] ?? "ruined";
+  if (stage === "masterwork") return 0.20;
+  if (stage === "restored") return 0.12;
+  if (stage === "cleared") return 0.05;
+  return 0;
 }
