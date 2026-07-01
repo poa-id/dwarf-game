@@ -695,3 +695,83 @@ item now either resolved or confirmed not needed.
   `GEMCUTTING_TIERS`/`TINKERING_PERK_TIERS`, plus `colorStages.ts`'s
   `COLOR_STAGES` - remain the single source of truth).
 
+
+---
+
+## Session 2026-06-30 — Idle mechanics, console, multiplier chain
+
+### Resolved this session
+
+**Mountain Console (first unlock):** Ancient stone terminal at (35,22)
+in the central hall NW quadrant. Press F to awaken — narrator fires, production
+dashboard appears. `consoleAwakened: boolean` on WorldState. `CellKind`
+`mountain_console` (solid, cold blue-grey). First thing the player encounters
+before mining, forging, or anything else. Lore: the mountain's own memory.
+Past dwarves are whispers it keeps.
+
+**Production metrics engine (`production.ts`):** `getDrillMetrics()`,
+`totalOrePerMin()`, `getHearthMetrics()`, `estimatedInsightPerMin()`,
+`getRestorationScore()`. The restoration score is THE number — the idle CpS
+equivalent for this game. Displayed prominently in the console panel.
+
+**Rekindle multiplier — idle ladder climbing:** Each rekindling adds +5%
+permanent yield bonus (capped +50% at 10 rekindlings). Applied in `yieldCurve.ts`
+alongside `hearthYieldBonus`. All 4 yield call sites updated (mining, woodcraft,
+smithing, kiln). Displayed in console as "Mountain memory: +N% yield".
+
+**Offline summary:** On load after 5+ minutes offline, a banner above the
+contextual panel shows what drills produced. Auto-dismisses after 12s.
+`saveGame()` now writes `_savedAt` timestamp.
+
+**Iron purifying:** `true_iron` material, separate tier track
+(IRON_SMELTER_TIERS), `ironPurifyingUnlocked`/`ironSmelterTier` on WorldState.
+Coal costs: copper=5, iron=12. Drop rates rarer than copper.
+
+**Copper drill system:** First idle mechanic. Unlocked with iron ingots (you
+need the next tier to automate the previous). Coal-fueled batch cycle (30s base).
+Coal buffer max 20, ore buffer max 20. 4 upgrade tiers. `tickDrill()` in
+loop.ts runs every second. `drillPanel.ts` contextual panel.
+
+---
+
+### Open / next priorities
+
+**Console sprite:** The console currently renders as a tinted rock_wall tile.
+Needs a custom sprite (request from Poa) — a carved stone terminal, runes,
+perhaps a faint light emanating. Position it stylistically between the
+Hearth's warmth and the Forge's cold steel.
+
+**Insight/min as a visible live counter:** Currently shown as an estimate
+in the console panel. Ideally the sidebar shows "Insight: 247 (+0.8/min)"
+as a live updating number. The `/min` requires a rolling average of Insight
+earned over the last ~60 seconds.
+
+**The supply chain strain (Idle Miner pattern):** Drills produce ore faster
+than you can smelt → the bottleneck shifts visibly from mining to smelting
+to purifying. Each upgrade relieves one bottleneck and creates the next.
+Currently the chain exists but doesn't FEEL strained because outputs aren't
+routed anywhere automatically. Needs the stockpile room.
+
+**Stockpile room:** Ore buffer from drills should drain into a shared
+stockpile once built. Currently ore stays in the drill buffer, player
+collects manually. The stockpile is the physical manifestation of
+"the mountain working" — it fills while you do other things.
+
+**Dwarven Console NPC / Narag-Bund expansion:** Future: NPC hauls coal to
+drills, ore from drills to stockpile. Dwarven Console shows all drill
+status in one place (done — that's the Mountain Console). The "manager"
+role for production is already designed, needs the hauling wiring.
+
+**Room-state framework still unbuilt:** Ruined/Cleared/Restored/Masterwork
+from MECHANICS.md §14. The Forge is still binary (broken/repaired). The
+restoration score in `production.ts` partially motivates this — each room
+upgrade should add to the score visibly.
+
+**Restoration score display on sidebar:** The score is computed and shown
+in the console panel. It should also be on the persistent sidebar as the
+primary "progress" number — the answer to "how restored is this mountain."
+Replaces or supplements the current Insight display.
+
+**Color stage 4/5 (Architecture/Memory returns):** OPEN_QUESTIONS already
+notes stages are capped at 3. The restoration score provides a natural
+gate for stages 4-5 once rooms are being restored visually.
