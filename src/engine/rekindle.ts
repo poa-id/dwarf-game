@@ -95,6 +95,7 @@ export function createInitialWorld(now: number): WorldState {
     rekindleMultiplier: 0,
     roomStates: {},
     stockpileOre: {},
+    lastMerchantAt: 0,
     gardenSlots: [],
     toolsForged: { pickaxe: 0, axe: 0 },
     lifetimeFuelAtLastRekindle: 0,

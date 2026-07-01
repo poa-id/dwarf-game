@@ -395,6 +395,8 @@ export interface WorldState {
    * the stockpile_room is at "cleared" stage or above.
    */
   stockpileOre: Record<string, number>;
+  /** Timestamp of last merchant visit to the Trade Hall. 0 = never. */
+  lastMerchantAt: number;
   /** Narag-Bund's own state - see CompanionState above. */
   companion: CompanionState;
   /** Highest tier ever forged per tool slot - see ToolsForgedState above. */
@@ -497,7 +499,8 @@ export type NarratorTrigger =
   | "area_revealed" // stepping into a previously-unexplored area
   | "stranger_arrival"
   | "companion_befriended" // Narag-Bund - the first and only thing in this world that chooses to stay
-  | "console_awakened"; // The Mountain Console wakes — the mountain remembers itself
+  | "console_awakened" // The Mountain Console wakes — the mountain remembers itself
+  | "merchant_trade";  // A trade completed at the Trade Hall
 
 export interface NarratorState {
   lastShownByTrigger: Partial<Record<NarratorTrigger, string>>;

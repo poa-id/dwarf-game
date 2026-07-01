@@ -56,6 +56,12 @@ export function isNearConsole(): boolean {
   );
 }
 
+export function isNearGarden(): boolean {
+  const { position } = getState().vessel;
+  return position.col >= 6 && position.col <= 18 &&
+         position.row >= 35 && position.row <= 45;
+}
+
 export function isForgeRepaired(): boolean {
   return getState().world.forgeTier >= 1;
 }

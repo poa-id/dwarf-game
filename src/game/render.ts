@@ -22,6 +22,7 @@ import {
   isNearSmelter,
   isNearGemcutting,
   isNearConsole,
+  isNearGarden,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade } from "../ui/smithingPanel";
 import {
@@ -51,6 +52,8 @@ import {
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill } from "../ui/drillPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
+import { renderGardenPanel, performAdvanceGardenRoom, performPlantSeed, performHarvestSlot } from "../ui/gardenPanel";
+import { renderTradeHallPanel, performAdvanceTradeHall, performTrade, isNearTradeHall } from "../ui/tradeHallPanel";
 import { getRestorationScore, estimatedInsightPerMin } from "../engine/production";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
@@ -223,6 +226,19 @@ export function updateActionHint(): void {
     return;
   }
 
+  if (isNearGarden()) {
+    const gardenStage = world.roomStates["garden_room"] ?? "ruined";
+    const readySlots = world.gardenSlots.filter(s => s.readyCount > 0).length;
+    if (readySlots > 0) {
+      refs.actionHint.textContent = `Garden (${gardenStage}) — ${readySlots} slot${readySlots !== 1 ? "s" : ""} ready to harvest`;
+    } else {
+      refs.actionHint.textContent = gardenStage === "ruined"
+        ? "Overgrown garden — restore it to plant seeds"
+        : `Garden (${gardenStage}) — ${world.gardenSlots.length} slots`;
+    }
+    return;
+  }
+
   if (isNearForge() && !isForgeRepaired()) {
     const costText = Object.entries(FORGE_REPAIR_COST)
       .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
@@ -302,7 +318,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "none" = "none";
+let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -422,6 +438,21 @@ function updateContextualPanel(): void {
     return;
   }
 
+  if (isNearGarden()) {
+    if (lastActivePanelKind !== "garden") resetPanelHighlight();
+    lastActivePanelKind = "garden";
+    refs.contextualPanel.innerHTML = "";
+    renderGardenPanel(
+      state,
+      refs.contextualPanel,
+      () => { setState(performAdvanceGardenRoom(getState())); render(); },
+      (slotIndex, plantId) => { setState(performPlantSeed(getState(), slotIndex, plantId)); render(); },
+      (slotIndex) => { setState(performHarvestSlot(getState(), slotIndex)); render(); }
+    );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   if (isNearSmelter()) {
     if (lastActivePanelKind !== "smelter") resetPanelHighlight();
     lastActivePanelKind = "smelter";
@@ -483,6 +514,26 @@ function updateContextualPanel(): void {
       },
       () => {
         setState(performSpendCutGemOnPerk(getState()));
+        render();
+      }
+    );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
+  // Trade Hall panel — south passage and the sealed south room
+  if (isNearTradeHall(position)) {
+    if (lastActivePanelKind !== "trade") resetPanelHighlight();
+    lastActivePanelKind = "trade";
+    refs.contextualPanel.innerHTML = "";
+    renderTradeHallPanel(
+      state,
+      refs.contextualPanel,
+      () => { setState(performAdvanceTradeHall(getState())); render(); },
+      (offerId) => {
+        const s = performTrade(getState(), offerId);
+        setState(s);
+        narrate("merchant_trade");
         render();
       }
     );

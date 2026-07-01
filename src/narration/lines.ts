@@ -71,4 +71,9 @@ export const NARRATOR_LINES: Record<NarratorTrigger, string[]> = {
   console_awakened: [
     "The runes answer. Somewhere deep in the stone, something older than any dwarf who ever swung a pick takes notice. The mountain begins to remember itself.",
   ],
+
+  merchant_trade: [
+    "Coin changes hands. It's been a long time since that sound echoed in this hall.",
+    "The merchant nods. Business, brief and honest, the way the old holds used to run it.",
+  ],
 };

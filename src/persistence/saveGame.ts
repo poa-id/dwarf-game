@@ -50,6 +50,7 @@ function backfillMissingFields(state: any): any {
     if (state.world.rekindleMultiplier === undefined) state.world.rekindleMultiplier = 0;
     if (state.world.roomStates === undefined) state.world.roomStates = {};
     if (state.world.stockpileOre === undefined) state.world.stockpileOre = {};
+    if (state.world.lastMerchantAt === undefined) state.world.lastMerchantAt = 0;
     if (state.world.gardenSlots === undefined) state.world.gardenSlots = [];
     if (state.world.hearthTier === undefined) state.world.hearthTier = 0;
     if (state.world.fuelReserve === undefined) state.world.fuelReserve = {};
