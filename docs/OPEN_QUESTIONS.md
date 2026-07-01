@@ -775,3 +775,80 @@ Replaces or supplements the current Insight display.
 **Color stage 4/5 (Architecture/Memory returns):** OPEN_QUESTIONS already
 notes stages are capped at 3. The restoration score provides a natural
 gate for stages 4-5 once rooms are being restored visually.
+
+---
+
+## Session 2026-07-01 — Content expansion: tiers, rooms, garden, trade
+
+### Resolved this session
+
+**Action hints for all structures:** Hearth, Kiln, Garden, Forge, Smelter,
+Gemcutting, Stockpile, Trade Hall, Console, ore veins (with drill status inline).
+
+**Color stages 4 & 5:** Stage 4 "Architecture" (100k fuel + 3k restoration),
+Stage 5 "The Mountain Remembers" (250k fuel + 8k restoration). Both gates use
+restoration score AND fuel — can't reach late stages by just burning fuel.
+
+**Insight/min live rolling average:** 60s window, sampled each render. Falls
+back to idle estimate until 5s of data. Shows on sidebar once console awakened.
+
+**Tier 3 materials (deepstone supply chain):**
+deepstone_ore → deepstone_ingot (Smithing 18, hearthsap fuel only).
+deepstone_pickaxe + deepstone_axe (tier 3) require deepstone_ingot + ironwood.
+True Deepstone as purification output (smelter tier track TBD).
+
+**Garden system (garden.ts):**
+Passive plant growth: GardenSlot with plantId, plantedAt, readyCount.
+4 plant types: stoneshroom (2min), cave_fern (5min), ironwood_sapling (30min),
+ancient_heartwood (2hr + hearthsap secondary). Ticked in game loop.
+Seed drops: 2% stoneshroom_spore per wood strike.
+Garden panel: plant/harvest UI, room advance. 0/2/6/10 slots by stage.
+
+**Hearthsap recipe (kiln.ts):** 6 stoneshroom → 1 hearthsap, Hearthkeeping 8.
+The deepstone supply chain pivot: garden → kiln → forge.
+
+**5 room definitions (rooms.ts):**
+stockpile_room (east), garden_room (SW), trade_hall (south, restore 2k),
+deep_foundry (NW, restore 4k), the_archive (north, restore 6k).
+All with full 4-stage arcs, costs, unlock text.
+
+**Trade Hall (trade.ts + tradeHallPanel.ts):**
+Merchant arrives every 10/5/0 min by stage. Buys cut gems, sells seeds/ironwood.
+Trade resets merchant timer. 'merchant_trade' narrator trigger.
+Gems now have infinite value as currency, not just a finite perk tree.
+
+**Garden panel wired:** full plant/harvest/advance UI in the Garden Room.
+**Trade Hall panel wired:** merchant status, offers, advance button.
+
+---
+
+### Next priorities (math check + remaining stubs)
+
+**MATH BALANCE CHECK needed:**
+- Is the rekindle multiplier (5%/life) too slow or fast?
+- Is deepstone gating (Mining 20 + hearthsap fuel) too brutal or too easy?
+- Garden cycle times: stoneshroom 2min feels right, ironwood 30min — test it
+- Merchant interval 10min (cleared) — is that too long to feel rewarding?
+- Coal consumption: copper drill 1/cycle, iron drill 2/cycle — drain rate vs
+  production rate needs playtesting with actual numbers
+
+**Sealed room visual unlocks:** When trade_hall / deep_foundry / the_archive
+are cleared, their rubble cells should dissolve like the stockpile room.
+Only stockpile_room has the dynamic hubCellAt override so far.
+
+**Hearthsap kiln panel UI:** The hearthsap recipe is in kiln.ts but the
+kilnPanel.ts UI doesn't show it yet. Needs a second row in the kiln panel.
+
+**Iron drill buildability:** iron drill was defined with a future deepstone_ingot
+requirement. Now that deepstone exists, wire it properly.
+
+**Deep Foundry + Archive panels:** rooms defined, no UI panels yet. Stubs only.
+
+**Garden restoration score contribution:** garden_room stages should add to
+restoration score in production.ts (parallel to stockpile_room entries).
+
+**Ore vein CellKind for deepstone_ore:** The tileset/palette needs `ore_deep`
+mapped to deepstone visually — check if it already renders correctly.
+
+**Merchant arrival narrator moment:** "boots on the bridge" line should fire
+the first time a merchant arrives (one-time trigger, not per-trade).
