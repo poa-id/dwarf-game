@@ -49,7 +49,7 @@ import {
   performGemcuttingTierUpgrade,
   performSpendCutGemOnPerk,
 } from "../ui/gemcuttingPanel";
-import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill } from "../ui/drillPanel";
+import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer } from "../ui/drillPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
 import { renderGardenPanel, performAdvanceGardenRoom, performPlantSeed, performHarvestSlot } from "../ui/gardenPanel";
@@ -600,7 +600,8 @@ function updateContextualPanel(): void {
       () => { setState(performBuildDrill(getState(), nearVein.id)); render(); },
       () => { setState(performRefuelDrill(getState(), nearVein.id)); render(); },
       () => { setState(performCollectDrillOre(getState(), nearVein.id)); render(); },
-      () => { setState(performUpgradeDrill(getState(), nearVein.id)); render(); }
+      () => { setState(performUpgradeDrill(getState(), nearVein.id)); render(); },
+      () => { setState(performUpgradeDrillBuffer(getState(), nearVein.id)); render(); }
     );
     if (refs.contextualPanel.innerHTML) reapplyPanelHighlight(refs.contextualPanel);
     return;
@@ -648,10 +649,12 @@ export function render(): void {
         state.world.roomStates["stockpile_room"] ?? "ruined",
         state.world.roomStates["trade_hall"] ?? "ruined",
         state.world.roomStates["deep_foundry"] ?? "ruined",
-        state.world.roomStates["the_archive"] ?? "ruined"
+        state.world.roomStates["the_archive"] ?? "ruined",
+        Object.fromEntries(Object.entries(state.world.drills).map(([id, d]) => [id, d.tier]))
       );
     },
     (col, row) => {
+      const drillTiers = Object.fromEntries(Object.entries(state.world.drills).map(([id, d]) => [id, d.tier]));
       const cell = hubCellAt(
         col, row,
         state.world.litTorches,
@@ -665,7 +668,8 @@ export function render(): void {
         state.world.roomStates["stockpile_room"] ?? "ruined",
         state.world.roomStates["trade_hall"] ?? "ruined",
         state.world.roomStates["deep_foundry"] ?? "ruined",
-        state.world.roomStates["the_archive"] ?? "ruined"
+        state.world.roomStates["the_archive"] ?? "ruined",
+        drillTiers
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -681,7 +685,8 @@ export function render(): void {
             state.world.roomStates["stockpile_room"] ?? "ruined",
             state.world.roomStates["trade_hall"] ?? "ruined",
             state.world.roomStates["deep_foundry"] ?? "ruined",
-            state.world.roomStates["the_archive"] ?? "ruined"
+            state.world.roomStates["the_archive"] ?? "ruined",
+            drillTiers
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

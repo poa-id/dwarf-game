@@ -46,6 +46,13 @@ function backfillMissingFields(state: any): any {
     if (state.world.veinDepletion === undefined) state.world.veinDepletion = {};
     if (state.world.woodDepletion === undefined) state.world.woodDepletion = {};
     if (state.world.drills === undefined) state.world.drills = {};
+    // Backfill new DrillState fields for saves predating buffer upgrades
+    for (const drill of Object.values(state.world.drills)) {
+      const d = drill as Record<string, unknown>;
+      if (d.coalBufferMax === undefined) d.coalBufferMax = 20;
+      if (d.oreBufferMax === undefined) d.oreBufferMax = 20;
+      if (d.bufferTier === undefined) d.bufferTier = 0;
+    }
     if (state.world.consoleAwakened === undefined) state.world.consoleAwakened = false;
     if (state.world.rekindleMultiplier === undefined) state.world.rekindleMultiplier = 0;
     if (state.world.roomStates === undefined) state.world.roomStates = {};

@@ -23,19 +23,57 @@ import { getMaterialAmount, deductMaterials, addMaterial, canAffordMaterials } f
 export interface DrillState {
   /** 0 = not built. 1/2/3 = upgrade tier. */
   tier: number;
-  /** Coal buffer - drill draws from this each cycle. Max DRILL_COAL_BUFFER_MAX. */
+  /** Coal buffer - drill draws from this each cycle. */
   coalBuffer: number;
-  /** Ore buffer - accumulates here until player/NPC collects. Max DRILL_ORE_BUFFER_MAX. */
+  /** Ore buffer - accumulates here until player/NPC collects. */
   oreBuffer: number;
   /** Timestamp (ms) of last completed cycle. 0 = never run. */
   lastCycleAt: number;
+  /** Upgraded coal buffer capacity. Default DRILL_COAL_BUFFER_MAX. */
+  coalBufferMax: number;
+  /** Upgraded ore buffer capacity. Default DRILL_ORE_BUFFER_MAX. */
+  oreBufferMax: number;
+  /** Which buffer upgrade tier has been purchased (0 = none, 1/2/3 = upgraded) */
+  bufferTier: number;
 }
 
 export const DRILL_COAL_BUFFER_MAX = 20;
 export const DRILL_ORE_BUFFER_MAX = 20;
 
+/** Buffer upgrade tiers — copper/iron ingot sinks to increase autonomy */
+export interface DrillBufferUpgrade {
+  tier: number;
+  coalBufferMax: number;
+  oreBufferMax: number;
+  /** Cost in ingots of the PREVIOUS metal tier — copper for copper drills, iron for iron drills */
+  cost: Record<string, number>;
+  label: string;
+}
+
+export const COPPER_DRILL_BUFFER_UPGRADES: DrillBufferUpgrade[] = [
+  { tier: 1, coalBufferMax: 40,  oreBufferMax: 40,  cost: { copper_ingot: 10 },               label: "Reinforced Hoppers" },
+  { tier: 2, coalBufferMax: 80,  oreBufferMax: 80,  cost: { copper_ingot: 20, iron_ingot: 5 }, label: "Iron-Banded Hoppers" },
+  { tier: 3, coalBufferMax: 160, oreBufferMax: 160, cost: { iron_ingot: 15 },                  label: "Deep Reservoir" },
+];
+
+export const IRON_DRILL_BUFFER_UPGRADES: DrillBufferUpgrade[] = [
+  { tier: 1, coalBufferMax: 40,  oreBufferMax: 40,  cost: { iron_ingot: 10 },                   label: "Iron Hoppers" },
+  { tier: 2, coalBufferMax: 80,  oreBufferMax: 80,  cost: { iron_ingot: 20, deepstone_ingot: 2 }, label: "Deep Hoppers" },
+  { tier: 3, coalBufferMax: 160, oreBufferMax: 160, cost: { deepstone_ingot: 8 },                label: "Deepstone Reservoir" },
+];
+
+export function drillBufferUpgradesFor(drillId: string): DrillBufferUpgrade[] {
+  if (drillId === "iron_drill") return IRON_DRILL_BUFFER_UPGRADES;
+  return COPPER_DRILL_BUFFER_UPGRADES;
+}
+
+export function nextBufferUpgrade(drillId: string, currentBufferTier: number): DrillBufferUpgrade | null {
+  const upgrades = drillBufferUpgradesFor(drillId);
+  return upgrades.find(u => u.tier === currentBufferTier + 1) ?? null;
+}
+
 export function createFreshDrillState(): DrillState {
-  return { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0 };
+  return { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: DRILL_COAL_BUFFER_MAX, oreBufferMax: DRILL_ORE_BUFFER_MAX, bufferTier: 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -219,7 +257,7 @@ export function tickDrill(
 
   for (let i = 0; i < cyclesElapsed; i++) {
     if (coalLeft < def.coalPerCycle) { stoppedReason = "no_coal"; break; }
-    if (oreLeft + tierDef.orePerCycle > DRILL_ORE_BUFFER_MAX) { stoppedReason = "ore_buffer_full"; break; }
+    if (oreLeft + tierDef.orePerCycle > drill.oreBufferMax) { stoppedReason = "ore_buffer_full"; break; }
     coalLeft -= def.coalPerCycle;
     oreLeft += tierDef.orePerCycle;
     cyclesRun++;
@@ -263,7 +301,7 @@ export function refuelDrill(
   inventory: ResourceBag,
   drill: DrillState
 ): DrillRefuelResult {
-  const space = DRILL_COAL_BUFFER_MAX - drill.coalBuffer;
+  const space = drill.coalBufferMax - drill.coalBuffer;
   const carried = getMaterialAmount(inventory, "coal");
   const coalAdded = Math.min(space, carried);
   if (coalAdded === 0) return { inventory, drill, coalAdded: 0 };

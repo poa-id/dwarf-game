@@ -7,6 +7,7 @@ import {
   createFreshDrillState,
   refuelDrill,
   collectDrillOre,
+  nextBufferUpgrade,
   DRILL_COAL_BUFFER_MAX,
   DRILL_ORE_BUFFER_MAX,
   type DrillState,
@@ -30,7 +31,8 @@ export function renderDrillSection(
   onBuild: () => void,
   onRefuel: () => void,
   onCollect: () => void,
-  onUpgrade: () => void
+  onUpgrade: () => void,
+  onBufferUpgrade?: () => void
 ): void {
   const def = drillDefinitionByVeinId(veinId);
   if (!def) return; // no drill for this vein type yet
@@ -90,7 +92,7 @@ export function renderDrillSection(
          </div>`
       : "";
 
-    // Upgrade row
+    // Speed upgrade row
     const nextTier = nextDrillTier(def, drillState.tier);
     const canUpgrade = nextTier !== null && canAffordUpgradeDrill(def, drillState.tier, state.vessel.inventory);
     const upgradeRow = nextTier && canUpgrade
@@ -100,13 +102,30 @@ export function renderDrillSection(
          </div>`
       : "";
 
+    // Buffer upgrade row — copper/iron ingot sink for more autonomy
+    const nextBuffer = nextBufferUpgrade(def.id, drillState.bufferTier ?? 0);
+    const canBufferUpgrade = nextBuffer !== null &&
+      Object.entries(nextBuffer.cost).every(([mat, amt]) => (getMaterialAmount(state.vessel.inventory, mat) as number) >= amt);
+    const bufferRow = nextBuffer && canBufferUpgrade
+      ? `<div class="recipe-row" data-drill-action="buffer-upgrade">
+           <div class="recipe-name">Expand Hoppers: ${nextBuffer.label}</div>
+           <div class="recipe-status">${Object.entries(nextBuffer.cost).map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`).join(", ")} — coal ${nextBuffer.coalBufferMax} · ore ${nextBuffer.oreBufferMax}</div>
+         </div>`
+      : nextBuffer
+        ? `<div class="recipe-row recipe-row-disabled">
+             <div class="recipe-name">Expand Hoppers: ${nextBuffer.label}</div>
+             <div class="recipe-status">Need: ${Object.entries(nextBuffer.cost).map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`).join(", ")}</div>
+           </div>`
+        : "";
+
     html = `
       <h2>${def.name} — Tier ${drillState.tier}: ${tierDef.name}</h2>
       <p class="reserve-status">${statusLine}</p>
-      <p class="reserve-status">Coal: ${drillState.coalBuffer}/${DRILL_COAL_BUFFER_MAX} &nbsp;|&nbsp; Ore: ${drillState.oreBuffer}/${DRILL_ORE_BUFFER_MAX}</p>
+      <p class="reserve-status">Coal: ${drillState.coalBuffer}/${drillState.coalBufferMax ?? DRILL_COAL_BUFFER_MAX} &nbsp;|&nbsp; Ore: ${drillState.oreBuffer}/${drillState.oreBufferMax ?? DRILL_ORE_BUFFER_MAX}</p>
       ${refuelRow}
       ${collectRow}
       ${upgradeRow}
+      ${bufferRow}
     `;
   }
 
@@ -123,6 +142,7 @@ export function renderDrillSection(
       else if (action === "refuel") onRefuel();
       else if (action === "collect") onCollect();
       else if (action === "upgrade") onUpgrade();
+      else if (action === "buffer-upgrade") onBufferUpgrade?.();
     });
   });
 }
@@ -200,6 +220,40 @@ export function performUpgradeDrill(state: GameState, veinId: string): GameState
     world: {
       ...state.world,
       drills: { ...state.world.drills, [veinId]: { ...drillState, tier: nextTier.tier } },
+    },
+    vessel: { ...state.vessel, inventory: newInventory },
+  };
+}
+
+export function performUpgradeDrillBuffer(state: GameState, veinId: string): GameState {
+  const drillState = state.world.drills[veinId];
+  const def = drillDefinitionByVeinId(veinId);
+  if (!drillState || !def) return state;
+
+  const currentBufferTier = drillState.bufferTier ?? 0;
+  const next = nextBufferUpgrade(def.id, currentBufferTier);
+  if (!next) return state;
+
+  // Check affordability
+  for (const [mat, amt] of Object.entries(next.cost)) {
+    if ((getMaterialAmount(state.vessel.inventory, mat) as number) < amt) return state;
+  }
+
+  const newInventory = deductMaterials(state.vessel.inventory, next.cost);
+
+  return {
+    ...state,
+    world: {
+      ...state.world,
+      drills: {
+        ...state.world.drills,
+        [veinId]: {
+          ...drillState,
+          coalBufferMax: next.coalBufferMax,
+          oreBufferMax: next.oreBufferMax,
+          bufferTier: next.tier,
+        },
+      },
     },
     vessel: { ...state.vessel, inventory: newInventory },
   };

@@ -1,16 +1,20 @@
 import type { CellKind } from "./palette";
 
-// Vite requires actual import statements (not dynamic string paths) to
-// recognize these as static assets it should bundle/hash/copy into the
-// build output. Each import resolves to a final, fingerprinted URL.
 import rockWallUrl from "./tileset-assets/sliced/rock_wall.png";
 import rockFloorUrl from "./tileset-assets/sliced/rock_floor.png";
 import oreBaseUrl from "./tileset-assets/sliced/ore_base.png";
+import oreCopperUrl from "./tileset-assets/sliced/ore_copper.png";
+import oreIronUrl from "./tileset-assets/sliced/ore_iron.png";
+import oreCoalUrl from "./tileset-assets/sliced/ore_coal.png";
 import oreDeepUrl from "./tileset-assets/sliced/ore_deep.png";
+import drillUrl from "./tileset-assets/sliced/drill.png";
+import drillIronUrl from "./tileset-assets/sliced/drill_iron.png";
+import drillDeepUrl from "./tileset-assets/sliced/drill_deep.png";
+import kilnUrl from "./tileset-assets/sliced/kiln.png";
 import dwarfUrl from "./tileset-assets/sliced/dwarf.png";
 import tunnelEdgeUrl from "./tileset-assets/sliced/tunnel_edge.png";
 
-// New multi-tile sprites (added 2026-06-30)
+// Multi-tile sprites
 import forge4x4Url from "./tileset-assets/sliced/forge_4x4.png";
 import hearth4x4Url from "./tileset-assets/sliced/hearth_4x4.png";
 import smelterAddonUrl from "./tileset-assets/sliced/smelter_addon.png";
@@ -59,10 +63,10 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   void: { assetUrl: "" }, // never drawn - render() skips void cells same as ASCII mode
   rock_wall: { assetUrl: rockWallUrl },
   rock_floor: { assetUrl: rockFloorUrl },
-  ore_copper: { assetUrl: oreBaseUrl, tint: "#d4894a" },
-  ore_iron: { assetUrl: oreBaseUrl, tint: "#9aa3ad" },
-  ore_deep: { assetUrl: oreDeepUrl }, // unique texture, no tint needed
-  ore_coal: { assetUrl: oreBaseUrl, tint: "#3a3530" },
+  ore_copper: { assetUrl: oreCopperUrl },
+  ore_iron: { assetUrl: oreIronUrl },
+  ore_deep: { assetUrl: oreDeepUrl },
+  ore_coal: { assetUrl: oreCoalUrl },
   ore_exhausted: { assetUrl: rockFloorUrl },
   wood_node: { assetUrl: oreBaseUrl, tint: "#7a8a4a" },
   wood_exhausted: { assetUrl: rockFloorUrl },
@@ -72,7 +76,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   hearth: { assetUrl: hearth4x4Url, tileSpan: { cols: 4, rows: 4 } },
   forge: { assetUrl: forge4x4Url, tileSpan: { cols: 4, rows: 4 } },
   forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 4, rows: 4 } },
-  kiln: { assetUrl: oreBaseUrl, tint: "#8a5a3a" },
+  kiln: { assetUrl: kilnUrl, tileSpan: { cols: 2, rows: 2 } },
   // Smelter add-on: 2x2 sprite sitting below the Forge.
   smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 2, rows: 2 } },
   gemcutting: { assetUrl: gemcutting4x4Url, tileSpan: { cols: 4, rows: 4 } },
@@ -86,6 +90,9 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   companion: { assetUrl: naragBundUrl },
   mountain_console: { assetUrl: rockWallUrl, tint: "#2a5a7a" },
   stockpile_chest: { assetUrl: oreBaseUrl, tint: "#b89030" },
+  drill_copper: { assetUrl: drillUrl },
+  drill_iron: { assetUrl: drillIronUrl },
+  drill_deep: { assetUrl: drillDeepUrl },
 };
 
 export const NATIVE_TILE_SIZE = 32;

@@ -179,7 +179,8 @@ export function hubCellAt(
   stockpileRoomStage: string = "ruined",
   tradeHallStage: string = "ruined",
   deepFoundryStage: string = "ruined",
-  archiveStage: string = "ruined"
+  archiveStage: string = "ruined",
+  drillTiers: Record<string, number> = {}
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -270,6 +271,14 @@ export function hubCellAt(
     const depletion = veinDepletion[vein.id] ?? createFreshDepletionState();
     if (rockNode && isOreExhausted(rockNode, depletion)) {
       return { kind: "ore_exhausted" };
+    }
+    // Show drill sprite on top of the vein once a drill is built there
+    const drillTier = drillTiers[vein.id] ?? 0;
+    if (drillTier > 0) {
+      const drillKind = vein.rockNodeId === "iron_vein" ? "drill_iron"
+        : vein.rockNodeId === "deepstone" ? "drill_deep"
+        : "drill_copper";
+      return { kind: drillKind as import("./palette").CellKind };
     }
   }
 

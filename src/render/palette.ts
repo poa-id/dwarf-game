@@ -32,6 +32,9 @@ export type CellKind =
   | "companion"
   | "mountain_console"
   | "stockpile_chest"
+  | "drill_copper"
+  | "drill_iron"
+  | "drill_deep"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -108,6 +111,9 @@ const STAGE_0: StagePalette = {
     companion: "#c87820",
     mountain_console: "#7ab8d4",
     stockpile_chest: "#b89a4a",
+    drill_copper: "#c87830",
+    drill_iron: "#8898a8",
+    drill_deep: "#6858a0",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     // Torches now follow the SAME flat-gray Stage 0 rule as everything
@@ -172,6 +178,9 @@ const STAGE_2: StagePalette = {
     companion: "#d4890a",
     mountain_console: "#5a9ab8",
     stockpile_chest: "#c8a830",
+    drill_copper: "#d4894a",
+    drill_iron: "#9aa3ad",
+    drill_deep: "#7868b8",
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -210,6 +219,9 @@ const STAGE_3: StagePalette = {
     companion: "#e09a20",
     mountain_console: "#8accd8",
     stockpile_chest: "#d4b840",
+    drill_copper: "#e09a5a",
+    drill_iron: "#aab3bd",
+    drill_deep: "#8878c8",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -246,6 +258,9 @@ export const GLYPHS: Record<CellKind, string> = {
   companion: "N",
   mountain_console: "Ω",
   stockpile_chest: "S",
+  drill_copper: "d",
+  drill_iron: "d",
+  drill_deep: "d",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea
