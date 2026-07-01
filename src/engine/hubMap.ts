@@ -160,6 +160,19 @@ export const KILN_POSITION: Position = { col: 10, row: 38 };
  */
 export const COMPANION_POSITION: Position = { col: 42, row: 27 };
 
+/**
+ * The Mountain Console — an ancient stone terminal in the northwest
+ * quadrant of the central hall. The first interactive object the dwarf
+ * encounters (before mining, before anything). Awakening it is the
+ * first unlock in the game — it turns on the production metrics panel
+ * and gives the player their first window into what the mountain
+ * actually knows about itself.
+ *
+ * Lore: operated by the spirit of past dwarves. The mountain's memory.
+ * Lives of dwarves are whispers that the mountain keeps.
+ */
+export const CONSOLE_POSITION: Position = { col: 35, row: 22 };
+
 // ── Ore vein placements ───────────────────────────────────────────────────────
 
 export interface OreVeinPlacement {

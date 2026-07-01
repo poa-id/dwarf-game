@@ -21,6 +21,7 @@ import {
   isNearKiln,
   isNearSmelter,
   isNearGemcutting,
+  isNearConsole,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade } from "../ui/smithingPanel";
 import {
@@ -48,6 +49,7 @@ import {
   performSpendCutGemOnPerk,
 } from "../ui/gemcuttingPanel";
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill } from "../ui/drillPanel";
+import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
 export interface RenderRefs {
@@ -159,6 +161,14 @@ function updateZoneHint(): void {
 }
 
 export function updateActionHint(): void {
+  if (isNearConsole()) {
+    const state = getState();
+    refs.actionHint.textContent = state.world.consoleAwakened
+      ? "The mountain watches."
+      : "Press F — awaken the console.";
+    return;
+  }
+
   const torch = nearestUnrepairedTorch();
   if (torch) {
     const costText = Object.entries(torch.repairCost)
@@ -209,7 +219,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "none" = "none";
+let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -224,6 +234,24 @@ let lastActivePanelKind: "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" 
  */
 function updateContextualPanel(): void {
   const state = getState();
+
+  if (isNearConsole()) {
+    if (lastActivePanelKind !== "console") resetPanelHighlight();
+    lastActivePanelKind = "console";
+    refs.contextualPanel.innerHTML = "";
+    renderConsolePanel(
+      state,
+      refs.contextualPanel,
+      () => {
+        const wasAwakened = getState().world.consoleAwakened;
+        setState(performAwakenConsole(getState()));
+        if (!wasAwakened) narrate("console_awakened");
+        render();
+      }
+    );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
 
   if (isNearForge() && isForgeRepaired()) {
     if (lastActivePanelKind !== "forge") resetPanelHighlight();
@@ -439,7 +467,8 @@ export function render(): void {
         state.world.forgeTier,
         state.world.smelterBuilt,
         state.world.gemcuttingBuilt,
-        state.world.companion.befriended
+        state.world.companion.befriended,
+        state.world.consoleAwakened
       );
     },
     (col, row) => {
@@ -451,7 +480,8 @@ export function render(): void {
         state.world.forgeTier,
         state.world.smelterBuilt,
         state.world.gemcuttingBuilt,
-        state.world.companion.befriended
+        state.world.companion.befriended,
+        state.world.consoleAwakened
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -462,7 +492,8 @@ export function render(): void {
             state.world.forgeTier,
             state.world.smelterBuilt,
             state.world.gemcuttingBuilt,
-            state.world.companion.befriended
+            state.world.companion.befriended,
+            state.world.consoleAwakened
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

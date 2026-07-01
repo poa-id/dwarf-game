@@ -62,7 +62,7 @@ export function performCharcoalBurn(state: GameState): KilnOutcome {
     state.vessel.skills.hearthkeeping,
     state.vessel.inventory,
     Math.random(),
-    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk)
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier
   );
   const newInventory = applyCharcoalBurnResult(state.vessel.inventory, result);
 

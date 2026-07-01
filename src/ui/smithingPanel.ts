@@ -186,7 +186,7 @@ export function performSmith(state: GameState, recipe: SmithRecipe): SmithOutcom
     state.vessel.inventory,
     Math.random(),
     chosenFuel,
-    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk)
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier
   );
   const newInventory = applySmithResult(state.vessel.inventory, result);
 

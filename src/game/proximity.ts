@@ -8,6 +8,7 @@ import {
   HEARTH_FOOTPRINT,
   SMELTER_POSITION,
   GEMCUTTING_POSITION,
+  CONSOLE_POSITION,
 } from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
 
@@ -46,6 +47,14 @@ export function nearestWoodNode() {
 
 export const nearestAnyWoodNode = nearestWoodNode;
 export const nearestGatheredWoodNode = nearestWoodNode;
+
+export function isNearConsole(): boolean {
+  const { position } = getState().vessel;
+  return (
+    Math.abs(position.col - CONSOLE_POSITION.col) <= 1 &&
+    Math.abs(position.row - CONSOLE_POSITION.row) <= 1
+  );
+}
 
 export function isForgeRepaired(): boolean {
   return getState().world.forgeTier >= 1;

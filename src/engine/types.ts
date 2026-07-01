@@ -317,6 +317,27 @@ export interface WorldState {
   woodDepletion: Record<string, { totalYielded: number }>;
   /** Automated drills, keyed by OreVeinPlacement.id. Only present once a drill has been built. */
   drills: Record<string, import("./drill").DrillState>;
+
+  /**
+   * Whether the Mountain Console has been awakened. This is the FIRST
+   * unlock in the game — before the forge, before mining. Walking to the
+   * console and pressing F awakens it. From that moment, the production
+   * metrics panel exists and the mountain begins tracking its own state.
+   *
+   * Lore: the console is operated by the spirit of past dwarves.
+   * The mountain keeps the whispers of every life that worked it.
+   */
+  consoleAwakened: boolean;
+
+  /**
+   * Permanent production multiplier earned by rekindling. Each rekindling
+   * (dwarfCount increment) adds 5% to ore yield and smelt yield, capped at
+   * 50% (+10 rekindlings). This is the "ladder climbing" effect from idle
+   * game design — each life through the mountain is meaningfully faster
+   * than the last, making the player feel the accumulation of dwarven
+   * memory. Applied in yieldCurve.ts alongside the yield perk.
+   */
+  rekindleMultiplier: number;
   /** Narag-Bund's own state - see CompanionState above. */
   companion: CompanionState;
   /** Highest tier ever forged per tool slot - see ToolsForgedState above. */
@@ -418,7 +439,8 @@ export type NarratorTrigger =
   | "torch_repaired"
   | "area_revealed" // stepping into a previously-unexplored area
   | "stranger_arrival"
-  | "companion_befriended"; // Narag-Bund - the first and only thing in this world that chooses to stay
+  | "companion_befriended" // Narag-Bund - the first and only thing in this world that chooses to stay
+  | "console_awakened"; // The Mountain Console wakes — the mountain remembers itself
 
 export interface NarratorState {
   lastShownByTrigger: Partial<Record<NarratorTrigger, string>>;

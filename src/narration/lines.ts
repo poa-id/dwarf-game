@@ -67,4 +67,8 @@ export const NARRATOR_LINES: Record<NarratorTrigger, string[]> = {
   companion_befriended: [
     "Something small and coal-backed follows him now, uninvited and unbothered by that. He doesn't tell it to leave.",
   ],
+
+  console_awakened: [
+    "The runes answer. Somewhere deep in the stone, something older than any dwarf who ever swung a pick takes notice. The mountain begins to remember itself.",
+  ],
 };

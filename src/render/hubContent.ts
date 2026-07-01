@@ -13,6 +13,7 @@ import {
   HEARTH_FOOTPRINT,
   MAP_CENTER,
   COMPANION_POSITION,
+  CONSOLE_POSITION,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
@@ -148,6 +149,11 @@ function buildHubContent(): GridCell[] {
   // ── 11. Gemcutting unbuilt marker ────────────────────────────────────
   set(GEMCUTTING_POSITION.col, GEMCUTTING_POSITION.row, "gemcutting_unbuilt");
 
+  // ── 12. Mountain Console ──────────────────────────────────────────────
+  // Always present as a static cell — the console was always here.
+  // The dwarf just needs to find and awaken it.
+  set(CONSOLE_POSITION.col, CONSOLE_POSITION.row, "mountain_console");
+
   return grid;
 }
 
@@ -167,7 +173,8 @@ export function hubCellAt(
   forgeTier: number = 0,
   smelterBuilt: boolean = false,
   gemcuttingBuilt: boolean = false,
-  companionBefriended: boolean = false
+  companionBefriended: boolean = false,
+  _consoleAwakened: boolean = false
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };

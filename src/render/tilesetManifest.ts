@@ -84,6 +84,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
   torch_lit: { assetUrl: torchLitUrl },
   companion: { assetUrl: naragBundUrl },
+  mountain_console: { assetUrl: rockWallUrl, tint: "#2a5a7a" },
 };
 
 export const NATIVE_TILE_SIZE = 32;

@@ -91,6 +91,8 @@ export function createInitialWorld(now: number): WorldState {
     veinDepletion: {},
     woodDepletion: {},
     drills: {},
+    consoleAwakened: false,
+    rekindleMultiplier: 0,
     toolsForged: { pickaxe: 0, axe: 0 },
     lifetimeFuelAtLastRekindle: 0,
     smelterBuilt: false,
@@ -139,6 +141,11 @@ export function rekindle(state: GameState): RekindleResult {
   const insightEarned = calculateRekindleInsight(state.vessel, state.world);
   const isFirstRekindling = state.world.dwarfCount === 0;
 
+  // Each life adds 5% to the permanent rekindle multiplier (capped at 50%).
+  // This is the idle "ladder climbing" effect — each run through the mountain
+  // is meaningfully faster than the last. The mountain remembers every dwarf.
+  const newRekindleMultiplier = Math.min(0.5, state.world.rekindleMultiplier + 0.05);
+
   const newState: GameState = {
     ...state,
     world: {
@@ -146,6 +153,7 @@ export function rekindle(state: GameState): RekindleResult {
       insightBanked: state.world.insightBanked + insightEarned,
       dwarfCount: state.world.dwarfCount + 1,
       lifetimeFuelAtLastRekindle: state.world.hearth.lifetimeFuel,
+      rekindleMultiplier: newRekindleMultiplier,
     },
     vessel: createFreshVessel(),
   };

@@ -52,7 +52,7 @@ export function handleMineStrike(actionHint: HTMLElement): void {
   // uniformly" per explicit direction, not just to gathering, but
   // Mining/Woodcraft are where it's most visible since their yields
   // can already exceed 1 at higher tool tiers.
-  const hearthYieldBonus = yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk);
+  const hearthYieldBonus = yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier;
   const result = attemptMineStrike(
     rockNode,
     miningSkill,
@@ -134,7 +134,7 @@ export function handleWoodGather(): void {
     state.world.toolsForged.axe,
     depletion,
     Math.random(),
-    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk)
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier
   );
 
   setState({

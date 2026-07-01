@@ -46,6 +46,8 @@ function backfillMissingFields(state: any): any {
     if (state.world.veinDepletion === undefined) state.world.veinDepletion = {};
     if (state.world.woodDepletion === undefined) state.world.woodDepletion = {};
     if (state.world.drills === undefined) state.world.drills = {};
+    if (state.world.consoleAwakened === undefined) state.world.consoleAwakened = false;
+    if (state.world.rekindleMultiplier === undefined) state.world.rekindleMultiplier = 0;
     if (state.world.hearthTier === undefined) state.world.hearthTier = 0;
     if (state.world.fuelReserve === undefined) state.world.fuelReserve = {};
     if (state.world.companion === undefined) {
@@ -157,11 +159,18 @@ function looksLikeGameState(value: any): boolean {
 export function saveGame(state: GameState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY + "_savedAt", String(Date.now()));
   } catch (err) {
-    // localStorage can throw (quota exceeded, private browsing
-    // restrictions, etc) - a failed save should never crash the game,
-    // just silently fail to persist this particular write.
     console.error("Failed to save game:", err);
+  }
+}
+
+export function getLastSavedAt(): number {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY + "_savedAt");
+    return raw ? parseInt(raw, 10) : Date.now();
+  } catch {
+    return Date.now();
   }
 }
 

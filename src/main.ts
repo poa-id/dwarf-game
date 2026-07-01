@@ -1,13 +1,15 @@
 import { GridRenderer } from "./render/GridRenderer";
 import { TilesetRenderer } from "./render/TilesetRenderer";
 import { clearSave } from "./persistence/saveGame";
-import { initGameState } from "./game/gameState";
+import { initGameState, getState } from "./game/gameState";
 import { initRenderRefs, render } from "./game/render";
 import { startGameLoop } from "./game/loop";
 import { handlePlayerMove, KEY_TO_DIRECTION } from "./game/movement";
 import { handleMineStrike, handleWoodGather, handleForgeRepair, handleTorchRepair } from "./game/actions";
 import { nearestOreVein, nearestWoodNode } from "./game/proximity";
 import { movePanelHighlight, confirmPanelHighlight } from "./game/panelNavigation";
+import { getLastSavedAt } from "./persistence/saveGame";
+import { computeOfflineSummary, renderOfflineSummaryBanner } from "./engine/offlineSummary";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -116,9 +118,19 @@ initRenderRefs({
   },
 });
 
+const lastSavedAt = getLastSavedAt();
+const now = Date.now();
 const loadResult = initGameState(narratorContainer);
 if (loadResult.discardedIncompatibleSave) {
   actionHint.textContent = "An old save could not be read and was reset.";
+} else if (!loadResult.isFreshState) {
+  // Existing save — check if meaningful time has passed for offline summary
+  const elapsedMs = now - lastSavedAt;
+  const summary = computeOfflineSummary(getState().world, elapsedMs);
+  const contextualPanel = document.querySelector<HTMLDivElement>("#contextual-panel");
+  if (contextualPanel && summary.isSignificant && summary.totalOreProduced > 0) {
+    renderOfflineSummaryBanner(summary, contextualPanel);
+  }
 }
 
 render();

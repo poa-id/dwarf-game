@@ -30,6 +30,7 @@ export type CellKind =
   | "gemcutting_unbuilt"
   | "rubble"
   | "companion"
+  | "mountain_console"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -46,6 +47,7 @@ export type CellKind =
 export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "rock_wall",
   "rubble",
+  "mountain_console",
   "hearth",
   "forge",
   "forge_broken",
@@ -102,6 +104,7 @@ const STAGE_0: StagePalette = {
     gemcutting_unbuilt: "#9a9a9a",
     rubble: "#7a7060",
     companion: "#c87820",
+    mountain_console: "#7ab8d4",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     // Torches now follow the SAME flat-gray Stage 0 rule as everything
@@ -163,7 +166,8 @@ const STAGE_2: StagePalette = {
     gemcutting: "#8a6fa8", // pale violet/lavender - distinct from the warm Smelter/Kiln tones, fitting a station about light and clarity rather than heat
     gemcutting_unbuilt: "#4a4050",
     rubble: "#5a5040",
-    companion: "#d4890a", // Narag-Bund gold carapace rim colour
+    companion: "#d4890a",
+    mountain_console: "#5a9ab8", // cold blue-grey — old stone, old light
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -200,6 +204,7 @@ const STAGE_3: StagePalette = {
     gemcutting_unbuilt: "#5a5060",
     rubble: "#6a6050",
     companion: "#e09a20",
+    mountain_console: "#8accd8",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -234,6 +239,7 @@ export const GLYPHS: Record<CellKind, string> = {
   gemcutting_unbuilt: ".",
   rubble: "x",
   companion: "N",
+  mountain_console: "Ω",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea
