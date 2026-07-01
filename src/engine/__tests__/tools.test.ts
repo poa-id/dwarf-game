@@ -18,17 +18,27 @@ const inventoryWith = (overrides: ResourceBag): ResourceBag => ({ ...overrides }
 const bareHands: ToolsForgedState = { pickaxe: 0, axe: 0 };
 
 describe("TOOL_RECIPES", () => {
-  it("has a tier-1 and tier-2 recipe for both pickaxe and axe slots", () => {
+  it("has tier-1, tier-2, and tier-3 recipes for both pickaxe and axe slots", () => {
     const pickaxeTiers = TOOL_RECIPES.filter((r) => r.slot === "pickaxe").map((r) => r.tier);
     const axeTiers = TOOL_RECIPES.filter((r) => r.slot === "axe").map((r) => r.tier);
-    expect(pickaxeTiers).toEqual([1, 2]);
-    expect(axeTiers).toEqual([1, 2]);
+    expect(pickaxeTiers).toEqual([1, 2, 3]);
+    expect(axeTiers).toEqual([1, 2, 3]);
   });
 
-  it("every recipe consumes both an ingot AND wood - 'metal + wood = tool'", () => {
+  it("every recipe has ingotCost > 0", () => {
     for (const recipe of TOOL_RECIPES) {
       expect(recipe.ingotCost).toBeGreaterThan(0);
-      expect(recipe.woodCost).toBeGreaterThan(0);
+    }
+  });
+
+  it("tier 1 and 2 use regular wood; tier 3 uses ironwood via woodAltId", () => {
+    const tier1 = TOOL_RECIPES.filter((r) => r.tier <= 2);
+    const tier3 = TOOL_RECIPES.filter((r) => r.tier === 3);
+    for (const r of tier1) expect(r.woodCost).toBeGreaterThan(0);
+    for (const r of tier3) {
+      expect(r.woodCost).toBe(0);
+      expect(r.woodAltId).toBe("ironwood");
+      expect(r.woodAltCost).toBeGreaterThan(0);
     }
   });
 });
@@ -44,8 +54,14 @@ describe("nextToolRecipe", () => {
     expect(nextToolRecipe("pickaxe", afterTier1)?.id).toBe("iron_pickaxe");
   });
 
-  it("returns null once the highest defined tier has been forged", () => {
-    const maxedOut: ToolsForgedState = { pickaxe: 2, axe: 2 };
+  it("returns the tier-3 recipe once tier 2 has been forged", () => {
+    const afterTier2: ToolsForgedState = { pickaxe: 2, axe: 2 };
+    expect(nextToolRecipe("pickaxe", afterTier2)?.id).toBe("deepstone_pickaxe");
+    expect(nextToolRecipe("axe", afterTier2)?.id).toBe("deepstone_axe");
+  });
+
+  it("returns null once the highest defined tier (3) has been forged", () => {
+    const maxedOut: ToolsForgedState = { pickaxe: 3, axe: 3 };
     expect(nextToolRecipe("pickaxe", maxedOut)).toBeNull();
     expect(nextToolRecipe("axe", maxedOut)).toBeNull();
   });
@@ -88,7 +104,7 @@ describe("attemptForgeTool", () => {
     expect(() => attemptForgeTool(copperPickaxe, smithingLvl1, inv, bareHands, 0.1)).toThrow();
   });
 
-  it("accepts charcoal as a valid fuel for the copper-tier tool, same bootstrap as copper_ingot", () => {
+  it("accepts charcoal as a valid fuel for copper-tier tool", () => {
     const inv = inventoryWith({ copper_ingot: 10, wood: 10, charcoal: 10 });
     const result = attemptForgeTool(copperPickaxe, smithingLvl1, inv, bareHands, 0.01, "charcoal");
     expect(result.success).toBe(true);
@@ -102,6 +118,7 @@ describe("attemptForgeTool", () => {
     expect(result.tierForged).toBe(1);
     expect(result.ingotSpent).toBe(copperPickaxe.ingotCost);
     expect(result.woodSpent).toBe(copperPickaxe.woodCost);
+    expect(result.woodMaterialId).toBe("wood");
     expect(result.fuelSpent).toBe(copperPickaxe.fuelCost);
   });
 

@@ -13,6 +13,7 @@ import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 import { tickDrill, drillDefinitionByVeinId } from "../engine/drill";
 import { getRestorationScore } from "../engine/production";
+import { tickGarden } from "../engine/garden";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -103,6 +104,16 @@ function gameTick(): void {
           drills: drillHaul.drills,
         },
       });
+      state = getState();
+      changed = true;
+    }
+  }
+
+  // Tick garden slots (passive plant growth)
+  if (state.world.gardenSlots.length > 0) {
+    const gardenResult = tickGarden(state.world.gardenSlots, now);
+    if (gardenResult.changed) {
+      setState({ ...state, world: { ...state.world, gardenSlots: gardenResult.slots } });
       state = getState();
       changed = true;
     }

@@ -35,6 +35,7 @@ function makeStateWithProgress(): GameState {
       rekindleMultiplier: 0,
       roomStates: {},
       stockpileOre: {},
+      gardenSlots: [],
       trueMetalSpentOnXpPerk: 3,
       trueMetalSpentOnYieldPerk: 1,
       gemcuttingBuilt: true,

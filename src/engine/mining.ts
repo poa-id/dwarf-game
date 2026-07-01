@@ -94,14 +94,12 @@ export const ROCK_NODES: RockNode[] = [
   {
     id: "deepstone",
     name: "Deepstone Seam",
-    materialId: "iron_ore", // placeholder material until a real "deepstone" MaterialDefinition exists
+    materialId: "deepstone_ore",
     requiredLevel: 20,
     baseXp: 45,
     baseYield: 2,
     baseSuccessChance: 0.6,
     totalYieldCapacity: null,
-    // Rough Amethyst - the rare gem tier, the rarest of the three.
-    // See copper_vein's comment above for the full rationale.
     gemDrop: { materialId: "rough_amethyst", baseChance: 0.003 },
   },
 ];

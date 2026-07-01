@@ -103,6 +103,46 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   cut_garnet: { id: "cut_garnet", name: "Cut Garnet", category: "gem", tier: 2 },
   rough_amethyst: { id: "rough_amethyst", name: "Rough Amethyst", category: "gem", tier: 3 },
   cut_amethyst: { id: "cut_amethyst", name: "Cut Amethyst", category: "gem", tier: 3 },
+
+  // ── Tier 3: Deepstone ─────────────────────────────────────────────────────
+  // Mined from the Deepstone Seam at Mining lvl 20. Dense, dark, holds heat
+  // far longer than iron. Smelted into deepstone ingots at the Forge once
+  // the Deep Foundry (NW room) is cleared. Required to build the iron drill
+  // and unlock tier 3 tool recipes.
+  deepstone_ore: { id: "deepstone_ore", name: "Deepstone Ore", category: "ore", tier: 3 },
+  deepstone_ingot: { id: "deepstone_ingot", name: "Deepstone Ingot", category: "ingot", tier: 3 },
+  true_deepstone: { id: "true_deepstone", name: "True Deepstone", category: "true_metal", tier: 3 },
+
+  // ── Tier 4: Starstone (future — mineshaft depth 2) ────────────────────────
+  // Placeholder only. No smelt recipe, no tool recipe, no vein placement yet.
+  // Added now so the MaterialId union is stable.
+  starstone_ore: { id: "starstone_ore", name: "Starstone Ore", category: "ore", tier: 4 },
+  starstone_ingot: { id: "starstone_ingot", name: "Starstone Ingot", category: "ingot", tier: 4 },
+
+  // ── Garden Room materials ─────────────────────────────────────────────────
+  // Stoneshroom — a fast-growing cave fungus, harvested from the Garden once
+  // the mushroom patch is seeded. Burns hotter than wood but cooler than coal.
+  // Primary use: Hearthsap production and a trade good.
+  stoneshroom: { id: "stoneshroom", name: "Stoneshroom", category: "fuel", tier: 2, heatValue: 6 },
+  // Hearthsap — rendered from stoneshrooms at the Kiln. Burns intensely hot;
+  // the only fuel capable of smelting Deepstone ore. Scarce by design.
+  hearthsap: { id: "hearthsap", name: "Hearthsap", category: "fuel", tier: 3, heatValue: 20 },
+  // Ironwood — from ancient seeds found in the Garden's sealed seed chest.
+  // Extremely hard, used for tier 3 tool handles. Grows slowly (30 min/cycle).
+  ironwood: { id: "ironwood", name: "Ironwood", category: "wood", tier: 3 },
+  // Ancient Seed — rare drop from the root tangle or found in the seed chest.
+  // Planted in the Garden to grow Ironwood trees. One-time use.
+  ancient_seed: { id: "ancient_seed", name: "Ancient Seed", category: "wood", tier: 2 },
+  stoneshroom_spore: { id: "stoneshroom_spore", name: "Stoneshroom Spore", category: "wood", tier: 1 },
+  cave_fern_spore: { id: "cave_fern_spore", name: "Cave Fern Spore", category: "wood", tier: 1 },
+  ancient_seed_rare: { id: "ancient_seed_rare", name: "Ancient Heartwood Seed", category: "wood", tier: 3 },
+
+  // ── Trade goods ───────────────────────────────────────────────────────────
+  // Cut gems double as trade goods at the Trade Hall (South room) once
+  // the merchant post is restored. No separate material needed — gems already
+  // exist; trade_manifest tracks what's been offered.
+  // trade_credit: a record of trade completed — not held in inventory,
+  // tracked separately in WorldState.tradeLedger (future).
 };
 
 export function materialDef(id: MaterialId): MaterialDefinition {
@@ -345,6 +385,11 @@ export interface WorldState {
    * Absent key = room not yet interacted with (defaults to "ruined").
    */
   roomStates: Record<string, import("./rooms").RoomStage>;
+  /**
+   * Garden growing slots — passive plant production in the Garden Room.
+   * Length varies by garden_room stage (0/2/6/10 slots).
+   */
+  gardenSlots: import("./garden").GardenSlot[];
   /**
    * Shared ore stockpile — drills drain into this automatically once
    * the stockpile_room is at "cleared" stage or above.

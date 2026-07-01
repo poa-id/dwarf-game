@@ -106,3 +106,71 @@ export function applyCharcoalBurnResult(
   }
   return updated;
 }
+
+// ---------------------------------------------------------------------------
+// Hearthsap recipe — stoneshroom → hearthsap
+// ---------------------------------------------------------------------------
+
+/**
+ * Hearthsap rendering — stoneshrooms from the Garden are rendered in
+ * the Kiln into Hearthsap, the only fuel hot enough to smelt Deepstone.
+ * Slow, expensive in mushrooms, but the output is scarce by design.
+ */
+export const HEARTHSAP_RECIPE = {
+  id: "hearthsap_render",
+  name: "Render Hearthsap",
+  requiredLevel: 8,          // needs real Hearthkeeping investment
+  shroomCost: 6,             // 6 stoneshrooms → 1 hearthsap
+  hearthsapYield: 1,
+  baseXp: 25,
+  baseSuccessChance: 0.75,
+} as const;
+
+export interface HearthsapAttemptResult {
+  success: boolean;
+  xpGained: number;
+  shroomsSpent: number;
+  hearthsapGained: number;
+  newLevel: number;
+  leveledUp: boolean;
+}
+
+export function canAffordHearthsapRender(inventory: ResourceBag): boolean {
+  return canAffordMaterials(inventory, { stoneshroom: HEARTHSAP_RECIPE.shroomCost });
+}
+
+export function attemptHearthsapRender(
+  hearthkeepingSkill: SkillState,
+  inventory: ResourceBag,
+  roll: number,
+  hearthYieldBonus: number = 0
+): HearthsapAttemptResult {
+  if (hearthkeepingSkill.level < HEARTHSAP_RECIPE.requiredLevel) {
+    throw new Error(`Hearthkeeping level ${HEARTHSAP_RECIPE.requiredLevel} required`);
+  }
+  const shroomHeld = getMaterialAmount(inventory, "stoneshroom");
+  if (shroomHeld < HEARTHSAP_RECIPE.shroomCost) {
+    throw new Error(`Need ${HEARTHSAP_RECIPE.shroomCost} stoneshroom, have ${shroomHeld}`);
+  }
+  const success = roll < HEARTHSAP_RECIPE.baseSuccessChance;
+  const oldLevel = hearthkeepingSkill.level;
+  const newXp = hearthkeepingSkill.xp + HEARTHSAP_RECIPE.baseXp;
+  const newLevel = levelForXp(newXp);
+
+  return {
+    success,
+    xpGained: HEARTHSAP_RECIPE.baseXp,
+    shroomsSpent: HEARTHSAP_RECIPE.shroomCost,
+    hearthsapGained: success ? applyHearthYieldBonus(HEARTHSAP_RECIPE.hearthsapYield, hearthYieldBonus) : 0,
+    newLevel,
+    leveledUp: newLevel > oldLevel,
+  };
+}
+
+export function applyHearthsapResult(inventory: ResourceBag, result: HearthsapAttemptResult): ResourceBag {
+  let updated = deductMaterials(inventory, { stoneshroom: result.shroomsSpent });
+  if (result.success && result.hearthsapGained > 0) {
+    updated = addMaterial(updated, "hearthsap", result.hearthsapGained);
+  }
+  return updated;
+}

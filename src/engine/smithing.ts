@@ -67,6 +67,20 @@ export const SMITH_RECIPES: SmithRecipe[] = [
     ingotYield: 1,
     baseSuccessChance: 0.7,
   },
+  {
+    id: "deepstone_ingot",
+    name: "Deepstone Ingot",
+    requiredLevel: 18,
+    oreMaterialId: "deepstone_ore",
+    oreCost: 4,
+    acceptedFuels: ["hearthsap"],
+    fuelCost: 1,
+    minHeatRequired: 18,
+    baseXp: 60,
+    ingotMaterialId: "deepstone_ingot",
+    ingotYield: 1,
+    baseSuccessChance: 0.55,
+  },
 ];
 
 export interface SmithAttemptResult {
@@ -237,6 +251,9 @@ export interface ToolRecipe {
   ingotMaterialId: MaterialId;
   ingotCost: number;
   woodCost: number;
+  /** Optional: alternative wood material (e.g. "ironwood" for tier 3 tools). If set, woodCost should be 0 and woodAltCost used instead. */
+  woodAltId?: MaterialId;
+  woodAltCost?: number;
   acceptedFuels: MaterialId[];
   fuelCost: number;
   minHeatRequired: number;
@@ -306,11 +323,45 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     baseXp: 30,
     baseSuccessChance: 0.6,
   },
-  // Steel Pickaxe/Axe (tier 3) deliberately NOT included yet - no
-  // steel_ingot MaterialDefinition exists anywhere in the game. The old
-  // free-tier system had a "Steel Pick" entry but never had real
-  // content behind it either (no steel ore, no steel smithing recipe).
-  // See OPEN_QUESTIONS.md.
+  // Deepstone Pickaxe — tier 3. Requires deepstone_ingot (Smithing 18)
+  // and ironwood (from the Garden's ancient seed chest). The supply
+  // chain: mine deepstone → grow ironwood → forge here. High success
+  // chance because by this point the player is skilled; the cost IS
+  // the gate, not the failure chance.
+  {
+    id: "deepstone_pickaxe",
+    name: "Deepstone Pickaxe",
+    slot: "pickaxe",
+    tier: 3,
+    requiredLevel: 14,
+    ingotMaterialId: "deepstone_ingot",
+    ingotCost: 4,
+    woodCost: 0,       // ironwood replaces regular wood — see woodAltId
+    woodAltId: "ironwood",
+    woodAltCost: 3,
+    acceptedFuels: ["hearthsap"],
+    fuelCost: 1,
+    minHeatRequired: 18,
+    baseXp: 80,
+    baseSuccessChance: 0.65,
+  },
+  {
+    id: "deepstone_axe",
+    name: "Deepstone Axe",
+    slot: "axe",
+    tier: 3,
+    requiredLevel: 14,
+    ingotMaterialId: "deepstone_ingot",
+    ingotCost: 4,
+    woodCost: 0,
+    woodAltId: "ironwood",
+    woodAltCost: 3,
+    acceptedFuels: ["hearthsap"],
+    fuelCost: 1,
+    minHeatRequired: 18,
+    baseXp: 80,
+    baseSuccessChance: 0.65,
+  },
 ];
 
 /** The next forgeable tier for a given slot, given what's already been forged - null if already at the highest defined tier (or beyond). */
@@ -326,6 +377,7 @@ export interface ToolForgeAttemptResult {
   tierForged: number;
   ingotMaterialId: MaterialId;
   ingotSpent: number;
+  woodMaterialId: MaterialId;
   woodSpent: number;
   fuelMaterialId: MaterialId;
   fuelSpent: number;
@@ -367,9 +419,11 @@ export function attemptForgeTool(
     throw new Error(`Not enough ${recipe.ingotMaterialId}: have ${ingotHeld}, need ${recipe.ingotCost}`);
   }
 
-  const woodHeld = getMaterialAmount(inventory, "wood");
-  if (woodHeld < recipe.woodCost) {
-    throw new Error(`Not enough wood: have ${woodHeld}, need ${recipe.woodCost}`);
+  const woodMat = recipe.woodAltId ?? "wood";
+  const woodCostActual = recipe.woodAltId ? (recipe.woodAltCost ?? 0) : recipe.woodCost;
+  const woodHeld = getMaterialAmount(inventory, woodMat);
+  if (woodHeld < woodCostActual) {
+    throw new Error(`Not enough ${woodMat}: have ${woodHeld}, need ${woodCostActual}`);
   }
 
   if (!recipe.acceptedFuels.includes(chosenFuel)) {
@@ -402,7 +456,8 @@ export function attemptForgeTool(
       tierForged: toolsForged[recipe.slot], // unchanged on failure
       ingotMaterialId: recipe.ingotMaterialId,
       ingotSpent: recipe.ingotCost,
-      woodSpent: recipe.woodCost,
+      woodMaterialId: woodMat,
+      woodSpent: woodCostActual,
       fuelMaterialId: chosenFuel,
       fuelSpent: recipe.fuelCost,
       newLevel: oldLevel,
@@ -420,7 +475,8 @@ export function attemptForgeTool(
     tierForged: recipe.tier,
     ingotMaterialId: recipe.ingotMaterialId,
     ingotSpent: recipe.ingotCost,
-    woodSpent: recipe.woodCost,
+    woodMaterialId: woodMat,
+    woodSpent: woodCostActual,
     fuelMaterialId: chosenFuel,
     fuelSpent: recipe.fuelCost,
     newLevel,
@@ -435,7 +491,7 @@ export function applyForgeToolResult(
 ): { inventory: ResourceBag; toolsForged: ToolsForgedState } {
   const newInventory = deductMaterials(inventory, {
     [result.ingotMaterialId]: result.ingotSpent,
-    wood: result.woodSpent,
+    [result.woodMaterialId]: result.woodSpent,
     [result.fuelMaterialId]: result.fuelSpent,
   });
 

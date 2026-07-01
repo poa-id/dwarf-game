@@ -10,6 +10,8 @@ import { yieldPerkBonus } from "../engine/hearth";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 import { showNarratorToast } from "../narration/toast";
+import { rollSeedDrop } from "../engine/garden";
+import { addMaterial } from "../engine/types";
 
 /**
  * Each handler here follows the same shape: read state, validate via
@@ -163,12 +165,18 @@ export function handleWoodGather(): void {
   };
   const newInsightBanked = afterMiss.world.insightBanked + insightFromXp(multipliedXp);
 
+  // Seed drop — 2% chance of a stoneshroom spore per wood gather
+  const seedDrop = rollSeedDrop(Math.random());
+  const inventoryWithSeed = seedDrop
+    ? addMaterial(newInventory, seedDrop, 1)
+    : newInventory;
+
   setState({
     ...afterMiss,
     world: { ...afterMiss.world, insightBanked: newInsightBanked },
     vessel: {
       ...afterMiss.vessel,
-      inventory: newInventory,
+      inventory: inventoryWithSeed,
       skills: { ...afterMiss.vessel.skills, woodcraft: newWoodcraftSkill },
     },
   });
