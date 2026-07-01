@@ -72,6 +72,7 @@ const ONE_TIME_TRIGGERS: NarratorTrigger[] = [
   "color_stage_1",
   "companion_befriended",
   "console_awakened",
+  "merchant_arrived",
 ];
 
 export function hasFiredOnce(state: NarratorState, trigger: NarratorTrigger): boolean {

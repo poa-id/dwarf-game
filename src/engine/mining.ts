@@ -62,7 +62,7 @@ export const ROCK_NODES: RockNode[] = [
     name: "Iron Vein",
     materialId: "iron_ore",
     requiredLevel: 8,
-    baseXp: 18,
+    baseXp: 30,
     baseYield: 1,
     baseSuccessChance: 0.75,
     // Placed in the Tunnel Entrance (2026-06-23, see hubMap.ts's

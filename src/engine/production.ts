@@ -152,6 +152,16 @@ export function getRestorationScore(world: WorldState): RestorationBreakdown {
   else if (stockpileStage === "restored") structureScore += 700;
   else if (stockpileStage === "masterwork") structureScore += 1500;
 
+  const gardenStage = world.roomStates["garden_room"];
+  if (gardenStage === "cleared") structureScore += 200;
+  else if (gardenStage === "restored") structureScore += 500;
+  else if (gardenStage === "masterwork") structureScore += 1200;
+
+  const tradeHallStage = world.roomStates["trade_hall"];
+  if (tradeHallStage === "cleared") structureScore += 400;
+  else if (tradeHallStage === "restored") structureScore += 900;
+  else if (tradeHallStage === "masterwork") structureScore += 2000;
+
   const torchScore = Object.values(world.litTorches).filter(Boolean).length * 100;
 
   let drillScore = 0;

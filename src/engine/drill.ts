@@ -122,7 +122,7 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
     buildCost: {
       iron_ingot: 20,
       wood: 10,
-      // future: deepstone_ingot: 5 - placeholder, not yet buildable
+      deepstone_ingot: 5,
     },
     coalPerCycle: 2, // iron needs more heat
     tiers: [

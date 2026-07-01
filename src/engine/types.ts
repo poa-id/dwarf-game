@@ -500,6 +500,7 @@ export type NarratorTrigger =
   | "stranger_arrival"
   | "companion_befriended" // Narag-Bund - the first and only thing in this world that chooses to stay
   | "console_awakened" // The Mountain Console wakes — the mountain remembers itself
+  | "merchant_arrived" // First merchant arrives at the Trade Hall
   | "merchant_trade";  // A trade completed at the Trade Hall
 
 export interface NarratorState {

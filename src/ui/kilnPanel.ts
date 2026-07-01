@@ -3,49 +3,65 @@ import {
   applyCharcoalBurnResult,
   canAffordCharcoalBurn,
   CHARCOAL_RECIPE,
+  attemptHearthsapRender,
+  applyHearthsapResult,
+  canAffordHearthsapRender,
+  HEARTHSAP_RECIPE,
 } from "../engine/kiln";
-import { MATERIALS } from "../engine/types";
+import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 
-/**
- * Renders the Charcoal Kiln's single-action panel into a container.
- * Same pattern as renderSmithingPanel: render(state, container,
- * onAction) - pure rendering, no state owned here. Only one "recipe"
- * exists right now (wood -> charcoal), so this is a single row rather
- * than a list, but kept as its own panel/module rather than folded
- * into smithingPanel.ts since it's governed by Hearthkeeping, not
- * Smithing, and triggers off a different proximity check.
- */
-export function renderKilnPanel(state: GameState, container: HTMLElement, onBurn: () => void): void {
+export function renderKilnPanel(
+  state: GameState,
+  container: HTMLElement,
+  onBurn: () => void,
+  onRenderHearthsap: () => void
+): void {
   const { hearthkeeping } = state.vessel.skills;
+
   const meetsLevel = hearthkeeping.level >= CHARCOAL_RECIPE.requiredLevel;
   const affordable = canAffordCharcoalBurn(state.vessel.inventory);
   const canBurn = meetsLevel && affordable;
+  const costText = `${CHARCOAL_RECIPE.woodCost} ${MATERIALS.wood?.name ?? "wood"}`;
+  let charcoalStatus = costText;
+  if (!meetsLevel) charcoalStatus = `Requires Hearthkeeping level ${CHARCOAL_RECIPE.requiredLevel}`;
+  else if (!affordable) charcoalStatus = `Need: ${costText}`;
 
-  const woodLabel = MATERIALS.wood?.name ?? "wood";
-  const costText = `${CHARCOAL_RECIPE.woodCost} ${woodLabel}`;
-  const successRateText = `${Math.round(CHARCOAL_RECIPE.baseSuccessChance * 100)}% chance`;
+  const shroomsHeld = getMaterialAmount(state.vessel.inventory, "stoneshroom");
+  const showHearthsap = shroomsHeld > 0 || hearthkeeping.level >= HEARTHSAP_RECIPE.requiredLevel;
+  const meetsHearthsapLevel = hearthkeeping.level >= HEARTHSAP_RECIPE.requiredLevel;
+  const affordableHearthsap = canAffordHearthsapRender(state.vessel.inventory);
+  const canRenderSap = meetsHearthsapLevel && affordableHearthsap;
+  let hearthsapStatus = `${HEARTHSAP_RECIPE.shroomCost} Stoneshroom → 1 Hearthsap`;
+  if (!meetsHearthsapLevel) hearthsapStatus = `Requires Hearthkeeping level ${HEARTHSAP_RECIPE.requiredLevel}`;
+  else if (!affordableHearthsap) hearthsapStatus = `Need ${HEARTHSAP_RECIPE.shroomCost} Stoneshroom (have ${shroomsHeld})`;
 
-  let statusText = costText;
-  if (!meetsLevel) statusText = `Requires Hearthkeeping level ${CHARCOAL_RECIPE.requiredLevel}`;
-  else if (!affordable) statusText = `Need: ${costText}`;
+  const hearthsapRow = showHearthsap ? `
+    <div class="recipe-row ${canRenderSap ? "" : "recipe-row-disabled"}" data-action="hearthsap">
+      <div class="recipe-name">${HEARTHSAP_RECIPE.name}</div>
+      <div class="recipe-status">${hearthsapStatus}</div>
+      <div class="recipe-success-rate">${Math.round(HEARTHSAP_RECIPE.baseSuccessChance * 100)}% chance</div>
+    </div>
+  ` : "";
 
   container.innerHTML = `
     <h2>the charcoal kiln</h2>
     <div class="recipe-row ${canBurn ? "" : "recipe-row-disabled"}" data-action="burn">
       <div class="recipe-name">${CHARCOAL_RECIPE.name}</div>
-      <div class="recipe-status">${statusText}</div>
-      <div class="recipe-success-rate">${successRateText}</div>
+      <div class="recipe-status">${charcoalStatus}</div>
+      <div class="recipe-success-rate">${Math.round(CHARCOAL_RECIPE.baseSuccessChance * 100)}% chance</div>
     </div>
+    ${hearthsapRow}
   `;
 
-  container.querySelectorAll<HTMLDivElement>(".recipe-row").forEach((row) => {
+  container.querySelectorAll<HTMLDivElement>("[data-action]").forEach((row) => {
     row.addEventListener("click", () => {
       if (row.classList.contains("recipe-row-disabled")) return;
-      onBurn();
+      if (row.dataset.action === "burn") onBurn();
+      else if (row.dataset.action === "hearthsap") onRenderHearthsap();
     });
   });
 }
@@ -89,4 +105,29 @@ export function performCharcoalBurn(state: GameState): KilnOutcome {
   };
 
   return { newState, success: result.success, leveledUp: newHearthkeeping.level > oldLevel };
+}
+
+export interface HearthsapOutcome {
+  newState: GameState;
+  success: boolean;
+  leveledUp: boolean;
+}
+
+export function performRenderHearthsap(state: GameState): HearthsapOutcome {
+  const result = attemptHearthsapRender(
+    state.vessel.skills.hearthkeeping,
+    state.vessel.inventory,
+    Math.random(),
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier
+  );
+  const newInventory = applyHearthsapResult(state.vessel.inventory, result);
+  const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+  const newXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
+  const newSkill = { ...state.vessel.skills.hearthkeeping, level: levelForXp(newXp), xp: newXp };
+  const newState: GameState = {
+    ...state,
+    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) },
+    vessel: { ...state.vessel, inventory: newInventory, skills: { ...state.vessel.skills, hearthkeeping: newSkill } },
+  };
+  return { newState, success: result.success, leveledUp: newSkill.level > state.vessel.skills.hearthkeeping.level };
 }

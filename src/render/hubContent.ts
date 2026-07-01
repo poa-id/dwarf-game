@@ -176,7 +176,10 @@ export function hubCellAt(
   gemcuttingBuilt: boolean = false,
   companionBefriended: boolean = false,
   _consoleAwakened: boolean = false,
-  stockpileRoomStage: string = "ruined"
+  stockpileRoomStage: string = "ruined",
+  tradeHallStage: string = "ruined",
+  deepFoundryStage: string = "ruined",
+  archiveStage: string = "ruined"
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -231,6 +234,31 @@ export function hubCellAt(
     if (staticCell.kind === "rubble" || staticCell.kind === "rock_wall") {
       return { kind: "rock_floor" };
     }
+    return staticCell;
+  }
+
+  // Trade Hall (sealed_south: cols 35-45, rows 38-45) — rubble clears when trade_hall cleared+
+  const isOpen = (stage: string) => stage === "cleared" || stage === "restored" || stage === "masterwork";
+  const inSouthRoom = col >= 35 && col <= 45 && row >= 38 && row <= 45;
+  if (inSouthRoom && isOpen(tradeHallStage)) {
+    const staticCell = getHubGrid()[row * HUB_WIDTH + col];
+    if (staticCell.kind === "rubble") return { kind: "rock_floor" };
+    return staticCell;
+  }
+
+  // Deep Foundry (sealed_northwest: cols 6-18, rows 9-19) — rubble clears when deep_foundry cleared+
+  const inNwRoom = col >= 6 && col <= 18 && row >= 9 && row <= 19;
+  if (inNwRoom && isOpen(deepFoundryStage)) {
+    const staticCell = getHubGrid()[row * HUB_WIDTH + col];
+    if (staticCell.kind === "rubble") return { kind: "rock_floor" };
+    return staticCell;
+  }
+
+  // Archive (sealed_north: cols 35-45, rows 5-12) — rubble clears when archive cleared+
+  const inNorthRoom = col >= 35 && col <= 45 && row >= 5 && row <= 12;
+  if (inNorthRoom && isOpen(archiveStage)) {
+    const staticCell = getHubGrid()[row * HUB_WIDTH + col];
+    if (staticCell.kind === "rubble") return { kind: "rock_floor" };
     return staticCell;
   }
 

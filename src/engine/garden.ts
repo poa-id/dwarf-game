@@ -221,7 +221,7 @@ export function harvestSlot(
 // Seed drop from woodcutting (2% stoneshroom spore)
 // ---------------------------------------------------------------------------
 
-export const STONESHROOM_SPORE_DROP_CHANCE = 0.02;
+export const STONESHROOM_SPORE_DROP_CHANCE = 0.03;
 
 export function rollSeedDrop(roll: number): MaterialId | null {
   if (roll < STONESHROOM_SPORE_DROP_CHANCE) return "stoneshroom_spore";

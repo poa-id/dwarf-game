@@ -561,7 +561,7 @@ export function advanceDrillHauling(
   for (const [veinId, drillState] of drillEntries) {
     const space = DRILL_COAL_BUFFER_MAX - drillState.coalBuffer;
     const available = getMaterialAmount(newFuelReserve, "coal");
-    const toHaul = Math.min(space, available, HAUL_AMOUNT_PER_TRIP);
+    const toHaul = Math.min(space, available, 5); // 5 coal/trip — drills consume much faster than the hearth
     if (toHaul <= 0) break;
 
     newFuelReserve = deductMaterials(newFuelReserve, { coal: toHaul });

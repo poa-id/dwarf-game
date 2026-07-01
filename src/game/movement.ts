@@ -16,8 +16,13 @@ function isSolidAt(col: number, row: number): boolean {
   const world = getState().world;
   const { litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion, consoleAwakened, roomStates } = world;
   return isSolidCellKind(
-    hubCellAt(col, row, litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion.befriended, consoleAwakened, roomStates["stockpile_room"] ?? "ruined")
-      .kind
+    hubCellAt(col, row, litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt,
+      companion.befriended, consoleAwakened,
+      roomStates["stockpile_room"] ?? "ruined",
+      roomStates["trade_hall"] ?? "ruined",
+      roomStates["deep_foundry"] ?? "ruined",
+      roomStates["the_archive"] ?? "ruined"
+    ).kind
   );
 }
 

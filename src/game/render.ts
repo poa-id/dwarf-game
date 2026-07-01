@@ -32,7 +32,7 @@ import {
   performSpendTrueMetalOnYield,
   performRekindle,
 } from "../ui/hearthPanel";
-import { renderKilnPanel, performCharcoalBurn } from "../ui/kilnPanel";
+import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "../ui/kilnPanel";
 import {
   renderSmelterPanel,
   performSmelterBuild,
@@ -428,12 +428,20 @@ function updateContextualPanel(): void {
   if (isNearKiln()) {
     if (lastActivePanelKind !== "kiln") resetPanelHighlight();
     lastActivePanelKind = "kiln";
-    renderKilnPanel(state, refs.contextualPanel, () => {
-      const outcome = performCharcoalBurn(getState());
-      setState(outcome.newState);
-      if (outcome.leveledUp) narrate("level_up");
-      render();
-    });
+    renderKilnPanel(state, refs.contextualPanel,
+      () => {
+        const outcome = performCharcoalBurn(getState());
+        setState(outcome.newState);
+        if (outcome.leveledUp) narrate("level_up");
+        render();
+      },
+      () => {
+        const outcome = performRenderHearthsap(getState());
+        setState(outcome.newState);
+        if (outcome.leveledUp) narrate("level_up");
+        render();
+      }
+    );
     reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
@@ -526,6 +534,14 @@ function updateContextualPanel(): void {
     if (lastActivePanelKind !== "trade") resetPanelHighlight();
     lastActivePanelKind = "trade";
     refs.contextualPanel.innerHTML = "";
+
+    // Fire one-time narrator line when merchant is present for the first time
+    const tradeStage = state.world.roomStates["trade_hall"] ?? "ruined";
+    const merchantNow = tradeStage !== "ruined" && (Date.now() - state.world.lastMerchantAt) >= (tradeStage === "masterwork" ? 0 : tradeStage === "restored" ? 5*60*1000 : 10*60*1000);
+    if (merchantNow && !state.narrator.firedOnceTriggers.includes("merchant_arrived")) {
+      narrate("merchant_arrived");
+    }
+
     renderTradeHallPanel(
       state,
       refs.contextualPanel,
@@ -629,7 +645,10 @@ export function render(): void {
         state.world.gemcuttingBuilt,
         state.world.companion.befriended,
         state.world.consoleAwakened,
-        state.world.roomStates["stockpile_room"] ?? "ruined"
+        state.world.roomStates["stockpile_room"] ?? "ruined",
+        state.world.roomStates["trade_hall"] ?? "ruined",
+        state.world.roomStates["deep_foundry"] ?? "ruined",
+        state.world.roomStates["the_archive"] ?? "ruined"
       );
     },
     (col, row) => {
@@ -643,7 +662,10 @@ export function render(): void {
         state.world.gemcuttingBuilt,
         state.world.companion.befriended,
         state.world.consoleAwakened,
-        state.world.roomStates["stockpile_room"] ?? "ruined"
+        state.world.roomStates["stockpile_room"] ?? "ruined",
+        state.world.roomStates["trade_hall"] ?? "ruined",
+        state.world.roomStates["deep_foundry"] ?? "ruined",
+        state.world.roomStates["the_archive"] ?? "ruined"
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -656,7 +678,10 @@ export function render(): void {
             state.world.gemcuttingBuilt,
             state.world.companion.befriended,
             state.world.consoleAwakened,
-            state.world.roomStates["stockpile_room"] ?? "ruined"
+            state.world.roomStates["stockpile_room"] ?? "ruined",
+            state.world.roomStates["trade_hall"] ?? "ruined",
+            state.world.roomStates["deep_foundry"] ?? "ruined",
+            state.world.roomStates["the_archive"] ?? "ruined"
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);
