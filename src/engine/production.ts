@@ -138,9 +138,10 @@ export function getRestorationScore(world: WorldState): RestorationBreakdown {
   const rekindlingScore = world.dwarfCount * 500;
 
   let structureScore = 0;
-  if (world.forgeTier >= 1) structureScore += 200;
-  if (world.forgeTier >= 2) structureScore += 200;
-  if (world.forgeTier >= 3) structureScore += 200;
+  // Forge restoration arc: tier 0 = ruined, 1 = cleared, 2 = restored, 3 = masterwork
+  if (world.forgeTier >= 1) structureScore += 300;   // cleared — basic forge works
+  if (world.forgeTier >= 2) structureScore += 500;   // restored — bellows, full function
+  if (world.forgeTier >= 3) structureScore += 1000;  // masterwork — the great forge returns
   if (world.smelterBuilt) structureScore += 200;
   if (world.gemcuttingBuilt) structureScore += 200;
   structureScore += world.smelterTier * 100;
@@ -181,4 +182,22 @@ export function getRestorationScore(world: WorldState): RestorationBreakdown {
     drillScore,
     insightScore,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Stage name helpers — maps numeric tiers to the restoration arc vocabulary
+// ---------------------------------------------------------------------------
+
+export function forgeStageName(forgeTier: number): string {
+  if (forgeTier === 0) return "Ruined";
+  if (forgeTier === 1) return "Cleared";
+  if (forgeTier === 2) return "Restored";
+  return "Masterwork";
+}
+
+export function smelterStageName(smelterBuilt: boolean, smelterTier: number): string {
+  if (!smelterBuilt) return "Not built";
+  if (smelterTier === 0) return "Built";
+  const names = ["", "Truer Flame", "Patient Crucible", "Mountain's Own Heat"];
+  return names[smelterTier] ?? "Masterwork";
 }

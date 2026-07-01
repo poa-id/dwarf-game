@@ -23,6 +23,8 @@ import {
   getRestorationScore,
   estimatedInsightPerMin,
   totalOrePerMin,
+  forgeStageName,
+  smelterStageName,
 } from "../engine/production";
 
 export function renderConsolePanel(
@@ -101,6 +103,11 @@ export function renderConsolePanel(
       <div class="reserve-status"><strong>Hearth</strong></div>
       <div class="reserve-status">${colorStageName} · Fuel: ${Math.floor(hearth.hearthFuel)} · Reserve: ${hearth.fuelReserveTotal} · ${hearth.isAutoTending ? "Auto-tending" : "Needs stoking"}</div>
       <div class="reserve-status">Lifetime fuel burned: ${hearth.lifetimeFuel.toLocaleString()}</div>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <div class="reserve-status"><strong>Structures</strong></div>
+      <div class="reserve-status">Forge: ${forgeStageName(state.world.forgeTier)} · Smelter: ${smelterStageName(state.world.smelterBuilt, state.world.smelterTier)}${state.world.gemcuttingBuilt ? " · Gemcutting: Built" : ""}</div>
     </div>
 
     <div style="margin-bottom: 4px;">

@@ -12,6 +12,7 @@ import {
 import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 import { tickDrill, drillDefinitionByVeinId } from "../engine/drill";
+import { getRestorationScore } from "../engine/production";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -23,7 +24,8 @@ function gameTick(): void {
   if (isAutoTendingUnlocked(state.world.hearthTier)) {
     const fuelAvailable = totalHearthFuelValue(state.world.fuelReserve);
     const hasRekindledOnce = state.world.dwarfCount > 0;
-    const result = tickHearth(state.world.hearth, now, fuelAvailable, hasRekindledOnce);
+    const restorationScore = getRestorationScore(state.world).total;
+    const result = tickHearth(state.world.hearth, now, fuelAvailable, hasRekindledOnce, restorationScore);
     if (result.fuelAbsorbed > 0) {
       const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
 

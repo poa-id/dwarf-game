@@ -1,28 +1,51 @@
 import type { ColorStage } from "./types";
 
 /**
- * Permanent, one-way thresholds. Stage 1 is special: crossing it is not
- * just "the hearth got bigger," it IS the rekindling event — the current
- * dwarf gives himself to the flame, and the world gains its first color.
- * Stages beyond 1 are NOT rekindlings, just the hearth continuing to grow
- * as it's tended across however many dwarves have lived since.
+ * Permanent, one-way thresholds. Stage 1 is special: crossing it IS
+ * the rekindling event — the dwarf gives himself to the flame, the
+ * world gains its first color.
  *
- * fuelThreshold is checked against HearthState.lifetimeFuel, which never
- * decreases — so these are permanent, not something you can lose by
- * spending your current fuel balance.
+ * Stages 0-3 are gated by lifetime fuel absorbed — the Hearth's work.
+ * Stages 4-5 are gated ALSO by restoration score — the mountain's
+ * restoration. A Hearth that's burned a lot isn't enough; the rooms,
+ * drills, and structures must also be meaningfully restored.
+ *
+ * This separation matters: it means a player can't just AFK-burn fuel
+ * to reach stage 4. They have to actually rebuild the mountain.
  */
 export const COLOR_STAGES: ColorStage[] = [
-  { stage: 0, fuelThreshold: 0, label: "The Dark" },
-  { stage: 1, fuelThreshold: 500, label: "First Ember" },
-  { stage: 2, fuelThreshold: 5_000, label: "Hearthlight" },
-  { stage: 3, fuelThreshold: 50_000, label: "True Color" },
+  { stage: 0, fuelThreshold: 0,       label: "The Dark" },
+  { stage: 1, fuelThreshold: 500,     label: "First Ember" },
+  { stage: 2, fuelThreshold: 5_000,   label: "Hearthlight" },
+  { stage: 3, fuelThreshold: 50_000,  label: "True Color" },
+  {
+    stage: 4,
+    fuelThreshold: 100_000,
+    restorationThreshold: 3_000,
+    label: "Architecture",
+  },
+  {
+    stage: 5,
+    fuelThreshold: 250_000,
+    restorationThreshold: 8_000,
+    label: "The Mountain Remembers",
+  },
 ];
 
-/** Given lifetime fuel absorbed, what's the highest stage reached? */
-export function colorStageForLifetimeFuel(lifetimeFuel: number): ColorStage {
+/**
+ * Given lifetime fuel and restoration score, what's the highest stage reached?
+ * A stage is reached only when BOTH thresholds are met.
+ */
+export function colorStageForLifetimeFuel(
+  lifetimeFuel: number,
+  restorationScore: number = 0
+): ColorStage {
   let current = COLOR_STAGES[0];
   for (const stage of COLOR_STAGES) {
-    if (lifetimeFuel >= stage.fuelThreshold) {
+    const fuelMet = lifetimeFuel >= stage.fuelThreshold;
+    const restorationMet = stage.restorationThreshold === undefined ||
+                           restorationScore >= stage.restorationThreshold;
+    if (fuelMet && restorationMet) {
       current = stage;
     }
   }
@@ -34,25 +57,9 @@ export function nextColorStage(currentStage: number): ColorStage | null {
 }
 
 /**
- * Caps the otherwise-pure-fuel-based stage at 0 until the player has
- * actually rekindled at least once. Fixed 2026-06-23 - a real bug
- * found in playtesting: colorStage was a pure function of
- * lifetimeFuel alone, so the world's first color appeared the MOMENT
- * lifetimeFuel crossed the Stage 1 threshold (500) - the same moment
- * the Rekindle option became available, but NOT the same moment the
- * player actually clicked it. The color was visibly jumping ahead of
- * the player's choice, contradicting the explicit lore framing that
- * crossing this threshold "IS the rekindling event" - in the actual
- * implementation, the two had quietly become independent.
- *
- * Stages 2/3 remain untouched by this cap once it lifts (after the
- * first rekindle, `hasRekindledOnce` is permanently true forever after
- * for that save - WorldState.dwarfCount only ever increases) - they
- * stay exactly what they always were, "the hearth continuing to grow,"
- * not additional rekindling events. Only Stage 1 was ever meant to be
- * gated on the act itself; this helper expresses that by capping
- * EVERYTHING at 0 pre-rekindle (since stage 1 must come before 2 or 3
- * regardless) rather than special-casing just stage 1's transition.
+ * Caps at 0 until first rekindle. See original comment in colorStages.ts —
+ * stage 1 IS the rekindling event, the color shouldn't appear before the
+ * player makes that choice.
  */
 export function capColorStageBeforeFirstRekindle(
   pureFuelStage: ColorStage,

@@ -84,7 +84,8 @@ export function stokeFireDirectly(
   materialId: MaterialId,
   amount: number,
   now: number,
-  hasRekindledOnce: boolean
+  hasRekindledOnce: boolean,
+  restorationScore: number = 0
 ): StokeFireResult {
   if (!HEARTH_FUEL_MATERIALS.includes(materialId)) {
     throw new Error(`${materialId} cannot fuel the Hearth`);
@@ -101,7 +102,7 @@ export function stokeFireDirectly(
   const fuelAdded = amount * heat;
 
   const newLifetimeFuel = hearth.lifetimeFuel + fuelAdded;
-  const pureFuelStage = colorStageForLifetimeFuel(newLifetimeFuel);
+  const pureFuelStage = colorStageForLifetimeFuel(newLifetimeFuel, restorationScore);
   const newColorStage = capColorStageBeforeFirstRekindle(pureFuelStage, hasRekindledOnce).stage;
 
   const newHearth: HearthState = {
@@ -213,7 +214,8 @@ export function tickHearth(
   hearth: HearthState,
   now: number,
   bankedFuelAvailable: number,
-  hasRekindledOnce: boolean
+  hasRekindledOnce: boolean,
+  restorationScore: number = 0
 ): HearthTickResult {
   const elapsedMs = Math.max(0, now - hearth.lastUpdated);
   const cappedMs = Math.min(elapsedMs, MAX_OFFLINE_CATCHUP_MS);
@@ -231,7 +233,7 @@ export function tickHearth(
   // through anyway for explicitness, matching this engine's
   // established pattern of defensive invariants rather than relying
   // on an indirect chain of reasoning elsewhere staying true forever.
-  const pureFuelStage = colorStageForLifetimeFuel(newLifetimeFuel);
+  const pureFuelStage = colorStageForLifetimeFuel(newLifetimeFuel, restorationScore);
   const newColorStage = capColorStageBeforeFirstRekindle(pureFuelStage, hasRekindledOnce).stage;
 
   const newHearth: HearthState = {

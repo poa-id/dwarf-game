@@ -157,6 +157,8 @@ export interface ColorStage {
   fuelThreshold: number;
   /** Human label for what unlocks, e.g. "First Ember", "Hearthlight", "True Color" */
   label: string;
+  /** If set, the restoration score must ALSO reach this threshold (stages 4+). */
+  restorationThreshold?: number;
 }
 
 export interface HearthState {

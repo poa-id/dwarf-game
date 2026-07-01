@@ -278,13 +278,17 @@ export interface StokeOutcome {
 export function performStoke(state: GameState, materialId: MaterialId, target: StokeTarget): StokeOutcome {
   if (target === "fire") {
     const hasRekindledOnce = state.world.dwarfCount > 0;
+    const restorationScore = state.world.consoleAwakened
+      ? (Object.values(state.world.drills).length * 150 + state.world.forgeTier * 300)
+      : 0; // lightweight estimate to avoid importing production.ts in hearthPanel
     const result = stokeFireDirectly(
       state.world.hearth,
       state.vessel.inventory,
       materialId,
       STOKE_AMOUNT,
       Date.now(),
-      hasRekindledOnce
+      hasRekindledOnce,
+      restorationScore
     );
 
     // Direct stoking grants Hearthkeeping XP immediately, scaled by the

@@ -81,6 +81,31 @@ export interface RenderRefs {
 
 let refs: RenderRefs;
 
+// ---------------------------------------------------------------------------
+// Insight/min rolling estimate — 60s window, sampled each render
+// ---------------------------------------------------------------------------
+let insightSampleHistory: Array<{ insight: number; time: number }> = [];
+const INSIGHT_SAMPLE_WINDOW_MS = 60_000;
+
+function recordInsightSample(insight: number): void {
+  const now = Date.now();
+  insightSampleHistory.push({ insight, time: now });
+  // Keep only samples within the window
+  insightSampleHistory = insightSampleHistory.filter(
+    (s) => now - s.time <= INSIGHT_SAMPLE_WINDOW_MS
+  );
+}
+
+function insightPerMinFromSamples(): number {
+  if (insightSampleHistory.length < 2) return 0;
+  const oldest = insightSampleHistory[0];
+  const newest = insightSampleHistory[insightSampleHistory.length - 1];
+  const deltaInsight = newest.insight - oldest.insight;
+  const deltaMs = newest.time - oldest.time;
+  if (deltaMs < 5_000 || deltaInsight <= 0) return 0; // need at least 5s of data
+  return (deltaInsight / deltaMs) * 60_000;
+}
+
 /** Must be called once during boot with the DOM elements render() etc. will write into. */
 export function initRenderRefs(r: RenderRefs): void {
   refs = r;
@@ -115,11 +140,14 @@ function updateStatsPanel(): void {
     refs.statEls.restorationDisplay.style.display = "none";
   }
 
-  // Insight display + estimated rate from idle production
+  // Insight display + live rolling rate (falls back to idle estimate)
   refs.statEls.insightDisplay.textContent = `Insight: ${Math.floor(insightBanked)}`;
-  const insightMin = estimatedInsightPerMin(world);
-  if (world.consoleAwakened && insightMin > 0.05) {
-    refs.statEls.insightRateDisplay.textContent = `+${insightMin.toFixed(1)}/min (idle est.)`;
+  recordInsightSample(insightBanked);
+  const liveMin = insightPerMinFromSamples();
+  const idleMin = estimatedInsightPerMin(world);
+  const displayRate = liveMin > 0.05 ? liveMin : idleMin;
+  if (world.consoleAwakened && displayRate > 0.05) {
+    refs.statEls.insightRateDisplay.textContent = `+${displayRate.toFixed(1)}/min`;
     refs.statEls.insightRateDisplay.style.display = "";
   } else {
     refs.statEls.insightRateDisplay.style.display = "none";
@@ -170,11 +198,62 @@ function updateZoneHint(): void {
 }
 
 export function updateActionHint(): void {
+  const state = getState();
+  const { position } = state.vessel;
+  const world = state.world;
+
   if (isNearConsole()) {
-    const state = getState();
-    refs.actionHint.textContent = state.world.consoleAwakened
+    refs.actionHint.textContent = world.consoleAwakened
       ? "The mountain watches."
       : "Press F — awaken the console.";
+    return;
+  }
+
+  if (isNearHearth()) {
+    const fuel = Math.floor(world.hearth.fuel);
+    const reserve = (Object.values(world.fuelReserve) as (number | undefined)[]).reduce((s: number, v) => s + (v ?? 0), 0);
+    refs.actionHint.textContent = world.hearthTier >= 1
+      ? `Hearth — fuel ${fuel} · reserve ${reserve}`
+      : `Hearth — ${fuel} fuel · press F to stoke`;
+    return;
+  }
+
+  if (isNearKiln()) {
+    refs.actionHint.textContent = "Kiln — press F to burn charcoal";
+    return;
+  }
+
+  if (isNearForge() && !isForgeRepaired()) {
+    const costText = Object.entries(FORGE_REPAIR_COST)
+      .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
+      .join(", ");
+    refs.actionHint.textContent = `Press R to repair the forge (${costText})`;
+    return;
+  }
+
+  if (isNearForge() && isForgeRepaired()) {
+    refs.actionHint.textContent = `Forge — tier ${world.forgeTier} · press F to smith`;
+    return;
+  }
+
+  if (isNearSmelter() && world.smelterBuilt) {
+    refs.actionHint.textContent = `Smelter — tier ${world.smelterTier} · press F to purify`;
+    return;
+  }
+
+  if (isNearGemcutting() && world.gemcuttingBuilt) {
+    refs.actionHint.textContent = "Gemcutting station — press F to cut gems";
+    return;
+  }
+
+  const stockpileStage = world.roomStates["stockpile_room"] ?? "ruined";
+  if (isNearStockpile(position, stockpileStage)) {
+    if (stockpileStage === "ruined") {
+      refs.actionHint.textContent = "Collapsed east wing — press F to clear the rubble";
+    } else {
+      const total = Object.values(world.stockpileOre).reduce((s, v) => s + (v ?? 0), 0);
+      refs.actionHint.textContent = `Stockpile (${stockpileStage}) — ${total} ore stored`;
+    }
     return;
   }
 
@@ -187,17 +266,12 @@ export function updateActionHint(): void {
     return;
   }
 
-  if (isNearForge() && !isForgeRepaired()) {
-    const costText = Object.entries(FORGE_REPAIR_COST)
-      .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
-      .join(", ");
-    refs.actionHint.textContent = `Press R to repair the forge (${costText})`;
-    return;
-  }
-
   const vein = nearestOreVein();
   if (vein) {
-    refs.actionHint.textContent = "Press F to strike the vein";
+    const drill = world.drills[vein.id];
+    refs.actionHint.textContent = drill
+      ? `Press F to mine · drill ${drill.coalBuffer > 0 ? "running" : "needs coal"}`
+      : "Press F to strike the vein";
     return;
   }
 
