@@ -140,6 +140,20 @@ function updateStatsPanel(): void {
   if (world.consoleAwakened) {
     refs.statEls.restorationDisplay.textContent = `Restoration: ${restoration.total.toLocaleString()}`;
     refs.statEls.restorationDisplay.style.display = "";
+    // Show the Production tab on the right panel once console is awakened
+    const prodTabBtn = document.getElementById("production-tab-btn");
+    if (prodTabBtn) prodTabBtn.style.display = "";
+    // Update production panel content
+    const prodPanel = document.getElementById("production-panel");
+    if (prodPanel) {
+      const s = getState();
+      renderConsolePanel(s, prodPanel, () => {
+        const wasAwakened = getState().world.consoleAwakened;
+        setState(performAwakenConsole(getState()));
+        if (!wasAwakened) narrate("console_awakened");
+        render();
+      });
+    }
   } else {
     refs.statEls.restorationDisplay.style.display = "none";
   }

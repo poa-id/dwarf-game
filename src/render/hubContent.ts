@@ -128,7 +128,7 @@ function buildHubContent(): GridCell[] {
     set(torch.position.col, torch.position.row, "torch_broken");
   }
 
-  // ── 8. Ore veins ─────────────────────────────────────────────────────
+  // ── 8. Ore veins — 2×2 footprints ───────────────────────────────────
   const VEIN_KIND: Record<string, CellKind> = {
     copper_vein: "ore_copper",
     iron_vein:   "ore_iron",
@@ -136,7 +136,11 @@ function buildHubContent(): GridCell[] {
     deepstone:   "ore_deep",
   };
   for (const vein of ORE_VEINS) {
-    set(vein.position.col, vein.position.row, VEIN_KIND[vein.rockNodeId] ?? "ore_copper");
+    const kind = VEIN_KIND[vein.rockNodeId] ?? "ore_copper";
+    // Stamp 2×2 — anchor at position, extends right and down
+    for (let dr = 0; dr < 2; dr++)
+      for (let dc = 0; dc < 2; dc++)
+        set(vein.position.col + dc, vein.position.row + dr, kind);
   }
 
   // ── 9. Wood nodes ────────────────────────────────────────────────────
@@ -273,7 +277,8 @@ export function hubCellAt(
   }
 
   const vein = ORE_VEINS.find(
-    (v) => v.position.col === col && v.position.row === row
+    (v) => col >= v.position.col && col <= v.position.col + 1 &&
+            row >= v.position.row && row <= v.position.row + 1
   );
   if (vein) {
     const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);

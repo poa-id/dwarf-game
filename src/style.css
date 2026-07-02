@@ -374,3 +374,60 @@ canvas {
     opacity: 0;
   }
 }
+
+/* ── Tab system ─────────────────────────────────────────────────────── */
+
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid #2a2a2a;
+  background: #080808;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  color: #555;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 6px 4px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-btn:hover {
+  color: #999;
+}
+
+.tab-btn.tab-active {
+  color: #c8a830;
+  border-bottom-color: #c8a830;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.tab-full-height {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.stats-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Production panel in right sidebar */
+#production-panel {
+  font-size: 0.75rem;
+  color: #aaa;
+}

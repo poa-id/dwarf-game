@@ -179,29 +179,27 @@ export interface OreVeinPlacement {
 
 export const ORE_VEINS: OreVeinPlacement[] = [
   // Mine Room — veins against the walls, open center for future workstations.
-  // Copper on the south wall, accessible from start.
+  // 2×2 veins with clear spacing between each:
+  // Iron north (rows 21-22), Deepstone mid (rows 24-25), Copper south (rows 28-29), Coal east
   {
     id: "mine_copper",
     rockNodeId: "copper_vein",
-    position: { col: 8, row: 29 },
+    position: { col: 8, row: 28 },  // 2×2: cols 8-9, rows 28-29
   },
-  // Iron on the north wall.
   {
     id: "mine_iron",
     rockNodeId: "iron_vein",
-    position: { col: 8, row: 21 },
+    position: { col: 8, row: 21 },  // 2×2: cols 8-9, rows 21-22
   },
-  // Coal on the east wall — row 27 avoids the corridor mouth (rows 23-25).
   {
     id: "mine_coal",
     rockNodeId: "coal_seam",
-    position: { col: 17, row: 27 },
+    position: { col: 16, row: 25 }, // 2×2: cols 16-17, rows 25-26
   },
-  // Deepstone near the mine shaft, 1 tile inside the west wall.
   {
     id: "mine_deepstone",
     rockNodeId: "deepstone",
-    position: { col: 7, row: 22 },
+    position: { col: 8, row: 24 },  // 2×2: cols 8-9, rows 24-25 (between iron and copper)
   },
 ];
 
