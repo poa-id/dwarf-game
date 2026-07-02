@@ -8,9 +8,9 @@ import {
   WOOD_NODE_PLACEMENTS,
   KILN_POSITION,
   SMELTER_POSITION,
-  GEMCUTTING_POSITION,
   FORGE_BUILDING_FOOTPRINT,
   HEARTH_FOOTPRINT,
+  GEMCUTTING_POSITION,
   MAP_CENTER,
   COMPANION_POSITION,
   CONSOLE_POSITION,
@@ -118,16 +118,14 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 4; dc++)
       set(hc + dc, hr + dr, "hearth");
 
-  // ── 6. Forge 4×4 (forge_broken until repaired) ───────────────────────
+  // ── 6. Forge 6×6 (forge_broken until repaired) ───────────────────────
   const { originCol: fc, originRow: fr } = FORGE_BUILDING_FOOTPRINT;
-  for (let dr = 0; dr < 4; dr++)
-    for (let dc = 0; dc < 4; dc++)
+  for (let dr = 0; dr < 6; dr++)
+    for (let dc = 0; dc < 6; dc++)
       set(fc + dc, fr + dr, "forge_broken");
 
-  // ── 7. Torches ───────────────────────────────────────────────────────
-  for (const torch of LIGHT_SOURCES) {
-    set(torch.position.col, torch.position.row, "torch_broken");
-  }
+  // Corridor torches removed — they blocked navigation.
+  // Players place their own torches with the T key (wall-mounted only).
 
   // ── 8. Ore veins — 3×3 footprints against the west wall ────────────────
   const VEIN_KIND: Record<string, CellKind> = {
@@ -153,8 +151,10 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 2; dc++)
       set(KILN_POSITION.col + dc, KILN_POSITION.row + dr, "kiln");
 
-  // ── 11. Gemcutting unbuilt marker ────────────────────────────────────
-  set(GEMCUTTING_POSITION.col, GEMCUTTING_POSITION.row, "gemcutting_unbuilt");
+  // ── 11. Gemcutting station 6×6 (unbuilt) ────────────────────────────
+  for (let dr = 0; dr < 6; dr++)
+    for (let dc = 0; dc < 6; dc++)
+      set(GEMCUTTING_POSITION.col + dc, GEMCUTTING_POSITION.row + dr, "gemcutting_unbuilt");
 
   // ── 12. Mountain Console ──────────────────────────────────────────────
   // Always present as a static cell — the console was always here.
@@ -246,9 +246,11 @@ export function hubCellAt(
     return { kind: "companion" };
   }
 
-  // Stockpile room — east wing (cols 52-63, rows 21-30). Row 20 stays wall (forge separator).
-  // When cleared+, rubble dissolves and the room opens.
-  const inEastRoom = col >= 52 && col <= 63 && row >= 21 && row <= 30;
+  // Stockpile room — east wing + corridor junction (cols 49-63, rows 21-30).
+  // Row 20 stays as rock_wall (forge/stockpile separator).
+  // Extended to col 49 to clear corridor junction cells that would otherwise
+  // appear as orphan wall tiles when the room opens.
+  const inEastRoom = col >= 49 && col <= 63 && row >= 21 && row <= 30;
   const stockpileCleared =
     stockpileRoomStage === "cleared" ||
     stockpileRoomStage === "restored" ||

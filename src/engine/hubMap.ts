@@ -110,12 +110,12 @@ export function zoneById(id: string): ZoneDefinition | undefined {
 
 // ── Structure footprints ─────────────────────────────────────────────────────
 
-/** Forge 4×4 building, anchored at top-left of the Forge Room. */
+/** Forge 6×6 building, anchored at top-left of the Forge Room. */
 export const FORGE_BUILDING_FOOTPRINT = {
   originCol: 54,
-  originRow: 11,
-  width: 4,
-  height: 4,
+  originRow: 9,
+  width: 6,
+  height: 6,
 };
 
 /**
@@ -134,8 +134,8 @@ export const HEARTH_CENTER: Position = MAP_CENTER;
 
 /** Light emission center for the Forge. */
 export const FORGE_CENTER: Position = {
-  col: FORGE_BUILDING_FOOTPRINT.originCol + 2,
-  row: FORGE_BUILDING_FOOTPRINT.originRow + 2,
+  col: FORGE_BUILDING_FOOTPRINT.originCol + 3,
+  row: FORGE_BUILDING_FOOTPRINT.originRow + 3,
 };
 
 // ── Structure positions ───────────────────────────────────────────────────────
@@ -146,8 +146,8 @@ export const SMELTER_POSITION: Position = {
   row: FORGE_BUILDING_FOOTPRINT.originRow + FORGE_BUILDING_FOOTPRINT.height,
 };
 
-/** Gemcutting station 4×4 anchor in the Tinkering Room. */
-export const GEMCUTTING_POSITION: Position = { col: 54, row: 38 };
+/** Gemcutting station 6×6 anchor in the Tinkering Room. */
+export const GEMCUTTING_POSITION: Position = { col: 54, row: 36 };
 
 /** Charcoal Kiln in the Garden Room, beside the wood node. */
 export const KILN_POSITION: Position = { col: 10, row: 38 };
@@ -230,47 +230,11 @@ export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
 
 // ── Torches ───────────────────────────────────────────────────────────────────
 
-export const LIGHT_SOURCES: LightSourceDefinition[] = [
-  // NE corridor (to Forge Room) — vertical leg midpoint
-  {
-    id: "torch_ne_vert",
-    name: "Corridor Torch (Forge Road)",
-    position: { col: 50, row: 15 },
-    radius: 3,
-    repairCost: { copper_ingot: 3 },
-  },
-  // W corridor (to Mine) — midpoint of straight shot
-  {
-    id: "torch_w",
-    name: "Corridor Torch (Mine Road)",
-    position: { col: 19, row: 24 },
-    radius: 3,
-    repairCost: { copper_ingot: 3 },
-  },
-  // SE corridor (to Tinkering) — vertical leg midpoint
-  {
-    id: "torch_se_vert",
-    name: "Corridor Torch (Tinkering Road)",
-    position: { col: 50, row: 32 },
-    radius: 3,
-    repairCost: { copper_ingot: 3 },
-  },
-  // SW corridor (to Garden) — two torches for the long L
-  {
-    id: "torch_sw_vert",
-    name: "Corridor Torch (Garden Road, vertical leg)",
-    position: { col: 30, row: 36 },
-    radius: 3,
-    repairCost: { copper_ingot: 3 },
-  },
-  {
-    id: "torch_sw_horiz",
-    name: "Corridor Torch (Garden Road, horizontal leg)",
-    position: { col: 19, row: 43 },
-    radius: 3,
-    repairCost: { copper_ingot: 3 },
-  },
-];
+// Corridor torches removed — they blocked navigation and were replaced
+// by the player-placed torch system (T key, wall-mounted only).
+// LIGHT_SOURCES is kept empty so existing save data with litTorches
+// keys doesn't break — the keys just won't match anything.
+export const LIGHT_SOURCES: LightSourceDefinition[] = [];
 
 export function lightSourceById(id: string): LightSourceDefinition | undefined {
   return LIGHT_SOURCES.find((l) => l.id === id);

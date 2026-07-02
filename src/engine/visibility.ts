@@ -163,9 +163,16 @@ export function hasLineOfSight(
  * cell - but they don't push back the dark themselves until repaired).
  */
 export function isWithinAnyLitTorch(col: number, row: number, world: WorldState): boolean {
+  // Corridor torches (LIGHT_SOURCES) — now empty, kept for backward compat
   for (const torch of LIGHT_SOURCES) {
-    if (!world.litTorches[torch.id]) continue; // broken - contributes no light
+    if (!world.litTorches[torch.id]) continue;
     if (isWithinLightRadius(col, row, torch.position, torch.radius)) return true;
+  }
+  // Player-placed torches
+  for (const [key, isLit] of Object.entries(world.placedTorches)) {
+    if (!isLit) continue;
+    const [tc, tr] = key.split(",").map(Number);
+    if (isWithinLightRadius(col, row, { col: tc, row: tr }, 3)) return true;
   }
   return false;
 }

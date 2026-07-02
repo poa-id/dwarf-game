@@ -12,7 +12,7 @@ import {
   DEFAULT_LIGHT_RADIUS,
   describeUnlockCondition,
 } from "../visibility";
-import { ZONES, HEARTH_SPAWN_POSITION, LIGHT_SOURCES } from "../hubMap";
+import { ZONES, HEARTH_SPAWN_POSITION } from "../hubMap";
 import { createInitialWorld } from "../rekindle";
 import type { WorldState } from "../types";
 import { cellKey } from "../types";
@@ -181,62 +181,49 @@ describe("cellVisibility", () => {
 });
 
 describe("isWithinAnyLitTorch", () => {
-  const torch = LIGHT_SOURCES[0];
-
-  it("false when the torch exists but is not lit", () => {
+  // Corridor torches removed; tests now use placedTorches (player-placed wall torches)
+  it("false when no placed torches exist", () => {
     const world = createInitialWorld(0);
-    expect(isWithinAnyLitTorch(torch.position.col, torch.position.row, world)).toBe(false);
+    expect(isWithinAnyLitTorch(40, 25, world)).toBe(false);
   });
 
-  it("true within radius of a LIT torch", () => {
-    const world = worldWith({ litTorches: { [torch.id]: true } });
-    expect(isWithinAnyLitTorch(torch.position.col, torch.position.row, world)).toBe(true);
+  it("true within radius of a lit placed torch", () => {
+    const world = worldWith({ placedTorches: { "40,20": true } });
+    expect(isWithinAnyLitTorch(40, 21, world)).toBe(true);
   });
 
-  it("false outside every lit torch's radius", () => {
-    const world = worldWith({ litTorches: { [torch.id]: true } });
-    const farCol = torch.position.col + torch.radius + 10;
-    expect(isWithinAnyLitTorch(farCol, torch.position.row, world)).toBe(false);
+  it("false outside a placed torch radius", () => {
+    const world = worldWith({ placedTorches: { "40,20": true } });
+    expect(isWithinAnyLitTorch(40, 30, world)).toBe(false);
   });
 });
 
 describe("isActivelyLit", () => {
-  const torch = LIGHT_SOURCES[0];
-
-  it("true when within the dwarf's own radius, regardless of torches", () => {
+  it("true when within the dwarf's own radius", () => {
     const world = createInitialWorld(0);
     const dwarfPos = HEARTH_SPAWN_POSITION;
     expect(isActivelyLit(dwarfPos.col, dwarfPos.row, dwarfPos, world)).toBe(true);
   });
 
-  it("true when within a lit torch's radius, even far from the dwarf", () => {
-    const world = worldWith({ litTorches: { [torch.id]: true } });
+  it("true near a lit placed torch even far from the dwarf", () => {
+    const world = worldWith({ placedTorches: { "40,20": true } });
     const dwarfFarAway = { col: 0, row: 0 };
-    expect(isActivelyLit(torch.position.col, torch.position.row, dwarfFarAway, world)).toBe(
-      true
-    );
+    expect(isActivelyLit(40, 21, dwarfFarAway, world)).toBe(true);
   });
 
-  it("false when outside both the dwarf's radius and any lit torch", () => {
-    const world = createInitialWorld(0); // no torches lit
+  it("false outside all light sources", () => {
+    const world = createInitialWorld(0);
     const dwarfFarAway = { col: 0, row: 0 };
     expect(isActivelyLit(70, 45, dwarfFarAway, world)).toBe(false);
   });
 });
 
 describe("cellVisibility with torches", () => {
-  const torch = LIGHT_SOURCES[0];
-
-  it("a lit torch makes its surroundings 'lit' even with the dwarf far away", () => {
-    const world = worldWith({ litTorches: { [torch.id]: true } });
+  it("a lit placed torch makes its surroundings 'lit' even with the dwarf far away", () => {
+    const world = worldWith({ placedTorches: { "40,20": true } });
     const dwarfFarAway = { col: 0, row: 0 };
-    const result = cellVisibility(
-      torch.position.col,
-      torch.position.row,
-      dwarfFarAway,
-      world,
-      cellKey(torch.position.col, torch.position.row)
-    );
+    // With LOS removed, all unlocked cells are 'lit' regardless
+    const result = cellVisibility(40, 21, dwarfFarAway, world, "40,21");
     expect(result).toBe("lit");
   });
 });

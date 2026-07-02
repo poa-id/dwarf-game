@@ -76,15 +76,15 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   // Real 4x4 sprites (added 2026-06-30). tileSpan tells TilesetRenderer
   // to draw at 4x the normal cell size, anchored at the top-left cell.
   hearth: { assetUrl: hearth4x4Url, tileSpan: { cols: 4, rows: 4 } },
-  forge: { assetUrl: forge4x4Url, tileSpan: { cols: 4, rows: 4 } },
-  forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 4, rows: 4 } },
+  forge: { assetUrl: forge4x4Url, tileSpan: { cols: 6, rows: 6 } },
+  forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 6, rows: 6 } },
   kiln: { assetUrl: kilnUrl, tileSpan: { cols: 2, rows: 2 } },
   // Smelter add-on: 2x2 sprite sitting below the Forge.
   smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 2, rows: 2 } },
-  gemcutting: { assetUrl: gemcutting4x4Url, tileSpan: { cols: 4, rows: 4 } },
+  gemcutting: { assetUrl: gemcutting4x4Url, tileSpan: { cols: 6, rows: 6 } },
   // Unbuilt marker: same sprite but heavily tinted dark/cold so it reads as
   // 'the bench is here but cold and unused' rather than the active station.
-  gemcutting_unbuilt: { assetUrl: gemcutting4x4Url, tint: "#3a3450", tileSpan: { cols: 4, rows: 4 } },
+  gemcutting_unbuilt: { assetUrl: gemcutting4x4Url, tint: "#3a3450", tileSpan: { cols: 6, rows: 6 } },
   rubble: { assetUrl: rockWallUrl, tint: "#6a5a40" },
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
