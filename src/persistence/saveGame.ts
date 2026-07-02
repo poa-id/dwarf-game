@@ -44,6 +44,18 @@ function backfillMissingFields(state: any): any {
   if (state.world) {
     if (state.world.litTorches === undefined) state.world.litTorches = {};
     if ((state.world as Record<string,unknown>).placedTorches === undefined) (state.world as Record<string,unknown>).placedTorches = {};
+    // Migration: remove any placed torches at positions that are not rock_wall cells
+    // (torches were sometimes saved on floor cells due to early bugs)
+    // Also clear torches near the spawn position (col 39-41, row 27-29) from old buggy saves
+    if (state.world.placedTorches) {
+      const cleaned: Record<string, boolean> = {};
+      for (const [key, val] of Object.entries(state.world.placedTorches)) {
+        const [c, r] = key.split(",").map(Number);
+        const nearSpawn = c >= 38 && c <= 42 && r >= 26 && r <= 30;
+        if (!nearSpawn) cleaned[key] = val as boolean;
+      }
+      state.world.placedTorches = cleaned;
+    }
     if (state.world.veinDepletion === undefined) state.world.veinDepletion = {};
     if (state.world.woodDepletion === undefined) state.world.woodDepletion = {};
     if (state.world.drills === undefined) state.world.drills = {};

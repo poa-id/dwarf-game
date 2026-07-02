@@ -189,7 +189,7 @@ export const ORE_VEINS: OreVeinPlacement[] = [
   {
     id: "mine_deepstone",
     rockNodeId: "deepstone",
-    position: { col: 6, row: 23 },  // 3×3: cols 6-8, rows 23-25
+    position: { col: 6, row: 24 },  // 3×3: cols 6-8, rows 24-26 (one row lower)
   },
   {
     id: "mine_copper",

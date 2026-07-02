@@ -42,19 +42,23 @@ export function renderDrillSection(
   let html = "";
 
   if (!drillState) {
-    // Not built
-    const canBuild = canAffordBuildDrill(def, state.vessel.inventory);
-    const costParts = Object.entries(def.buildCost)
-      .map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`)
-      .join(", ");
+    // Only show build option once smelter is built (iron ingots needed for the drill)
+    if (!state.world.smelterBuilt) {
+      html = `<h2>${def.name}</h2><p class="reserve-status" style="opacity:0.5;">Build the smelter first.</p>`;
+    } else {
+      const canBuild = canAffordBuildDrill(def, state.vessel.inventory);
+      const costParts = Object.entries(def.buildCost)
+        .map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`)
+        .join(", ");
 
-    html = `
-      <h2>${def.name}</h2>
-      <div class="recipe-row ${canBuild ? "" : "recipe-row-disabled"}" data-drill-action="build">
-        <div class="recipe-name">Build ${def.name}</div>
-        <div class="recipe-status">${canBuild ? costParts : `Need: ${costParts}`}</div>
-      </div>
-    `;
+      html = `
+        <h2>${def.name}</h2>
+        <div class="recipe-row ${canBuild ? "" : "recipe-row-disabled"}" data-drill-action="build">
+          <div class="recipe-name">Build ${def.name}</div>
+          <div class="recipe-status">${canBuild ? costParts : `Need: ${costParts}`}</div>
+        </div>
+      `;
+    }
   } else {
     const tierDef = drillTierDefinition(def, drillState.tier);
     const orePct = Math.round((drillState.oreBuffer / DRILL_ORE_BUFFER_MAX) * 100);

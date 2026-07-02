@@ -329,8 +329,15 @@ export function updateActionHint(): void {
   if (vein) {
     const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
     const miningLevel = getState().vessel.skills.mining.level;
-    if (rockNode && miningLevel < (rockNode.requiredLevel ?? 1)) {
-      refs.actionHint.textContent = `${vein.rockNodeId.replace("_"," ")} — needs Mining level ${rockNode.requiredLevel}`;
+    const reqLevel = rockNode?.requiredLevel ?? 1;
+    if (miningLevel < reqLevel) {
+      // Only show the level requirement once the player is within 5 levels
+      // of unlocking it — don't spoil distant content
+      if (reqLevel - miningLevel <= 5) {
+        refs.actionHint.textContent = `${rockNode?.id.replace("_"," ") ?? vein.rockNodeId} — needs Mining level ${reqLevel}`;
+      } else {
+        refs.actionHint.textContent = "This vein is too dense to mine yet.";
+      }
     } else {
       const drill = world.drills[vein.id];
       refs.actionHint.textContent = drill

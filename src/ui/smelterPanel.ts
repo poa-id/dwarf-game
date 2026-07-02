@@ -91,6 +91,7 @@ export function renderSmelterPanel(
         <div class="recipe-status">${copperStatus}</div>
         <div class="recipe-success-rate">${copperDropChance}% True Copper</div>
       </div>
+      ${canPurifyCopper ? '<div class="batch-bar"><button class="batch-btn" data-batch-purify="copper_ingot" data-times="5">×5</button><button class="batch-btn" data-batch-purify="copper_ingot" data-times="10">×10</button><button class="batch-btn" data-batch-purify="copper_ingot" data-times="50">×50</button></div>' : ""}
     `;
 
     // Copper tier upgrade
@@ -134,6 +135,7 @@ export function renderSmelterPanel(
           <div class="recipe-status">${ironStatus}</div>
           <div class="recipe-success-rate">${ironDropChance}% True Iron</div>
         </div>
+        ${canPurifyIron ? '<div class="batch-bar"><button class="batch-btn" data-batch-purify="iron_ingot" data-times="5">×5</button><button class="batch-btn" data-batch-purify="iron_ingot" data-times="10">×10</button><button class="batch-btn" data-batch-purify="iron_ingot" data-times="50">×50</button></div>' : ""}
       `
       : "";
 

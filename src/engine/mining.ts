@@ -81,7 +81,7 @@ export const ROCK_NODES: RockNode[] = [
     id: "coal_seam",
     name: "Coal Seam",
     materialId: "coal",
-    requiredLevel: 1,
+    requiredLevel: 8, // requires iron pickaxe tier — gives charcoal more relevance early
     baseXp: 6,
     baseYield: 1,
     baseSuccessChance: 0.85,
@@ -95,7 +95,7 @@ export const ROCK_NODES: RockNode[] = [
     id: "deepstone",
     name: "Deepstone Seam",
     materialId: "deepstone_ore",
-    requiredLevel: 20,
+    requiredLevel: 15,
     baseXp: 45,
     baseYield: 2,
     baseSuccessChance: 0.6,

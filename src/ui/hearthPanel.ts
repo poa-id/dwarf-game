@@ -178,11 +178,13 @@ export function renderHearthPanel(
       `
       : "";
 
-  // The rekindle option - see REKINDLE_FUEL_THRESHOLD's comment above
-  // for why this checks lifetimeFuel directly rather than a separate
-  // flag, and why it must give no warning beforehand. No status text,
-  // no cost shown, no countdown - it simply isn't here until it is.
-  const canRekindle = state.world.hearth.lifetimeFuel >= REKINDLE_FUEL_THRESHOLD;
+  // Rekindle: only available once the dwarf has achieved meaningful restoration.
+  // Requires: forge repaired (tier ≥ 1), Hearthlight stage (lifetimeFuel ≥ 5000),
+  // AND hearthTier ≥ 1 (auto-tending unlocked — the mountain can sustain itself).
+  // A fresh dwarf who hasn't rebuilt anything shouldn't be able to rekindle.
+  const canRekindle = state.world.hearth.lifetimeFuel >= REKINDLE_FUEL_THRESHOLD
+    && state.world.forgeTier >= 1
+    && state.world.hearthTier >= 1;
   const rekindleSection = canRekindle
     ? `
       <div class="recipe-row rekindle-row" data-rekindle="true">

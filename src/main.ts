@@ -208,11 +208,10 @@ window.addEventListener("keydown", (e) => {
 
   if (e.key === "e" || e.key === "E") {
     handleTorchRepair(actionHint);
-    // Also check for nearby unlit placed torches
+    // Check for nearby placed torches (lit OR unlit)
     const world = getState().world;
     const pos = getState().vessel.position;
-    for (const [key, isLit] of Object.entries(world.placedTorches)) {
-      if (isLit) continue;
+    for (const [key] of Object.entries(world.placedTorches)) {
       const [tc, tr] = key.split(",").map(Number);
       if (Math.abs(tc - pos.col) <= 1 && Math.abs(tr - pos.row) <= 1) {
         handleLightPlacedTorch(tc, tr, actionHint);
@@ -222,6 +221,9 @@ window.addEventListener("keydown", (e) => {
     render();
     return;
   }
+
+  // Swallow Space entirely — it has no game action and causes page scroll
+  if (e.key === " ") { e.preventDefault(); return; }
 
   if (e.key === "t" || e.key === "T") {
     const state = getState();

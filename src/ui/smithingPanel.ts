@@ -79,6 +79,7 @@ export function renderSmithingPanel(
         <div class="recipe-status">${statusText}</div>
         <div class="recipe-success-rate">${successRateText}</div>
       </div>
+      ${canSmith ? `<div class="batch-bar"><button class="batch-btn" data-batch-recipe="${recipe.id}" data-times="5">×5</button><button class="batch-btn" data-batch-recipe="${recipe.id}" data-times="10">×10</button><button class="batch-btn" data-batch-recipe="${recipe.id}" data-times="50">×50</button></div>` : ""}
     `;
   }).join("");
 
@@ -157,6 +158,16 @@ export function renderSmithingPanel(
       if (row.classList.contains("recipe-row-disabled")) return;
       const recipe = SMITH_RECIPES.find((r) => r.id === row.dataset.recipeId);
       if (recipe) onSmith(recipe);
+    });
+  });
+
+  // Batch buttons for smelt rows
+  container.querySelectorAll<HTMLButtonElement>("[data-batch-recipe]").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const recipe = SMITH_RECIPES.find((r) => r.id === btn.dataset.batchRecipe);
+      const times = parseInt(btn.dataset.times ?? "1");
+      if (recipe) onSmith(recipe, times);
     });
   });
 
