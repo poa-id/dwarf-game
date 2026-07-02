@@ -64,6 +64,14 @@ export function isNearGarden(): boolean {
          position.row >= 35 && position.row <= 45;
 }
 
+export function isNearCompanion(): boolean {
+  const { position } = getState().vessel;
+  const world = getState().world;
+  if (!world.companion.befriended) return false;
+  // Narag-Bund sits at COMPANION_POSITION (42, 27)
+  return Math.abs(position.col - 42) <= 2 && Math.abs(position.row - 27) <= 2;
+}
+
 export function isForgeRepaired(): boolean {
   return getState().world.forgeTier >= 1;
 }

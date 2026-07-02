@@ -253,7 +253,7 @@ export function cellVisibility(
   row: number,
   dwarfPosition: Position,
   world: WorldState,
-  exploredKey: string,
+  _exploredKey: string,
   radius: number = DEFAULT_LIGHT_RADIUS,
   _cellKind?: string,
   isSolid?: (col: number, row: number) => boolean
@@ -262,7 +262,10 @@ export function cellVisibility(
 
   if (isActivelyLit(col, row, dwarfPosition, world, radius, isSolid)) return "lit";
 
-  if (world.exploredCells[exploredKey]) return "remembered";
-
-  return "hidden";
+  // Every unlocked cell is at minimum "remembered" — the mountain exists
+  // in dim ambient memory. Torches, hearth, forge, and kiln push cells
+  // to "lit" (warm, bright). Everything else is dim but visible.
+  // This removes the jarring black gaps between light sources while
+  // keeping the atmosphere of working by firelight.
+  return "remembered";
 }

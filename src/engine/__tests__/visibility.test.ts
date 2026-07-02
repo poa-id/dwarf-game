@@ -162,11 +162,11 @@ describe("cellVisibility", () => {
     expect(result).toBe("remembered");
   });
 
-  it("returns 'hidden' for an unexplored cell outside light radius", () => {
+  it("returns 'remembered' for an unexplored cell outside light radius (ambient dim — whole mountain is visible at low opacity)", () => {
     const world = createInitialWorld(0);
     const dwarfFarAway = { col: 50, row: 50 };
     const result = cellVisibility(0, 0, dwarfFarAway, world, "0,0");
-    expect(result).toBe("hidden");
+    expect(result).toBe("remembered");
   });
 
   it("returns 'hidden' for a cell in a locked zone, even if somehow marked explored", () => {

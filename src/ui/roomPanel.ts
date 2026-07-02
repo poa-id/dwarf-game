@@ -29,11 +29,16 @@ export function renderRoomPanel(
     state.world.insightBanked
   ) : false;
 
-  let html = `<h2>${current.label}</h2>`;
-  html += `<p class="reserve-status" style="font-size:0.9em;opacity:0.85;">${current.description}</p>`;
+  let html = `<h2>${currentStage === "ruined" ? "Sealed Passage" : current.label}</h2>`;
 
-  if (current.unlocks && currentStage !== "ruined") {
-    html += `<p class="reserve-status" style="color:#c8a830;font-size:0.82em;">✦ ${current.unlocks}</p>`;
+  if (currentStage === "ruined") {
+    // Don't spoil what's behind the rubble — mystery is part of the game
+    html += `<p class="reserve-status" style="font-size:0.9em;opacity:0.7;">Rubble fills the passage. Something is beyond it.</p>`;
+  } else {
+    html += `<p class="reserve-status" style="font-size:0.9em;opacity:0.85;">${current.description}</p>`;
+    if (current.unlocks) {
+      html += `<p class="reserve-status" style="color:#c8a830;font-size:0.82em;">✦ ${current.unlocks}</p>`;
+    }
   }
 
   if (nextDef) {
@@ -42,12 +47,14 @@ export function renderRoomPanel(
       nextDef.insightCost > 0 ? `${nextDef.insightCost} Insight` : null,
     ].filter(Boolean);
     const costText = costParts.join(", ");
+    const btnLabel = currentStage === "ruined" ? "Clear the rubble" : nextDef.label;
+    const unlockText = currentStage === "ruined" ? "Discover what lies beyond" : nextDef.unlocks;
 
     html += `
       <div class="recipe-row ${canAdvance ? "" : "recipe-row-disabled"}" data-action="advance">
-        <div class="recipe-name">${nextDef.label}</div>
+        <div class="recipe-name">${btnLabel}</div>
         <div class="recipe-status">${canAdvance ? costText : `Need: ${costText}`}</div>
-        <div class="recipe-success-rate">${nextDef.unlocks}</div>
+        <div class="recipe-success-rate">${unlockText}</div>
       </div>`;
   } else if (currentStage === "masterwork") {
     html += `<p class="reserve-status" style="color:#e09a20;">Fully restored.</p>`;

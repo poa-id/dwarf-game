@@ -42,6 +42,7 @@ export function renderStockpilePanel(
 
   let html = `<h2>${current.label}</h2>`;
 
+  // Don't show upgrade label/unlocks when still ruined — mystery first
   if (isOpen) {
     html += `
       <p class="reserve-status" style="color:#c8a830;">Stockpile: ${oreList}</p>

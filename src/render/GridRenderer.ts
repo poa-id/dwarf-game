@@ -38,7 +38,7 @@ export type CellLookup = (col: number, row: number) => GridCell;
 export type VisibilityLookup = (col: number, row: number) => CellVisibility;
 
 /** How much to dim a "remembered" cell's color, as a 0-1 multiplier applied via canvas alpha. */
-const REMEMBERED_OPACITY = 0.35;
+const REMEMBERED_OPACITY = 0.45; // ambient dim — visible but clearly not lit
 
 /**
  * The shared shape both GridRenderer (ASCII) and TilesetRenderer

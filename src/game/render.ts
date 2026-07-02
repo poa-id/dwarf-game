@@ -23,6 +23,7 @@ import {
   isNearGemcutting,
   isNearConsole,
   isNearGarden,
+  isNearCompanion,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade } from "../ui/smithingPanel";
 import {
@@ -32,6 +33,7 @@ import {
   performSpendTrueMetalOnYield,
   performRekindle,
 } from "../ui/hearthPanel";
+import { nextHaulMaterial, secondsUntilNextHaul } from "../engine/hearth";
 import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "../ui/kilnPanel";
 import {
   renderSmelterPanel,
@@ -340,7 +342,25 @@ export function updateActionHint(): void {
     return;
   }
 
-  refs.actionHint.textContent = "";
+  // Check for nearby placed torches
+  const nearbyPlacedTorch = (() => {
+    const { position } = getState().vessel;
+    const torches = world.placedTorches;
+    for (const [key, isLit] of Object.entries(torches)) {
+      const [tc, tr] = key.split(",").map(Number);
+      if (Math.abs(tc - position.col) <= 1 && Math.abs(tr - position.row) <= 1) {
+        return { key, isLit };
+      }
+    }
+    return null;
+  })();
+
+  if (nearbyPlacedTorch) {
+    refs.actionHint.textContent = nearbyPlacedTorch.isLit
+      ? "E — remove torch (+1 Wood)"
+      : "E — light torch (1 Copper Ingot)";
+    return;
+  }
 
   // Show torch placement hint when player has materials
   const { inventory } = getState().vessel;
@@ -355,7 +375,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "none" = "none";
+let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -371,6 +391,31 @@ let lastActivePanelKind: "console" | "forge" | "hearth" | "kiln" | "smelter" | "
 function updateContextualPanel(): void {
   const state = getState();
   const { position } = state.vessel;
+
+  // Narag-Bund companion panel — shown when near him once befriended
+  if (isNearCompanion()) {
+    if (lastActivePanelKind !== "companion") resetPanelHighlight();
+    lastActivePanelKind = "companion";
+    refs.contextualPanel.innerHTML = "";
+    const world = state.world;
+    const haulTarget = nextHaulMaterial(state.vessel.inventory);
+    const haulLabel = haulTarget ? (MATERIALS[haulTarget]?.name ?? haulTarget) : null;
+    const secsLeft = Math.ceil(secondsUntilNextHaul(world.companion.lastHaulAt, Date.now()));
+    const haulStatus = haulLabel
+      ? `Hauling ${haulLabel} to the reserve in ~${secsLeft}s`
+      : "Nothing to haul — carry some fuel";
+    const drillStatus = world.hearthTier >= 2
+      ? `Hauling coal to drills (Hearth tier ${world.hearthTier})`
+      : "Will haul coal to drills at Hearth tier 2";
+    refs.contextualPanel.innerHTML = `
+      <h2>Narag-Bund</h2>
+      <p class="reserve-status">Coal-beetle. Black-head. He stays.</p>
+      <p class="reserve-status" style="color:#c87820;">${haulStatus}</p>
+      <p class="reserve-status">${drillStatus}</p>
+      <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">Haul interval: 10s · Next: ~${secsLeft}s</p>
+    `;
+    return;
+  }
 
   if (isNearConsole()) {
     if (lastActivePanelKind !== "console") resetPanelHighlight();

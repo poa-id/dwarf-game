@@ -16,7 +16,7 @@ const DEFAULT_CONFIG: TilesetRenderConfig = {
 };
 
 /** How much to dim a "remembered" cell, as a 0-1 alpha multiplier - matches GridRenderer's REMEMBERED_OPACITY exactly, so switching renderers doesn't change how fog-of-war reads. */
-const REMEMBERED_OPACITY = 0.35;
+const REMEMBERED_OPACITY = 0.45; // ambient dim — visible but clearly not lit
 
 /**
  * Draws real sprite art instead of monospace glyphs - the tileset-mode

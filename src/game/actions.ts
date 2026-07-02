@@ -288,8 +288,21 @@ export function handleLightPlacedTorch(col: number, row: number, actionHint: HTM
   const state = getState();
   const key = `${col},${row}`;
   if (state.world.placedTorches[key] === undefined) return;
-  if (state.world.placedTorches[key]) { actionHint.textContent = "Already lit."; return; }
 
+  if (state.world.placedTorches[key]) {
+    // Already lit — remove the torch and refund 1 wood
+    const newTorches = { ...state.world.placedTorches };
+    delete newTorches[key];
+    setState({
+      ...state,
+      world: { ...state.world, placedTorches: newTorches },
+      vessel: { ...state.vessel, inventory: addMaterial(state.vessel.inventory, "wood", 1) },
+    });
+    actionHint.textContent = "Torch removed (+1 Wood).";
+    return;
+  }
+
+  // Unlit — light it (1 Copper Ingot)
   if (getMaterialAmount(state.vessel.inventory, "copper_ingot") < 1) {
     actionHint.textContent = "Need 1 Copper Ingot to light the torch.";
     return;
