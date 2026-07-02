@@ -17,7 +17,7 @@ import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightB
 export function renderKilnPanel(
   state: GameState,
   container: HTMLElement,
-  onBurn: () => void,
+  onBurn: (times?: number) => void,
   onRenderHearthsap: () => void
 ): void {
   const { hearthkeeping } = state.vessel.skills;
@@ -52,8 +52,9 @@ export function renderKilnPanel(
     <div class="recipe-row ${canBurn ? "" : "recipe-row-disabled"}" data-action="burn">
       <div class="recipe-name">${CHARCOAL_RECIPE.name}</div>
       <div class="recipe-status">${charcoalStatus}</div>
-      <div class="recipe-success-rate">${Math.round(CHARCOAL_RECIPE.baseSuccessChance * 100)}% chance</div>
+      <div class="recipe-success-rate">${Math.round(CHARCOAL_RECIPE.baseSuccessChance * 100)}%</div>
     </div>
+    ${canBurn ? '<div class="batch-bar"><button class="batch-btn" data-action="burn" data-times="5">×5</button><button class="batch-btn" data-action="burn" data-times="10">×10</button><button class="batch-btn" data-action="burn" data-times="50">×50</button></div>' : ""}
     ${hearthsapRow}
   `;
 
@@ -62,6 +63,13 @@ export function renderKilnPanel(
       if (row.classList.contains("recipe-row-disabled")) return;
       if (row.dataset.action === "burn") onBurn();
       else if (row.dataset.action === "hearthsap") onRenderHearthsap();
+    });
+  container.querySelectorAll<HTMLButtonElement>(".batch-btn[data-action]").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const times = parseInt(btn.dataset.times ?? "1");
+      if (btn.dataset.action === "burn") onBurn(times);
+    });
     });
   });
 }

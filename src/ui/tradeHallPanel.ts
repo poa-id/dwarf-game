@@ -58,7 +58,7 @@ export function renderTradeHallPanel(
       html += `
         <div class="recipe-row ${canAfford ? "" : "recipe-row-disabled"}" data-offer="${offer.id}">
           <div class="recipe-name">${offer.giveAmount} ${giveName} → ${offer.receiveAmount} ${recvName}</div>
-          <div class="recipe-status">${canAfford ? "Trade" : `Need ${offer.giveAmount} ${giveName}`}</div>
+          <div class="recipe-status">${offer.description}</div>
         </div>`;
     }
   }

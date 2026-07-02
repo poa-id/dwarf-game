@@ -48,7 +48,7 @@ export function renderSmelterPanel(
   state: GameState,
   container: HTMLElement,
   onBuild: () => void,
-  onPurify: (ingotMaterialId: MaterialId) => void,
+  onPurify: (ingotMaterialId: MaterialId, times?: number) => void,
   onUpgradeTier: () => void,
   onUnlockIronPurifying: () => void,
   onUpgradeIronTier: () => void,

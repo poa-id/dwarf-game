@@ -68,6 +68,8 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "ore_coal",
   "wood_node",
   "tunnel_edge",
+  "torch_broken",
+  "torch_lit",
 ]);
 
 export function isSolidCellKind(kind: CellKind): boolean {

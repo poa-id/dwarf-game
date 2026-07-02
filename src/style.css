@@ -443,3 +443,28 @@ canvas {
   margin: 0;
   font-size: 0.78rem;
 }
+
+/* ── Batch action buttons ─────────────────────────────────────────── */
+.batch-bar {
+  display: flex;
+  gap: 4px;
+  padding: 2px 8px 6px;
+}
+
+.batch-btn {
+  font-family: inherit;
+  font-size: 0.65rem;
+  background: #1a1a1a;
+  color: #888;
+  border: 1px solid #333;
+  border-radius: 2px;
+  padding: 2px 8px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: color 0.1s, border-color 0.1s;
+}
+
+.batch-btn:hover {
+  color: #c8a830;
+  border-color: #c8a830;
+}

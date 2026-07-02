@@ -6,7 +6,7 @@ import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "../engine/
 import { cellKey, MATERIALS } from "../engine/types";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
 import { FORGE_REPAIR_COST } from "../engine/smithing";
-import { bestAvailablePickaxe } from "../engine/mining";
+import { bestAvailablePickaxe, ROCK_NODES } from "../engine/mining";
 import { bestAvailableAxe } from "../engine/woodcraft";
 import { getState, setState, narrate, persist } from "./gameState";
 import {
@@ -317,10 +317,17 @@ export function updateActionHint(): void {
 
   const vein = nearestOreVein();
   if (vein) {
-    const drill = world.drills[vein.id];
-    refs.actionHint.textContent = drill
-      ? `Press F to mine · drill ${drill.coalBuffer > 0 ? "running" : "needs coal"}`
-      : "Press F to strike the vein";
+    const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
+    const miningLevel = getState().vessel.skills.mining.level;
+    if (rockNode && miningLevel < (rockNode.requiredLevel ?? 1)) {
+      refs.actionHint.textContent = `${vein.rockNodeId.replace("_"," ")} — needs Mining level ${rockNode.requiredLevel}`;
+    } else {
+      const drill = world.drills[vein.id];
+      const batchHint = " (Shift×10, Ctrl×100)";
+      refs.actionHint.textContent = drill
+        ? `F to mine · drill ${drill.coalBuffer > 0 ? "running" : "needs coal"}${batchHint}`
+        : `F to strike the vein${batchHint}`;
+    }
     return;
   }
 
@@ -441,10 +448,18 @@ function updateContextualPanel(): void {
     renderSmithingPanel(
       state,
       refs.contextualPanel,
-      (recipe) => {
-        const outcome = performSmith(getState(), recipe);
-        setState(outcome.newState);
-        if (outcome.leveledUp) narrate("level_up");
+      (recipe, times = 1) => {
+        let s = getState();
+        let leveledUp = false;
+        for (let i = 0; i < times; i++) {
+          const outcome = performSmith(s, recipe);
+          s = outcome.newState;
+          if (outcome.leveledUp) leveledUp = true;
+          // Stop if can't afford next
+          if (!outcome.success && i < times - 1) break;
+        }
+        setState(s);
+        if (leveledUp) narrate("level_up");
         render();
       },
       (toolRecipe) => {
@@ -511,10 +526,17 @@ function updateContextualPanel(): void {
     if (lastActivePanelKind !== "kiln") resetPanelHighlight();
     lastActivePanelKind = "kiln";
     renderKilnPanel(state, refs.contextualPanel,
-      () => {
-        const outcome = performCharcoalBurn(getState());
-        setState(outcome.newState);
-        if (outcome.leveledUp) narrate("level_up");
+      (times = 1) => {
+        let s = getState();
+        let leveledUp = false;
+        for (let i = 0; i < times; i++) {
+          const outcome = performCharcoalBurn(s);
+          s = outcome.newState;
+          if (outcome.leveledUp) leveledUp = true;
+          if (!outcome.success && i < times - 1) break;
+        }
+        setState(s);
+        if (leveledUp) narrate("level_up");
         render();
       },
       () => {
@@ -554,10 +576,17 @@ function updateContextualPanel(): void {
         setState(outcome.newState);
         render();
       },
-      (ingotMaterialId) => {
-        const outcome = performPurify(getState(), ingotMaterialId);
-        setState(outcome.newState);
-        if (outcome.leveledUp) narrate("level_up");
+      (ingotMaterialId, times = 1) => {
+        let s = getState();
+        let leveledUp = false;
+        for (let i = 0; i < times; i++) {
+          const outcome = performPurify(s, ingotMaterialId);
+          s = outcome.newState;
+          if (outcome.leveledUp) leveledUp = true;
+          if (!outcome.trueMetalGained && i < times - 1) break; // stop if no output (failed smelt)
+        }
+        setState(s);
+        if (leveledUp) narrate("level_up");
         render();
       },
       () => {

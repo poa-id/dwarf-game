@@ -186,15 +186,18 @@ window.addEventListener("keydown", (e) => {
   // (e.g. rapidly burning through wood at the Kiln) on every repeat
   // keydown event, and holding an arrow key would skip rows faster
   // than intended.
-  if (e.repeat && (e.key === " " || e.key === "ArrowUp" || e.key === "ArrowDown" || "fFeErR".includes(e.key))) {
+  if (e.repeat && (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || "fFeErR".includes(e.key))) {
     return;
   }
 
   if (e.key === "f" || e.key === "F") {
+    const times = e.ctrlKey ? 100 : e.shiftKey ? 10 : 1;
     if (nearestOreVein()) {
-      handleMineStrike(actionHint);
+      for (let i = 0; i < times; i++) handleMineStrike(actionHint);
+      if (times > 1) actionHint.textContent = `×${times} strikes`;
     } else if (nearestWoodNode()) {
-      handleWoodGather();
+      for (let i = 0; i < times; i++) handleWoodGather();
+      if (times > 1) actionHint.textContent = `×${times} cuts`;
     }
     render();
     return;

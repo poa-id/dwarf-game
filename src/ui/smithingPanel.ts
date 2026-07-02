@@ -28,7 +28,7 @@ import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightB
 export function renderSmithingPanel(
   state: GameState,
   container: HTMLElement,
-  onSmith: (recipe: SmithRecipe) => void,
+  onSmith: (recipe: SmithRecipe, times?: number) => void,
   onForgeTool: (recipe: ToolRecipe) => void,
   onForgeUpgrade: () => void
 ): void {
