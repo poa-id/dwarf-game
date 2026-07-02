@@ -15,6 +15,7 @@ import {
   COMPANION_POSITION,
   CONSOLE_POSITION,
   STOCKPILE_CHEST_POSITION,
+  MINE_SHAFT_POSITION,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
@@ -161,6 +162,11 @@ function buildHubContent(): GridCell[] {
   // The dwarf just needs to find and awaken it.
   set(CONSOLE_POSITION.col, CONSOLE_POSITION.row, "mountain_console");
 
+  // ── 13. Mine shaft — 2×3 on north wall of mine room ────────────────────
+  for (let dr = 0; dr < 3; dr++)
+    for (let dc = 0; dc < 2; dc++)
+      set(MINE_SHAFT_POSITION.col + dc, MINE_SHAFT_POSITION.row + dr, "mineshaft_broken");
+
   return grid;
 }
 
@@ -224,6 +230,13 @@ export function hubCellAt(
 
   if (staticCell.kind === "gemcutting_unbuilt" && gemcuttingBuilt) {
     return { kind: "gemcutting" };
+  }
+
+  // Mine shaft — switches from broken to lit when the forge is repaired
+  const inShaft = col >= MINE_SHAFT_POSITION.col && col <= MINE_SHAFT_POSITION.col + 1 &&
+                  row >= MINE_SHAFT_POSITION.row && row <= MINE_SHAFT_POSITION.row + 2;
+  if (inShaft) {
+    return { kind: forgeTier >= 1 ? "mineshaft_lit" : "mineshaft_broken" };
   }
 
   // Narag-Bund appears at his resting spot once befriended.

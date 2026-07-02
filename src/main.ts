@@ -115,9 +115,9 @@ function setupTabs(panelId: "left") {
 setupTabs("left");
 
 const renderer = new GridRenderer(canvas, {
-  viewportCols: 32,
-  viewportRows: 22,
-  cellSize: 24,
+  viewportCols: 28,
+  viewportRows: 18,
+  cellSize: 32,
 });
 
 // Tileset mode (sprite art) shares the SAME canvas - whichever renderer
@@ -130,9 +130,9 @@ const renderer = new GridRenderer(canvas, {
 // regardless, so tileset assets have hours of real playtime to finish
 // loading in the background before they're ever actually needed.
 const tilesetRenderer = new TilesetRenderer(canvas, {
-  viewportCols: 32,
-  viewportRows: 22,
-  cellSize: 24,
+  viewportCols: 28,
+  viewportRows: 18,
+  cellSize: 32,
 });
 tilesetRenderer.preload();
 

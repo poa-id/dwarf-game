@@ -35,6 +35,8 @@ export type CellKind =
   | "drill_copper"
   | "drill_iron"
   | "drill_deep"
+  | "mineshaft_broken"
+  | "mineshaft_lit"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -70,6 +72,8 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "tunnel_edge",
   "torch_broken",
   "torch_lit",
+  "mineshaft_broken",
+  "mineshaft_lit",
 ]);
 
 export function isSolidCellKind(kind: CellKind): boolean {
@@ -119,6 +123,8 @@ const STAGE_0: StagePalette = {
     drill_copper: "#c87830",
     drill_iron: "#8898a8",
     drill_deep: "#6858a0",
+    mineshaft_broken: "#3a3028",
+    mineshaft_lit: "#4a3820",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     // Torches now follow the SAME flat-gray Stage 0 rule as everything
@@ -186,6 +192,8 @@ const STAGE_2: StagePalette = {
     drill_copper: "#d4894a",
     drill_iron: "#9aa3ad",
     drill_deep: "#7868b8",
+    mineshaft_broken: "#4a3a30",
+    mineshaft_lit: "#5a4828",
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -227,6 +235,8 @@ const STAGE_3: StagePalette = {
     drill_copper: "#e09a5a",
     drill_iron: "#aab3bd",
     drill_deep: "#8878c8",
+    mineshaft_broken: "#5a4a40",
+    mineshaft_lit: "#6a5838",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -266,6 +276,8 @@ export const GLYPHS: Record<CellKind, string> = {
   drill_copper: "d",
   drill_iron: "d",
   drill_deep: "d",
+  mineshaft_broken: "m",
+  mineshaft_lit: "M",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea

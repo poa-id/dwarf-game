@@ -10,6 +10,8 @@ import oreDeepUrl from "./tileset-assets/sliced/ore_deep.png";
 import drillUrl from "./tileset-assets/sliced/drill.png";
 import drillIronUrl from "./tileset-assets/sliced/drill_iron.png";
 import drillDeepUrl from "./tileset-assets/sliced/drill_deep.png";
+import mineshaftBrokenUrl from "./tileset-assets/sliced/mineshaft_broken.png";
+import mineshaftLitUrl from "./tileset-assets/sliced/mineshaft_lit.png";
 import kilnUrl from "./tileset-assets/sliced/kiln.png";
 import dwarfUrl from "./tileset-assets/sliced/dwarf.png";
 import tunnelEdgeUrl from "./tileset-assets/sliced/tunnel_edge.png";
@@ -93,6 +95,8 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 2, rows: 2 } },
   drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 2, rows: 2 } },
   drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 2, rows: 2 } },
+  mineshaft_broken: { assetUrl: mineshaftBrokenUrl, tileSpan: { cols: 2, rows: 3 } },
+  mineshaft_lit: { assetUrl: mineshaftLitUrl, tileSpan: { cols: 2, rows: 3 } },
 };
 
 export const NATIVE_TILE_SIZE = 32;

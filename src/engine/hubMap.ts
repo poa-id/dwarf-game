@@ -203,8 +203,10 @@ export const ORE_VEINS: OreVeinPlacement[] = [
   },
 ];
 
-/** The broken mine shaft — on the west wall of the mine room, embedded in the rock face. */
-export const MINE_SHAFT_POSITION: Position = { col: 6, row: 22 };
+/** The mine shaft entrance — 2×3 footprint on the north wall of the mine room.
+ * The sprite shows tracks descending south (away from the viewer), so it belongs
+ * on the north face (row 20 is the wall, shaft runs rows 20-22, cols 10-11). */
+export const MINE_SHAFT_POSITION: Position = { col: 10, row: 20 };
 
 // ── Wood node placements ──────────────────────────────────────────────────────
 
