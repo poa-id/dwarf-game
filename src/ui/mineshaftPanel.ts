@@ -42,7 +42,7 @@ export const SHAFT_DEPTHS: ShaftDepthDef[] = [
     description: "Timbers replaced, tracks relaid, lanterns lit. The shaft breathes again.",
     repairCost: { wood: 30, copper_ingot: 10, iron_ingot: 5 },
     insightCost: 400,
-    unlocks: "Surface mining active. Copper, iron, coal, deepstone accessible by skill level.",
+    unlocks: "Coal drill buildable. All existing veins (copper, iron, coal, deepstone) accessible by Mining skill. Drill cycle speed +10%.",
   },
   {
     depth: 2,
@@ -50,7 +50,7 @@ export const SHAFT_DEPTHS: ShaftDepthDef[] = [
     description: "Deeper than any dwarf has gone in generations. The stone here is different — dense, cold, humming faintly.",
     repairCost: { iron_ingot: 20, deepstone_ingot: 8, ironwood: 5 },
     insightCost: 2000,
-    unlocks: "Starstone ore unlocked. New vein appears in the mine room.",
+    unlocks: "Starstone ore unlocked — a new vein appears in the mine room.",
   },
   {
     depth: 3,
@@ -58,7 +58,7 @@ export const SHAFT_DEPTHS: ShaftDepthDef[] = [
     description: "No maps for this depth. The mountain's oldest memory.",
     repairCost: { deepstone_ingot: 20, true_iron: 5, true_deepstone: 2 },
     insightCost: 5000,
-    unlocks: "Future tier. The abyss tier. Something from before the dwarves.",
+    unlocks: "Future tier — the abyss. Something from before the dwarves.",
   },
 ];
 
@@ -149,8 +149,8 @@ export function performMineshaftUpgrade(state: GameState): GameState {
 }
 
 export function isNearMineshaft(position: { col: number; row: number }): boolean {
-  // Mine shaft: cols 10-11, rows 20-22 (north wall of mine room)
-  // Proximity: within 1 tile of any shaft cell
-  return position.col >= 9 && position.col <= 12 &&
-         position.row >= 20 && position.row <= 23;
+  // Mine shaft: cols 10-12, rows 17-19 (in wall) with mouth at row 20
+  // Proximity: player at rows 20-22, cols 9-13
+  return position.col >= 9 && position.col <= 13 &&
+         position.row >= 20 && position.row <= 22;
 }

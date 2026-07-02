@@ -25,12 +25,10 @@ export function nearestUnrepairedTorch() {
 export function nearestOreVein() {
   const { position } = getState().vessel;
   return ORE_VEINS.find((v) => {
-    // 2×2 footprint: anchor + right + down + diagonal
-    // Player is "near" if within 1 tile of any of the 4 vein cells
-    const nearAnchor = Math.abs(position.col - v.position.col) <= 1 && Math.abs(position.row - v.position.row) <= 1;
-    const nearRight  = Math.abs(position.col - (v.position.col+1)) <= 1 && Math.abs(position.row - v.position.row) <= 1;
-    const nearDown   = Math.abs(position.col - v.position.col) <= 1 && Math.abs(position.row - (v.position.row+1)) <= 1;
-    return nearAnchor || nearRight || nearDown;
+    // 3×3 footprint — player within 1 tile of any of the 9 cells
+    const nearCol = position.col >= v.position.col - 1 && position.col <= v.position.col + 3;
+    const nearRow = position.row >= v.position.row - 1 && position.row <= v.position.row + 3;
+    return nearCol && nearRow;
   });
 }
 

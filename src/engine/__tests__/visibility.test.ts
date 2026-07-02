@@ -148,25 +148,25 @@ describe("isWithinLightRadius", () => {
 });
 
 describe("cellVisibility", () => {
-  it("returns 'lit' for a cell within light radius of the dwarf", () => {
+  it("returns 'lit' for any cell in an unlocked zone (no LOS, all unlocked = lit)", () => {
     const world = createInitialWorld(0);
     const pos = HEARTH_SPAWN_POSITION;
     const result = cellVisibility(pos.col, pos.row, pos, world, cellKey(pos.col, pos.row));
     expect(result).toBe("lit");
   });
 
-  it("returns 'remembered' for an explored cell outside current light radius", () => {
+  it("returns 'lit' for an explored cell far from dwarf (LOS removed, all unlocked = lit)", () => {
     const world = worldWith({ exploredCells: { "0,0": true } });
     const dwarfFarAway: { col: number; row: number } = { col: 50, row: 50 };
     const result = cellVisibility(0, 0, dwarfFarAway, world, "0,0");
-    expect(result).toBe("remembered");
+    expect(result).toBe("lit");
   });
 
-  it("returns 'remembered' for an unexplored cell outside light radius (ambient dim — whole mountain is visible at low opacity)", () => {
+  it("returns 'lit' for an unexplored unlocked cell (LOS removed — all unlocked zones are fully visible)", () => {
     const world = createInitialWorld(0);
     const dwarfFarAway = { col: 50, row: 50 };
     const result = cellVisibility(0, 0, dwarfFarAway, world, "0,0");
-    expect(result).toBe("remembered");
+    expect(result).toBe("lit");
   });
 
   it("returns 'hidden' for a cell in a locked zone, even if somehow marked explored", () => {

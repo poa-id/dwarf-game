@@ -129,7 +129,7 @@ function buildHubContent(): GridCell[] {
     set(torch.position.col, torch.position.row, "torch_broken");
   }
 
-  // ── 8. Ore veins — 2×2 footprints ───────────────────────────────────
+  // ── 8. Ore veins — 3×3 footprints against the west wall ────────────────
   const VEIN_KIND: Record<string, CellKind> = {
     copper_vein: "ore_copper",
     iron_vein:   "ore_iron",
@@ -138,9 +138,8 @@ function buildHubContent(): GridCell[] {
   };
   for (const vein of ORE_VEINS) {
     const kind = VEIN_KIND[vein.rockNodeId] ?? "ore_copper";
-    // Stamp 2×2 — anchor at position, extends right and down
-    for (let dr = 0; dr < 2; dr++)
-      for (let dc = 0; dc < 2; dc++)
+    for (let dr = 0; dr < 3; dr++)
+      for (let dc = 0; dc < 3; dc++)
         set(vein.position.col + dc, vein.position.row + dr, kind);
   }
 
@@ -162,9 +161,10 @@ function buildHubContent(): GridCell[] {
   // The dwarf just needs to find and awaken it.
   set(CONSOLE_POSITION.col, CONSOLE_POSITION.row, "mountain_console");
 
-  // ── 13. Mine shaft — 2×3 on north wall of mine room ────────────────────
+  // ── 13. Mine shaft — 3×3, partially into north wall ────────────────────
+  // Anchor at row 17 — shaft body rows 17-19 in the wall, mouth at row 20.
   for (let dr = 0; dr < 3; dr++)
-    for (let dc = 0; dc < 2; dc++)
+    for (let dc = 0; dc < 3; dc++)
       set(MINE_SHAFT_POSITION.col + dc, MINE_SHAFT_POSITION.row + dr, "mineshaft_broken");
 
   return grid;
@@ -233,8 +233,8 @@ export function hubCellAt(
     return { kind: "gemcutting" };
   }
 
-  // Mine shaft — broken until depth 1 (shaft repaired)
-  const inShaft = col >= MINE_SHAFT_POSITION.col && col <= MINE_SHAFT_POSITION.col + 1 &&
+  // Mine shaft — 3×3, partially in the north wall
+  const inShaft = col >= MINE_SHAFT_POSITION.col && col <= MINE_SHAFT_POSITION.col + 2 &&
                   row >= MINE_SHAFT_POSITION.row && row <= MINE_SHAFT_POSITION.row + 2;
   if (inShaft) {
     return { kind: mineshaftDepth >= 1 ? "mineshaft_lit" : "mineshaft_broken" };
@@ -292,8 +292,8 @@ export function hubCellAt(
   }
 
   const vein = ORE_VEINS.find(
-    (v) => col >= v.position.col && col <= v.position.col + 1 &&
-            row >= v.position.row && row <= v.position.row + 1
+    (v) => col >= v.position.col && col <= v.position.col + 2 &&
+            row >= v.position.row && row <= v.position.row + 2
   );
   if (vein) {
     const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);

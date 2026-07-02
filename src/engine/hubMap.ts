@@ -179,34 +179,36 @@ export interface OreVeinPlacement {
 
 export const ORE_VEINS: OreVeinPlacement[] = [
   // Mine Room — veins against the walls, open center for future workstations.
-  // 2×2 veins with clear spacing between each:
-  // Iron north (rows 21-22), Deepstone mid (rows 24-25), Copper south (rows 28-29), Coal east
-  {
-    id: "mine_copper",
-    rockNodeId: "copper_vein",
-    position: { col: 8, row: 28 },  // 2×2: cols 8-9, rows 28-29
-  },
+  // 3×3 veins against the west wall (col 6), stacked vertically.
+  // Mine room: cols 6-18, rows 20-30. West wall is col 6.
+  // Shaft takes cols 10-12, rows 17-19 (into north wall) — so veins start at col 6.
   {
     id: "mine_iron",
     rockNodeId: "iron_vein",
-    position: { col: 8, row: 21 },  // 2×2: cols 8-9, rows 21-22
-  },
-  {
-    id: "mine_coal",
-    rockNodeId: "coal_seam",
-    position: { col: 16, row: 25 }, // 2×2: cols 16-17, rows 25-26
+    position: { col: 6, row: 21 },  // 3×3: cols 6-8, rows 21-23
   },
   {
     id: "mine_deepstone",
     rockNodeId: "deepstone",
-    position: { col: 8, row: 24 },  // 2×2: cols 8-9, rows 24-25 (between iron and copper)
+    position: { col: 6, row: 24 },  // 3×3: cols 6-8, rows 24-26 (directly below iron)
+  },
+  {
+    id: "mine_copper",
+    rockNodeId: "copper_vein",
+    position: { col: 6, row: 27 },  // 3×3: cols 6-8, rows 27-29 (south)
+  },
+  {
+    id: "mine_coal",
+    rockNodeId: "coal_seam",
+    position: { col: 16, row: 24 }, // 3×3: cols 16-18, rows 24-26 (east wall)
   },
 ];
 
-/** The mine shaft entrance — 2×3 footprint on the north wall of the mine room.
- * The sprite shows tracks descending south (away from the viewer), so it belongs
- * on the north face (row 20 is the wall, shaft runs rows 20-22, cols 10-11). */
-export const MINE_SHAFT_POSITION: Position = { col: 10, row: 20 };
+/** The mine shaft entrance — 3×3 footprint, partially into north wall.
+ * Anchor at row 17 so the mouth is at row 20 (the room floor edge),
+ * with the shaft body at rows 17-19 embedded in the north rock wall.
+ * Cols 10-12 (centred in the mine room width). */
+export const MINE_SHAFT_POSITION: Position = { col: 10, row: 17 };
 
 // ── Wood node placements ──────────────────────────────────────────────────────
 

@@ -251,21 +251,19 @@ export type CellVisibility = "hidden" | "remembered" | "lit";
 export function cellVisibility(
   col: number,
   row: number,
-  dwarfPosition: Position,
+  _dwarfPosition: Position,
   world: WorldState,
   _exploredKey: string,
-  radius: number = DEFAULT_LIGHT_RADIUS,
+  _radius: number = DEFAULT_LIGHT_RADIUS,
   _cellKind?: string,
-  isSolid?: (col: number, row: number) => boolean
+  _isSolid?: (col: number, row: number) => boolean
 ): CellVisibility {
+  // Locked zones are always hidden
   if (!isCellPartOfUnlockedWorld(col, row, world)) return "hidden";
 
-  if (isActivelyLit(col, row, dwarfPosition, world, radius, isSolid)) return "lit";
-
-  // Every unlocked cell is at minimum "remembered" — the mountain exists
-  // in dim ambient memory. Torches, hearth, forge, and kiln push cells
-  // to "lit" (warm, bright). Everything else is dim but visible.
-  // This removes the jarring black gaps between light sources while
-  // keeping the atmosphere of working by firelight.
-  return "remembered";
+  // Everything unlocked is actively lit — no LOS, no fog of war.
+  // Fire sources (hearth, forge, torches) add a warm color overlay
+  // through the renderer's palette, but don't gate visibility.
+  // This removes all the buggy dark gaps and half-lit corridors.
+  return "lit";
 }

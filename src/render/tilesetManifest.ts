@@ -65,10 +65,10 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   void: { assetUrl: "" }, // never drawn - render() skips void cells same as ASCII mode
   rock_wall: { assetUrl: rockWallUrl },
   rock_floor: { assetUrl: rockFloorUrl },
-  ore_copper: { assetUrl: oreCopperUrl, tileSpan: { cols: 2, rows: 2 } },
-  ore_iron: { assetUrl: oreIronUrl, tileSpan: { cols: 2, rows: 2 } },
-  ore_deep: { assetUrl: oreDeepUrl, tileSpan: { cols: 2, rows: 2 } },
-  ore_coal: { assetUrl: oreCoalUrl, tileSpan: { cols: 2, rows: 2 } },
+  ore_copper: { assetUrl: oreCopperUrl, tileSpan: { cols: 3, rows: 3 } },
+  ore_iron: { assetUrl: oreIronUrl, tileSpan: { cols: 3, rows: 3 } },
+  ore_deep: { assetUrl: oreDeepUrl, tileSpan: { cols: 3, rows: 3 } },
+  ore_coal: { assetUrl: oreCoalUrl, tileSpan: { cols: 3, rows: 3 } },
   ore_exhausted: { assetUrl: rockFloorUrl },
   wood_node: { assetUrl: oreBaseUrl, tint: "#7a8a4a" },
   wood_exhausted: { assetUrl: rockFloorUrl },
@@ -92,11 +92,11 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   companion: { assetUrl: naragBundUrl },
   mountain_console: { assetUrl: rockWallUrl, tint: "#2a5a7a" },
   stockpile_chest: { assetUrl: oreBaseUrl, tint: "#b89030", tileSpan: { cols: 2, rows: 2 } },
-  drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 2, rows: 2 } },
-  drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 2, rows: 2 } },
-  drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 2, rows: 2 } },
-  mineshaft_broken: { assetUrl: mineshaftBrokenUrl, tileSpan: { cols: 2, rows: 3 } },
-  mineshaft_lit: { assetUrl: mineshaftLitUrl, tileSpan: { cols: 2, rows: 3 } },
+  drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 3, rows: 3 } },
+  drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 3, rows: 3 } },
+  drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 3, rows: 3 } },
+  mineshaft_broken: { assetUrl: mineshaftBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
+  mineshaft_lit: { assetUrl: mineshaftLitUrl, tileSpan: { cols: 3, rows: 3 } },
 };
 
 export const NATIVE_TILE_SIZE = 32;
