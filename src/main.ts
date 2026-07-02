@@ -20,18 +20,22 @@ app.innerHTML = `
     <p class="subtitle">WASD move &middot; F gather &middot; E repair/light &middot; R forge &middot; T place torch &middot; B build</p>
     <div class="game-area">
 
-      <!-- LEFT PANEL: Skills | Bag -->
+      <!-- LEFT PANEL: always-visible mountain + tabbed Skills/Bag/Production -->
       <div class="stats-panel stats-panel-left">
+        <!-- Always visible: mountain restoration + insight -->
+        <div class="stats-section mountain-always">
+          <p id="stat-restoration" style="display:none;color:#e09a20;font-size:0.75rem;margin:0 0 2px;"></p>
+          <p id="stat-insight" style="margin:0;padding:2px 0;">Insight: 0</p>
+          <p id="stat-insight-rate" style="font-size:0.72em;opacity:0.55;margin:0;padding:1px 0;"></p>
+        </div>
+
         <div class="tab-bar">
           <button class="tab-btn tab-active" data-panel="left" data-tab="skills">Skills</button>
           <button class="tab-btn" data-panel="left" data-tab="bag">Bag</button>
+          <button class="tab-btn" data-panel="left" data-tab="production" id="production-tab-btn" style="display:none">⛏</button>
         </div>
+
         <div class="tab-content" id="tab-skills">
-          <div class="stats-section">
-            <p id="stat-restoration" style="display:none;color:#e09a20;font-size:0.75rem;margin:0 0 4px;"></p>
-            <p id="stat-insight" style="margin:0;padding:2px 0;">Insight: 0</p>
-            <p id="stat-insight-rate" style="font-size:0.72em;opacity:0.55;margin:0;padding:1px 0;"></p>
-          </div>
           <div class="stats-section">
             <div class="skill-row">
               <p id="stat-mining">Mining 1</p>
@@ -58,27 +62,23 @@ app.innerHTML = `
             <div id="tools-list"></div>
           </div>
         </div>
+
         <div class="tab-content" id="tab-bag" style="display:none">
           <div class="stats-section tab-full-height">
             <div id="inventory-list"></div>
           </div>
         </div>
+
+        <div class="tab-content" id="tab-production" style="display:none">
+          <div class="stats-section tab-full-height" id="production-panel"></div>
+        </div>
       </div>
 
       <canvas id="game-canvas"></canvas>
 
-      <!-- RIGHT PANEL: Context | Production -->
+      <!-- RIGHT PANEL: context only, no tabs -->
       <div class="stats-panel stats-panel-right">
-        <div class="tab-bar" id="right-tab-bar">
-          <button class="tab-btn tab-active" data-panel="right" data-tab="context">Context</button>
-          <button class="tab-btn" data-panel="right" data-tab="production" id="production-tab-btn" style="display:none">Production</button>
-        </div>
-        <div class="tab-content" id="tab-context">
-          <div class="stats-section contextual-panel" id="contextual-panel"></div>
-        </div>
-        <div class="tab-content" id="tab-production" style="display:none">
-          <div class="stats-section tab-full-height" id="production-panel"></div>
-        </div>
+        <div class="stats-section contextual-panel" id="contextual-panel"></div>
       </div>
     </div>
 
@@ -96,18 +96,14 @@ const narratorContainer = document.querySelector<HTMLDivElement>("#narrator-cont
 const contextualPanel = document.querySelector<HTMLDivElement>("#contextual-panel")!;
 
 // ── Tab switching ──────────────────────────────────────────────────────────
-function setupTabs(panelId: "left" | "right") {
+function setupTabs(panelId: "left") {
   document.querySelectorAll<HTMLButtonElement>(`.tab-btn[data-panel="${panelId}"]`).forEach(btn => {
     btn.addEventListener("click", () => {
       const tab = btn.dataset.tab!;
-      // Deactivate all buttons in this panel
       document.querySelectorAll<HTMLButtonElement>(`.tab-btn[data-panel="${panelId}"]`)
         .forEach(b => b.classList.remove("tab-active"));
       btn.classList.add("tab-active");
-      // Show/hide tab content for this panel's tabs
-      const allTabs = panelId === "left"
-        ? ["skills", "bag"]
-        : ["context", "production"];
+      const allTabs = ["skills", "bag", "production"];
       allTabs.forEach(t => {
         const el = document.getElementById(`tab-${t}`);
         if (el) el.style.display = t === tab ? "" : "none";
@@ -117,7 +113,6 @@ function setupTabs(panelId: "left" | "right") {
 }
 
 setupTabs("left");
-setupTabs("right");
 
 const renderer = new GridRenderer(canvas, {
   viewportCols: 32,

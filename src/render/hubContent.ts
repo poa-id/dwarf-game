@@ -232,16 +232,17 @@ export function hubCellAt(
     return { kind: "companion" };
   }
 
-  // Stockpile room — east wing (cols 52-63, rows 20-30).
+  // Stockpile room — east wing (cols 52-63, rows 21-30). Row 20 stays wall (forge separator).
   // When cleared+, rubble dissolves and the room opens.
-  const inEastRoom = col >= 52 && col <= 63 && row >= 20 && row <= 30;
+  const inEastRoom = col >= 52 && col <= 63 && row >= 21 && row <= 30;
   const stockpileCleared =
     stockpileRoomStage === "cleared" ||
     stockpileRoomStage === "restored" ||
     stockpileRoomStage === "masterwork";
 
   if (inEastRoom && stockpileCleared) {
-    if (col === STOCKPILE_CHEST_POSITION.col && row === STOCKPILE_CHEST_POSITION.row) {
+    if (col >= STOCKPILE_CHEST_POSITION.col && col <= STOCKPILE_CHEST_POSITION.col + 1 &&
+        row >= STOCKPILE_CHEST_POSITION.row && row <= STOCKPILE_CHEST_POSITION.row + 1) {
       return { kind: "stockpile_chest" };
     }
     const staticCell = getHubGrid()[row * HUB_WIDTH + col];

@@ -89,7 +89,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   torch_lit: { assetUrl: torchLitUrl },
   companion: { assetUrl: naragBundUrl },
   mountain_console: { assetUrl: rockWallUrl, tint: "#2a5a7a" },
-  stockpile_chest: { assetUrl: oreBaseUrl, tint: "#b89030" },
+  stockpile_chest: { assetUrl: oreBaseUrl, tint: "#b89030", tileSpan: { cols: 2, rows: 2 } },
   drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 2, rows: 2 } },
   drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 2, rows: 2 } },
   drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 2, rows: 2 } },

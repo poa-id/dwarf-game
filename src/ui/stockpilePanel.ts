@@ -142,8 +142,7 @@ export function performCollectStockpile(state: GameState): GameState {
 
 export function isNearStockpile(position: { col: number; row: number }, stockpileStage: string): boolean {
   if (stockpileStage === "ruined") {
-    // Near the east corridor entrance — the player approaches the rubble from the hall
-    // E corridor: cols 49-63, rows 23-25. Center that check at col 50.
+    // Near the east corridor entrance
     return (
       Math.abs(position.col - 50) <= 3 &&
       position.row >= 23 && position.row <= 27
@@ -151,7 +150,7 @@ export function isNearStockpile(position: { col: number; row: number }, stockpil
   }
   // Cleared+: near the chest at (57, 25)
   return (
-    Math.abs(position.col - 57) <= 2 &&
-    Math.abs(position.row - 25) <= 2
+    position.col >= 52 && position.col <= 63 &&
+    position.row >= 21 && position.row <= 30
   );
 }
