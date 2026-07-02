@@ -58,6 +58,7 @@ import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockp
 import { renderGardenPanel, performAdvanceGardenRoom, performPlantSeed, performHarvestSlot } from "../ui/gardenPanel";
 import { renderTradeHallPanel, performAdvanceTradeHall, performTrade, isNearTradeHall } from "../ui/tradeHallPanel";
 import { renderRoomPanel, performAdvanceRoom, isNearDeepFoundry, isNearArchive } from "../ui/roomPanel";
+import { renderMineshaftPanel, performMineshaftUpgrade, isNearMineshaft } from "../ui/mineshaftPanel";
 import { getRestorationScore, estimatedInsightPerMin } from "../engine/production";
 import { reapplyPanelHighlight, resetPanelHighlight } from "./panelNavigation";
 
@@ -291,6 +292,14 @@ export function updateActionHint(): void {
     return;
   }
 
+  if (isNearMineshaft(position)) {
+    const shaftDepth = world.mineshaftDepth;
+    refs.actionHint.textContent = shaftDepth === 0
+      ? "Broken mine shaft — repair it to begin"
+      : `Mine Shaft — depth ${shaftDepth}`;
+    return;
+  }
+
   if (isNearDeepFoundry(position)) {
     const stage = world.roomStates["deep_foundry"] ?? "ruined";
     refs.actionHint.textContent = stage === "ruined"
@@ -382,7 +391,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "none" = "none";
+let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -701,6 +710,19 @@ function updateContextualPanel(): void {
     return;
   }
 
+  // Mine Shaft — north wall of mine room
+  if (isNearMineshaft(position)) {
+    if (lastActivePanelKind !== "mineshaft") resetPanelHighlight();
+    lastActivePanelKind = "mineshaft";
+    refs.contextualPanel.innerHTML = "";
+    renderMineshaftPanel(state, refs.contextualPanel, () => {
+      setState(performMineshaftUpgrade(getState()));
+      render();
+    });
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   // Deep Foundry — NW wing
   if (isNearDeepFoundry(position)) {
     if (lastActivePanelKind !== "foundry") resetPanelHighlight();
@@ -794,7 +816,8 @@ export function render(): void {
         state.world.roomStates["deep_foundry"] ?? "ruined",
         state.world.roomStates["the_archive"] ?? "ruined",
         Object.fromEntries(Object.entries(state.world.drills).map(([id, d]) => [id, d.tier])),
-        state.world.placedTorches
+        state.world.placedTorches,
+        state.world.mineshaftDepth
       );
     },
     (col, row) => {
@@ -814,7 +837,8 @@ export function render(): void {
         state.world.roomStates["deep_foundry"] ?? "ruined",
         state.world.roomStates["the_archive"] ?? "ruined",
         drillTiers,
-        state.world.placedTorches
+        state.world.placedTorches,
+        state.world.mineshaftDepth
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -832,7 +856,8 @@ export function render(): void {
             state.world.roomStates["deep_foundry"] ?? "ruined",
             state.world.roomStates["the_archive"] ?? "ruined",
             drillTiers,
-            state.world.placedTorches
+            state.world.placedTorches,
+            state.world.mineshaftDepth
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

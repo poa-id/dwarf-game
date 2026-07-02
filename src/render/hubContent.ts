@@ -193,7 +193,8 @@ export function hubCellAt(
   deepFoundryStage: string = "ruined",
   archiveStage: string = "ruined",
   drillTiers: Record<string, number> = {},
-  placedTorches: Record<string, boolean> = {}
+  placedTorches: Record<string, boolean> = {},
+  mineshaftDepth: number = 0
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -232,11 +233,11 @@ export function hubCellAt(
     return { kind: "gemcutting" };
   }
 
-  // Mine shaft — switches from broken to lit when the forge is repaired
+  // Mine shaft — broken until depth 1 (shaft repaired)
   const inShaft = col >= MINE_SHAFT_POSITION.col && col <= MINE_SHAFT_POSITION.col + 1 &&
                   row >= MINE_SHAFT_POSITION.row && row <= MINE_SHAFT_POSITION.row + 2;
   if (inShaft) {
-    return { kind: forgeTier >= 1 ? "mineshaft_lit" : "mineshaft_broken" };
+    return { kind: mineshaftDepth >= 1 ? "mineshaft_lit" : "mineshaft_broken" };
   }
 
   // Narag-Bund appears at his resting spot once befriended.

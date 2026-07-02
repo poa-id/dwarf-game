@@ -33,6 +33,7 @@ function makeStateWithProgress(): GameState {
       ironSmelterTier: 0,
       drills: {},
       smeltingEngines: {},
+      mineshaftDepth: 0,
       consoleAwakened: false,
       rekindleMultiplier: 0,
       roomStates: {},

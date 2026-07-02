@@ -370,6 +370,18 @@ export interface WorldState {
   /** Automated drills, keyed by OreVeinPlacement.id. Only present once a drill has been built. */
   drills: Record<string, import("./drill").DrillState>;
 
+  /**
+   * The Mine Shaft — an independent structure that unlocks deeper material
+   * tiers without needing new rooms. Each depth level makes new veins
+   * accessible in the existing mine room.
+   *
+   * depth 0: unrestored (broken shaft, no access)
+   * depth 1: shaft repaired — surface level (copper, iron, coal, deepstone accessible)
+   * depth 2: First Deep — starstone veins unlocked
+   * depth 3: Second Deep — future tiers
+   */
+  mineshaftDepth: number;
+
   /** Smelting engines, keyed by SmeltingEngineDef.id. Only present once built. */
   smeltingEngines: Record<string, import("./smeltingEngine").SmeltingEngineState>;
 
