@@ -191,13 +191,10 @@ window.addEventListener("keydown", (e) => {
   }
 
   if (e.key === "f" || e.key === "F") {
-    const times = e.ctrlKey ? 100 : e.shiftKey ? 10 : 1;
     if (nearestOreVein()) {
-      for (let i = 0; i < times; i++) handleMineStrike(actionHint);
-      if (times > 1) actionHint.textContent = `×${times} strikes`;
+      handleMineStrike(actionHint);
     } else if (nearestWoodNode()) {
-      for (let i = 0; i < times; i++) handleWoodGather();
-      if (times > 1) actionHint.textContent = `×${times} cuts`;
+      handleWoodGather();
     }
     render();
     return;

@@ -53,11 +53,10 @@ export const WOOD_NODES: WoodNode[] = [
 ];
 
 export const AXE_TIERS: ToolTier[] = [
-  { tier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
-  { tier: 1, successChanceBonus: 0.1, yieldMultiplier: 1.25, name: "Copper Axe" },
-  { tier: 2, successChanceBonus: 0.2, yieldMultiplier: 1.5, name: "Iron Axe" },
-  // Tier 3 ("Steel Axe") intentionally absent - same reason as
-  // PICKAXE_TIERS in mining.ts: no steel_ingot material exists yet.
+  { tier: 0, successChanceBonus: 0,    yieldMultiplier: 1.0, name: "Bare Hands" },
+  { tier: 1, successChanceBonus: 0.10, yieldMultiplier: 1.5, name: "Copper Axe" },
+  { tier: 2, successChanceBonus: 0.20, yieldMultiplier: 2.5, name: "Iron Axe" },
+  { tier: 3, successChanceBonus: 0.30, yieldMultiplier: 4.0, name: "Deepstone Axe" },
 ];
 
 export function bestAvailableAxe(forgedAxeTier: number): ToolTier {

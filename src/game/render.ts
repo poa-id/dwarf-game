@@ -26,6 +26,7 @@ import {
   isNearCompanion,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade } from "../ui/smithingPanel";
+import { renderSmeltingEnginePanel, performBuildEngine, performCollectEngine, performUpgradeEngine } from "../ui/smeltingEnginePanel";
 import {
   renderHearthPanel,
   performStoke,
@@ -323,10 +324,9 @@ export function updateActionHint(): void {
       refs.actionHint.textContent = `${vein.rockNodeId.replace("_"," ")} — needs Mining level ${rockNode.requiredLevel}`;
     } else {
       const drill = world.drills[vein.id];
-      const batchHint = " (Shift×10, Ctrl×100)";
       refs.actionHint.textContent = drill
-        ? `F to mine · drill ${drill.coalBuffer > 0 ? "running" : "needs coal"}${batchHint}`
-        : `F to strike the vein${batchHint}`;
+        ? `F to mine · drill ${drill.coalBuffer > 0 ? "running" : "needs coal"}`
+        : `F to strike the vein`;
     }
     return;
   }
@@ -472,6 +472,14 @@ function updateContextualPanel(): void {
         setState(performForgeUpgrade(getState()));
         render();
       }
+    );
+    // Smelting engines appended below the smithing panel in the same forge context
+    renderSmeltingEnginePanel(
+      state,
+      refs.contextualPanel,
+      (id) => { setState(performBuildEngine(getState(), id)); render(); },
+      (id) => { setState(performCollectEngine(getState(), id)); render(); },
+      (id) => { setState(performUpgradeEngine(getState(), id)); render(); }
     );
     reapplyPanelHighlight(refs.contextualPanel);
     return;

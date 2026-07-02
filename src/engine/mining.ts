@@ -105,12 +105,10 @@ export const ROCK_NODES: RockNode[] = [
 ];
 
 export const PICKAXE_TIERS: ToolTier[] = [
-  { tier: 0, successChanceBonus: 0, yieldMultiplier: 1, name: "Bare Hands" },
-  { tier: 1, successChanceBonus: 0.1, yieldMultiplier: 1.25, name: "Copper Pickaxe" },
-  { tier: 2, successChanceBonus: 0.2, yieldMultiplier: 1.5, name: "Iron Pickaxe" },
-  // Tier 3 ("Steel Pickaxe") intentionally absent - no steel_ingot
-  // material exists yet, so there's no real ToolRecipe to forge it
-  // with. See OPEN_QUESTIONS.md.
+  { tier: 0, successChanceBonus: 0,    yieldMultiplier: 1.0, name: "Bare Hands" },
+  { tier: 1, successChanceBonus: 0.10, yieldMultiplier: 1.5, name: "Copper Pickaxe" },  // +50% — first real upgrade
+  { tier: 2, successChanceBonus: 0.20, yieldMultiplier: 2.5, name: "Iron Pickaxe" },    // +150% — dramatically faster
+  { tier: 3, successChanceBonus: 0.30, yieldMultiplier: 4.0, name: "Deepstone Pickaxe" }, // +300% — late-game, ore flies
 ];
 
 export function bestAvailablePickaxe(forgedPickaxeTier: number): ToolTier {

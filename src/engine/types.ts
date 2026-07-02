@@ -370,6 +370,9 @@ export interface WorldState {
   /** Automated drills, keyed by OreVeinPlacement.id. Only present once a drill has been built. */
   drills: Record<string, import("./drill").DrillState>;
 
+  /** Smelting engines, keyed by SmeltingEngineDef.id. Only present once built. */
+  smeltingEngines: Record<string, import("./smeltingEngine").SmeltingEngineState>;
+
   /**
    * Whether the Mountain Console has been awakened. This is the FIRST
    * unlock in the game — before the forge, before mining. Walking to the

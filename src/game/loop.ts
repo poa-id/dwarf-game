@@ -14,6 +14,7 @@ import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightB
 import { tickDrill, drillDefinitionByVeinId } from "../engine/drill";
 import { getRestorationScore } from "../engine/production";
 import { tickGarden } from "../engine/garden";
+import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -114,6 +115,47 @@ function gameTick(): void {
     const gardenResult = tickGarden(state.world.gardenSlots, now);
     if (gardenResult.changed) {
       setState({ ...state, world: { ...state.world, gardenSlots: gardenResult.slots } });
+      state = getState();
+      changed = true;
+    }
+  }
+
+  // Tick smelting engines — consume stockpile ore, produce ingots
+  const engineEntries = Object.entries(state.world.smeltingEngines);
+  if (engineEntries.length > 0) {
+    let newEngines = { ...state.world.smeltingEngines };
+    let newStockpile = { ...state.world.stockpileOre };
+    let newFuelReserve = { ...state.world.fuelReserve };
+    let engineChanged = false;
+
+    for (const [engineId, engineState] of engineEntries) {
+      const def = SMELTING_ENGINE_DEFINITIONS.find((d) => d.id === engineId);
+      if (!def || engineState.tier === 0) continue;
+
+      const stockpileOre = (newStockpile[def.oreMaterialId] as number | undefined) ?? 0;
+      const fuelAvail = def.id === "deepstone_engine"
+        ? ((newFuelReserve["hearthsap"] as number | undefined) ?? 0)
+        : ((newFuelReserve["coal"] as number | undefined) ?? 0);
+
+      const result = tickSmeltingEngine(engineState, def, now, stockpileOre, fuelAvail);
+      if (result.ranCycle) {
+        newEngines = { ...newEngines, [engineId]: result.engine };
+        newStockpile = {
+          ...newStockpile,
+          [def.oreMaterialId]: Math.max(0, stockpileOre - result.oreConsumed),
+        };
+        // Deduct fuel
+        if (def.id === "deepstone_engine") {
+          newFuelReserve = { ...newFuelReserve, hearthsap: Math.max(0, ((newFuelReserve["hearthsap"] as number | undefined) ?? 0) - 1) };
+        } else {
+          newFuelReserve = { ...newFuelReserve, coal: Math.max(0, ((newFuelReserve["coal"] as number | undefined) ?? 0) - def.coalPerCycle) };
+        }
+        engineChanged = true;
+      }
+    }
+
+    if (engineChanged) {
+      setState({ ...state, world: { ...state.world, smeltingEngines: newEngines, stockpileOre: newStockpile, fuelReserve: newFuelReserve } });
       state = getState();
       changed = true;
     }

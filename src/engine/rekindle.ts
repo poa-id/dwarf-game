@@ -92,6 +92,7 @@ export function createInitialWorld(now: number): WorldState {
     veinDepletion: {},
     woodDepletion: {},
     drills: {},
+    smeltingEngines: {},
     consoleAwakened: false,
     rekindleMultiplier: 0,
     roomStates: {},
