@@ -120,13 +120,14 @@ export const FORGE_BUILDING_FOOTPRINT = {
 
 /**
  * Hearth 4×4 footprint, centered on MAP_CENTER.
- * Anchor = top-left of the 4×4 = center - 2.
+ * Anchor = top-left of the 6×6 = center - 3.
+ * 6×6 because this is the heart of the mountain — it must dominate the hall.
  */
 export const HEARTH_FOOTPRINT = {
-  originCol: MAP_CENTER.col - 2, // 38
-  originRow: MAP_CENTER.row - 2, // 23
-  width: 4,
-  height: 4,
+  originCol: MAP_CENTER.col - 3, // 37
+  originRow: MAP_CENTER.row - 3, // 22
+  width: 6,
+  height: 6,
 };
 
 /** Light emission center for the Hearth (visual/geometric center). */
@@ -165,9 +166,9 @@ export const CONSOLE_POSITION: Position = { col: 35, row: 22 };
 
 /**
  * Stockpile chest — the ore storage anchor in the east wing once
- * the stockpile_room is cleared. Centered in the east room (cols 52-63, rows 20-30).
- */
-export const STOCKPILE_CHEST_POSITION: Position = { col: 57, row: 25 };
+ * the stockpile_room is cleared. Centered in the east room (cols 52-63, rows 21-30).
+ * 6×7 footprint: anchor so it fills rows 21-27, cols 52-57. */
+export const STOCKPILE_CHEST_POSITION: Position = { col: 52, row: 21 };
 
 // ── Ore vein placements ───────────────────────────────────────────────────────
 
@@ -179,28 +180,26 @@ export interface OreVeinPlacement {
 
 export const ORE_VEINS: OreVeinPlacement[] = [
   // Mine Room — veins against the walls, open center for future workstations.
-  // 3×3 veins against the west wall (col 6), stacked vertically.
-  // Mine room: cols 6-18, rows 20-30. West wall is col 6.
-  // Shaft takes cols 10-12, rows 17-19 (into north wall) — so veins start at col 6.
+  // 3×3 veins against walls. Mine room: cols 6-18, rows 20-30.
   {
     id: "mine_iron",
     rockNodeId: "iron_vein",
-    position: { col: 6, row: 21 },  // 3×3: cols 6-8, rows 21-23
+    position: { col: 6, row: 20 },  // 3×3: cols 6-8, rows 20-22 (north-west, pushed up)
   },
   {
     id: "mine_deepstone",
     rockNodeId: "deepstone",
-    position: { col: 6, row: 24 },  // 3×3: cols 6-8, rows 24-26 (directly below iron)
+    position: { col: 6, row: 23 },  // 3×3: cols 6-8, rows 23-25
   },
   {
     id: "mine_copper",
     rockNodeId: "copper_vein",
-    position: { col: 6, row: 27 },  // 3×3: cols 6-8, rows 27-29 (south)
+    position: { col: 6, row: 28 },  // 3×3: cols 6-8, rows 28-30 (south-west, pushed down)
   },
   {
     id: "mine_coal",
     rockNodeId: "coal_seam",
-    position: { col: 16, row: 24 }, // 3×3: cols 16-18, rows 24-26 (east wall)
+    position: { col: 16, row: 28 }, // 3×3: cols 16-18, rows 28-30 (SE corner, opposite copper)
   },
 ];
 

@@ -112,10 +112,10 @@ function buildHubContent(): GridCell[] {
   fill(35, 42, 45, 45, "rubble"); // S  face (bottom of S stub)
   fill( 6,  9, 18, 11, "rubble"); // NW face (left end of NW horiz)
 
-  // ── 5. Hearth 4×4 ────────────────────────────────────────────────────
+  // ── 5. Hearth 6×6 — the heart of the mountain ────────────────────────
   const { originCol: hc, originRow: hr } = HEARTH_FOOTPRINT;
-  for (let dr = 0; dr < 4; dr++)
-    for (let dc = 0; dc < 4; dc++)
+  for (let dr = 0; dr < 6; dr++)
+    for (let dc = 0; dc < 6; dc++)
       set(hc + dc, hr + dr, "hearth");
 
   // ── 6. Forge 6×6 (forge_broken until repaired) ───────────────────────
@@ -257,8 +257,8 @@ export function hubCellAt(
     stockpileRoomStage === "masterwork";
 
   if (inEastRoom && stockpileCleared) {
-    if (col >= STOCKPILE_CHEST_POSITION.col && col <= STOCKPILE_CHEST_POSITION.col + 1 &&
-        row >= STOCKPILE_CHEST_POSITION.row && row <= STOCKPILE_CHEST_POSITION.row + 1) {
+    if (col >= STOCKPILE_CHEST_POSITION.col && col <= STOCKPILE_CHEST_POSITION.col + 5 &&
+        row >= STOCKPILE_CHEST_POSITION.row && row <= STOCKPILE_CHEST_POSITION.row + 6) {
       return { kind: "stockpile_chest" };
     }
     const staticCell = getHubGrid()[row * HUB_WIDTH + col];

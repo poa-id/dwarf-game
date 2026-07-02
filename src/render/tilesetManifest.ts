@@ -23,6 +23,7 @@ import smelterAddonUrl from "./tileset-assets/sliced/smelter_addon.png";
 import gemcutting4x4Url from "./tileset-assets/sliced/gemcutting_4x4.png";
 import torchLitUrl from "./tileset-assets/sliced/torch_lit.png";
 import naragBundUrl from "./tileset-assets/sliced/narag_bund.png";
+import stockpileChestUrl from "./tileset-assets/sliced/stockpile_chest.png";
 
 /**
  * Maps each CellKind to an actual tile image, instead of a glyph+color.
@@ -75,7 +76,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   dwarf: { assetUrl: dwarfUrl },
   // Real 4x4 sprites (added 2026-06-30). tileSpan tells TilesetRenderer
   // to draw at 4x the normal cell size, anchored at the top-left cell.
-  hearth: { assetUrl: hearth4x4Url, tileSpan: { cols: 4, rows: 4 } },
+  hearth: { assetUrl: hearth4x4Url, tileSpan: { cols: 6, rows: 6 } },
   forge: { assetUrl: forge4x4Url, tileSpan: { cols: 6, rows: 6 } },
   forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 6, rows: 6 } },
   kiln: { assetUrl: kilnUrl, tileSpan: { cols: 2, rows: 2 } },
@@ -91,7 +92,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   torch_lit: { assetUrl: torchLitUrl },
   companion: { assetUrl: naragBundUrl },
   mountain_console: { assetUrl: rockWallUrl, tint: "#2a5a7a" },
-  stockpile_chest: { assetUrl: oreBaseUrl, tint: "#b89030", tileSpan: { cols: 2, rows: 2 } },
+  stockpile_chest: { assetUrl: stockpileChestUrl, tileSpan: { cols: 6, rows: 7 } },
   drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 3, rows: 3 } },

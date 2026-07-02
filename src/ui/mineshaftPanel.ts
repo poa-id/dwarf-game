@@ -149,8 +149,9 @@ export function performMineshaftUpgrade(state: GameState): GameState {
 }
 
 export function isNearMineshaft(position: { col: number; row: number }): boolean {
-  // Mine shaft: cols 10-12, rows 17-19 (in wall) with mouth at row 20
-  // Proximity: player at rows 20-22, cols 9-13
-  return position.col >= 9 && position.col <= 13 &&
-         position.row >= 20 && position.row <= 22;
+  // Shaft: cols 10-12, rows 17-19 (in north wall), mouth at row 20.
+  // Strict proximity: only trigger when standing directly south of the mouth
+  // at row 20-21, cols 10-12. Avoids conflicting with the iron vein at cols 6-8.
+  return position.col >= 10 && position.col <= 12 &&
+         position.row >= 20 && position.row <= 21;
 }
