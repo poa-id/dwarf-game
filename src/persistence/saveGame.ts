@@ -43,6 +43,7 @@ export interface LoadResult {
 function backfillMissingFields(state: any): any {
   if (state.world) {
     if (state.world.litTorches === undefined) state.world.litTorches = {};
+    if ((state.world as Record<string,unknown>).placedTorches === undefined) (state.world as Record<string,unknown>).placedTorches = {};
     if (state.world.veinDepletion === undefined) state.world.veinDepletion = {};
     if (state.world.woodDepletion === undefined) state.world.woodDepletion = {};
     if (state.world.drills === undefined) state.world.drills = {};

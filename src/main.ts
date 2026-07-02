@@ -5,7 +5,8 @@ import { initGameState, getState } from "./game/gameState";
 import { initRenderRefs, render } from "./game/render";
 import { startGameLoop } from "./game/loop";
 import { handlePlayerMove, KEY_TO_DIRECTION } from "./game/movement";
-import { handleMineStrike, handleWoodGather, handleForgeRepair, handleTorchRepair } from "./game/actions";
+import { handleMineStrike, handleWoodGather, handleForgeRepair, handleTorchRepair, handlePlaceTorch, handleLightPlacedTorch } from "./game/actions";
+import { hubCellAt } from "./render/hubContent";
 import { nearestOreVein, nearestWoodNode } from "./game/proximity";
 import { movePanelHighlight, confirmPanelHighlight } from "./game/panelNavigation";
 import { getLastSavedAt } from "./persistence/saveGame";
@@ -169,6 +170,39 @@ window.addEventListener("keydown", (e) => {
 
   if (e.key === "e" || e.key === "E") {
     handleTorchRepair(actionHint);
+    // Also check for nearby unlit placed torches
+    const world = getState().world;
+    const pos = getState().vessel.position;
+    for (const [key, isLit] of Object.entries(world.placedTorches)) {
+      if (isLit) continue;
+      const [tc, tr] = key.split(",").map(Number);
+      if (Math.abs(tc - pos.col) <= 1 && Math.abs(tr - pos.row) <= 1) {
+        handleLightPlacedTorch(tc, tr, actionHint);
+        break;
+      }
+    }
+    render();
+    return;
+  }
+
+  if (e.key === "t" || e.key === "T") {
+    const state = getState();
+    const world = state.world;
+    const drillTiers = Object.fromEntries(Object.entries(world.drills).map(([id, d]) => [id, d.tier]));
+    const isWallCell = (col: number, row: number): boolean => {
+      const cell = hubCellAt(col, row,
+        world.litTorches, world.veinDepletion, world.woodDepletion, world.forgeTier,
+        world.smelterBuilt, world.gemcuttingBuilt, world.companion.befriended,
+        world.consoleAwakened,
+        world.roomStates["stockpile_room"] ?? "ruined",
+        world.roomStates["trade_hall"] ?? "ruined",
+        world.roomStates["deep_foundry"] ?? "ruined",
+        world.roomStates["the_archive"] ?? "ruined",
+        drillTiers, world.placedTorches
+      );
+      return cell.kind === "rock_wall" || cell.kind === "rubble";
+    };
+    handlePlaceTorch(actionHint, isWallCell);
     render();
     return;
   }

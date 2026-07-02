@@ -88,6 +88,7 @@ export function createInitialWorld(now: number): WorldState {
     loreFlags: [],
     exploredCells: {},
     litTorches: {},
+    placedTorches: {},
     veinDepletion: {},
     woodDepletion: {},
     drills: {},

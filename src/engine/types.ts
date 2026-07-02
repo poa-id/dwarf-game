@@ -353,6 +353,16 @@ export interface WorldState {
   exploredCells: ExploredCellMap;
   /** Every torch any dwarf has ever repaired - persists forever, like the forge. */
   litTorches: LitTorchSet;
+
+  /**
+   * Player-placed torches — mounted on walls anywhere in the mountain.
+   * Key is "col,row", value is whether the torch has been lit.
+   * This is the seed of the furniture/decoration engine: the same pattern
+   * (place → light → persistent) extends to other objects.
+   * Torches cost 1 wood + 1 coal to place, and are lit with copper_ingot
+   * the same as corridor torches. Radius 3 — same as installed torches.
+   */
+  placedTorches: Record<string, boolean>;
   /** Depletion progress per placed ore vein instance (keyed by OreVeinPlacement.id) - the mountain remembers how worked-over a vein is, regardless of which dwarf is currently swinging the pick. */
   veinDepletion: Record<string, { totalYielded: number }>;
   /** Same idea as veinDepletion, but for wood node placements. */

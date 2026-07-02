@@ -327,6 +327,12 @@ export function updateActionHint(): void {
   }
 
   refs.actionHint.textContent = "";
+
+  // Show torch placement hint when player has materials
+  const { inventory } = getState().vessel;
+  if ((inventory["wood"] ?? 0) >= 1 && (inventory["coal"] ?? 0) >= 1) {
+    refs.actionHint.textContent = "T — place torch on nearby wall";
+  }
 }
 
 /**
@@ -691,7 +697,8 @@ export function render(): void {
         state.world.roomStates["trade_hall"] ?? "ruined",
         state.world.roomStates["deep_foundry"] ?? "ruined",
         state.world.roomStates["the_archive"] ?? "ruined",
-        Object.fromEntries(Object.entries(state.world.drills).map(([id, d]) => [id, d.tier]))
+        Object.fromEntries(Object.entries(state.world.drills).map(([id, d]) => [id, d.tier])),
+        state.world.placedTorches
       );
     },
     (col, row) => {
@@ -710,7 +717,8 @@ export function render(): void {
         state.world.roomStates["trade_hall"] ?? "ruined",
         state.world.roomStates["deep_foundry"] ?? "ruined",
         state.world.roomStates["the_archive"] ?? "ruined",
-        drillTiers
+        drillTiers,
+        state.world.placedTorches
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -727,7 +735,8 @@ export function render(): void {
             state.world.roomStates["trade_hall"] ?? "ruined",
             state.world.roomStates["deep_foundry"] ?? "ruined",
             state.world.roomStates["the_archive"] ?? "ruined",
-            drillTiers
+            drillTiers,
+            state.world.placedTorches
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

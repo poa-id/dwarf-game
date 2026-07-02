@@ -1,6 +1,6 @@
 import { getState, setState, narrate } from "./gameState";
 import { nearestOreVein, nearestWoodNode, isNearForge, isForgeRepaired, nearestUnrepairedTorch } from "./proximity";
-import { MATERIALS } from "../engine/types";
+import { MATERIALS, getMaterialAmount, deductMaterials } from "../engine/types";
 import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted, attemptMineStrike, applyMineResult } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted, attemptWoodGather, applyWoodGatherResult } from "../engine/woodcraft";
 import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "../engine/smithing";
@@ -224,4 +224,81 @@ export function handleTorchRepair(actionHint: HTMLElement): void {
   } else if (outcome.reason === "cannot_afford") {
     actionHint.textContent = `Not enough resources to repair ${torch.name}.`;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Torch placement
+// ---------------------------------------------------------------------------
+
+export const TORCH_PLACE_COST = { wood: 1, coal: 1 };
+export const MAX_PLACED_TORCHES = 50;
+
+/**
+ * Places an unlit torch on an adjacent wall cell.
+ * T key. Cost: 1 Wood + 1 Coal.
+ * isWallCell: callback from main.ts that checks the full dynamic cell.
+ */
+export function handlePlaceTorch(
+  actionHint: HTMLElement,
+  isWallCell: (col: number, row: number) => boolean
+): void {
+  const state = getState();
+  const { position, inventory } = state.vessel;
+  const world = state.world;
+
+  if (Object.keys(world.placedTorches).length >= MAX_PLACED_TORCHES) {
+    actionHint.textContent = "Cannot place more torches — limit reached.";
+    return;
+  }
+
+  if (getMaterialAmount(inventory, "wood") < 1 || getMaterialAmount(inventory, "coal") < 1) {
+    actionHint.textContent = "Need 1 Wood + 1 Coal to place a torch.";
+    return;
+  }
+
+  const candidates = [
+    { col: position.col, row: position.row - 1 },
+    { col: position.col, row: position.row + 1 },
+    { col: position.col - 1, row: position.row },
+    { col: position.col + 1, row: position.row },
+  ];
+
+  let mountCell: { col: number; row: number } | null = null;
+  for (const c of candidates) {
+    const key = `${c.col},${c.row}`;
+    if (world.placedTorches[key] !== undefined) continue;
+    if (isWallCell(c.col, c.row)) { mountCell = c; break; }
+  }
+
+  if (!mountCell) {
+    actionHint.textContent = "No wall nearby to mount a torch on.";
+    return;
+  }
+
+  const key = `${mountCell.col},${mountCell.row}`;
+  setState({
+    ...state,
+    world: { ...state.world, placedTorches: { ...world.placedTorches, [key]: false } },
+    vessel: { ...state.vessel, inventory: deductMaterials(inventory, TORCH_PLACE_COST) },
+  });
+  actionHint.textContent = "Torch mounted — press E nearby to light it.";
+}
+
+export function handleLightPlacedTorch(col: number, row: number, actionHint: HTMLElement): void {
+  const state = getState();
+  const key = `${col},${row}`;
+  if (state.world.placedTorches[key] === undefined) return;
+  if (state.world.placedTorches[key]) { actionHint.textContent = "Already lit."; return; }
+
+  if (getMaterialAmount(state.vessel.inventory, "copper_ingot") < 1) {
+    actionHint.textContent = "Need 1 Copper Ingot to light the torch.";
+    return;
+  }
+
+  setState({
+    ...state,
+    world: { ...state.world, placedTorches: { ...state.world.placedTorches, [key]: true } },
+    vessel: { ...state.vessel, inventory: deductMaterials(state.vessel.inventory, { copper_ingot: 1 }) },
+  });
+  actionHint.textContent = "Torch lit.";
 }

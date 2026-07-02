@@ -1,5 +1,5 @@
 import type { WorldState, ZoneDefinition, Position, UnlockCondition } from "./types";
-import { ZONES, LIGHT_SOURCES, HEARTH_CENTER, FORGE_CENTER } from "./hubMap";
+import { ZONES, LIGHT_SOURCES, HEARTH_CENTER, FORGE_CENTER, KILN_POSITION } from "./hubMap";
 import { FORGE_UPGRADES } from "./smithing";
 
 // ---------------------------------------------------------------------------
@@ -214,8 +214,17 @@ export function isActivelyLit(
   // lantern, these are not point sources — applying LOS would cause the
   // Hearth to block its own light (its center is inside its own solid
   // 4×4 footprint, so every ray from (40,25) immediately hits stone).
+  // Placed torches — player-mounted on walls, lit individually
+  for (const [key, isLit] of Object.entries(world.placedTorches)) {
+    if (!isLit) continue;
+    const [c, r] = key.split(",").map(Number);
+    if (isWithinLightRadius(col, row, { col: c, row: r }, 3) && los({ col: c, row: r })) return true;
+  }
+
   if (isWithinLightRadius(col, row, HEARTH_CENTER, 5)) return true;
   if (world.forgeTier >= 1 && isWithinLightRadius(col, row, FORGE_CENTER, 4)) return true;
+  // Kiln — always burning when built, emits warm ambient light in the garden room
+  if (isWithinLightRadius(col, row, KILN_POSITION, 3)) return true;
 
   return false;
 }

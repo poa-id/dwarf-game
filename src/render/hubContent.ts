@@ -182,10 +182,17 @@ export function hubCellAt(
   tradeHallStage: string = "ruined",
   deepFoundryStage: string = "ruined",
   archiveStage: string = "ruined",
-  drillTiers: Record<string, number> = {}
+  drillTiers: Record<string, number> = {},
+  placedTorches: Record<string, boolean> = {}
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
+  }
+
+  // Placed torches — player-mounted on wall cells. Override the wall with a torch sprite.
+  const torchKey = `${col},${row}`;
+  if (placedTorches[torchKey] !== undefined) {
+    return { kind: placedTorches[torchKey] ? "torch_lit" : "torch_broken" };
   }
 
   const staticCell = getHubGrid()[row * HUB_WIDTH + col];

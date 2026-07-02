@@ -22,6 +22,7 @@ function makeStateWithProgress(): GameState {
       loreFlags: ["met_the_foreman"],
       exploredCells: { "40,25": true, "41,25": true },
       litTorches: {},
+      placedTorches: {},
       veinDepletion: { hearth_hall_copper: { totalYielded: 30 } },
       woodDepletion: { hearth_hall_roots: { totalYielded: 12 } },
       toolsForged: { pickaxe: 1, axe: 1 }, // non-zero specifically to verify rekindle() carries this through (see "preserves" test below)

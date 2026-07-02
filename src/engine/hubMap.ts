@@ -234,7 +234,7 @@ export const LIGHT_SOURCES: LightSourceDefinition[] = [
     id: "torch_ne_vert",
     name: "Corridor Torch (Forge Road)",
     position: { col: 50, row: 15 },
-    radius: 2,
+    radius: 3,
     repairCost: { copper_ingot: 3 },
   },
   // W corridor (to Mine) — midpoint of straight shot
@@ -242,7 +242,7 @@ export const LIGHT_SOURCES: LightSourceDefinition[] = [
     id: "torch_w",
     name: "Corridor Torch (Mine Road)",
     position: { col: 19, row: 24 },
-    radius: 2,
+    radius: 3,
     repairCost: { copper_ingot: 3 },
   },
   // SE corridor (to Tinkering) — vertical leg midpoint
@@ -250,7 +250,7 @@ export const LIGHT_SOURCES: LightSourceDefinition[] = [
     id: "torch_se_vert",
     name: "Corridor Torch (Tinkering Road)",
     position: { col: 50, row: 32 },
-    radius: 2,
+    radius: 3,
     repairCost: { copper_ingot: 3 },
   },
   // SW corridor (to Garden) — two torches for the long L
@@ -258,14 +258,14 @@ export const LIGHT_SOURCES: LightSourceDefinition[] = [
     id: "torch_sw_vert",
     name: "Corridor Torch (Garden Road, vertical leg)",
     position: { col: 30, row: 36 },
-    radius: 2,
+    radius: 3,
     repairCost: { copper_ingot: 3 },
   },
   {
     id: "torch_sw_horiz",
     name: "Corridor Torch (Garden Road, horizontal leg)",
     position: { col: 19, row: 43 },
-    radius: 2,
+    radius: 3,
     repairCost: { copper_ingot: 3 },
   },
 ];
