@@ -287,7 +287,9 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     requiredLevel: 6, // lowered from 10, see iron_ingot's comment above for the full rationale
     ingotMaterialId: "iron_ingot",
     ingotCost: 3,
-    woodCost: 4,
+    woodCost: 0,       // ironwood replaces regular wood — see woodAltId
+    woodAltId: "ironwood",
+    woodAltCost: 3,
     acceptedFuels: ["coal"],
     fuelCost: 2,
     minHeatRequired: 10,
@@ -317,7 +319,9 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     requiredLevel: 6, // lowered from 10, see iron_ingot's comment above for the full rationale
     ingotMaterialId: "iron_ingot",
     ingotCost: 3,
-    woodCost: 4,
+    woodCost: 0,
+    woodAltId: "ironwood",
+    woodAltCost: 3,
     acceptedFuels: ["coal"],
     fuelCost: 2,
     minHeatRequired: 10,
@@ -325,10 +329,14 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     baseSuccessChance: 0.6,
   },
   // Deepstone Pickaxe — tier 3. Requires deepstone_ingot (Smithing 18)
-  // and ironwood (from the Garden's ancient seed chest). The supply
-  // chain: mine deepstone → grow ironwood → forge here. High success
-  // chance because by this point the player is skilled; the cost IS
-  // the gate, not the failure chance.
+  // and gemwood (from the Garden's gemstone tree, Herblore 15). Wood
+  // requirement bumped from ironwood -> gemwood 2026-07-03 once the
+  // wood ladder was clarified as Cave-Root -> Ironwood -> Gemwood ->
+  // (Stonewood/Emberwood/Voidwood, deferred) - tool tier now matches
+  // wood tier 1:1 (copper/cave-root, iron/ironwood, deepstone/gemwood).
+  // The supply chain: mine deepstone → grow gemwood → forge here. High
+  // success chance because by this point the player is skilled; the
+  // cost IS the gate, not the failure chance.
   {
     id: "deepstone_pickaxe",
     name: "Deepstone Pickaxe",
@@ -337,8 +345,8 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     requiredLevel: 14,
     ingotMaterialId: "deepstone_ingot",
     ingotCost: 4,
-    woodCost: 0,       // ironwood replaces regular wood — see woodAltId
-    woodAltId: "ironwood",
+    woodCost: 0,       // gemwood replaces regular wood — see woodAltId
+    woodAltId: "gemwood",
     woodAltCost: 3,
     acceptedFuels: ["hearthsap"],
     fuelCost: 1,
@@ -355,7 +363,7 @@ export const TOOL_RECIPES: ToolRecipe[] = [
     ingotMaterialId: "deepstone_ingot",
     ingotCost: 4,
     woodCost: 0,
-    woodAltId: "ironwood",
+    woodAltId: "gemwood",
     woodAltCost: 3,
     acceptedFuels: ["hearthsap"],
     fuelCost: 1,

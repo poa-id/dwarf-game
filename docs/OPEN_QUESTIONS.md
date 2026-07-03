@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-385/385 tests passing. TSC clean. Build clean.
+401/401 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -44,9 +44,12 @@
 ### Garden
 - 6 planters (slots), slot 0 always unlocked, slots 1-5 cost escalating materials+Insight
 - Seeds consumable, 4 growth stages per plant, harvesting clears slot
-- Plants: Stoneshroom (20min), Cave Fern (40min), Ironwood Sapling (2hr)
+- Plants: Stoneshroom (20min), Cave Fern (40min), Ironwood Sapling (2hr), Gemwood Tree (3hr)
 - Herblore skill gates plant tiers; growthSpeedMultiplier hook ready for tool bonuses
 - Planter costs exponential: 80 → 250 → 600 → 1500 → 4000 Insight
+- Wood ladder so far: Cave-Root Wood (t1, gathered) → Ironwood (t2, Herblore 8) →
+  Gemwood (t3, Herblore 15, bonus rough_amethyst on harvest). Tiers 4-6
+  (Stonewood/Emberwood/Voidwood) designed but not built - see gap #12 below.
 
 ### Trade Hall
 - Gems-only currency (cut quartz/garnet/amethyst)
@@ -54,12 +57,15 @@
 - Merchant arrives every 10/5min by stage; always present at masterwork
 
 ### UI
-- Left sidebar: always-visible mountain stats (Restoration + Insight + rate), tabs: Skills | Bag | ⛏ Production
-- Skills tab: RuneScape-inspired 2-column icon grid (framed badge art + level number overlay + XP bar per skill), not the old text-row list
-- Right sidebar: Context panel (always visible, no tabs)
+- Left sidebar (220px): tabs Skills | Bag | ⛏ Production. Restoration/Insight/rate
+  moved to the top bar (2026-07-03), not shown in the sidebar anymore.
+- Skills tab: RuneScape-inspired 2-column icon grid below colorStage 2
+  ("Hearthlight"), plain text-row list below it - gated by Perception Is
+  Progression, same threshold that switches the world canvas to sprite art.
+- Right sidebar (220px): Context panel (always visible, no tabs)
 - Herblore/Brewing tiles hidden until first XP earned
 - Batch buttons (×5/×10/×50) on kiln, smelter purify, smithing smelt rows
-- Keyboard: WASD move, F gather, E repair/light/remove, R forge, T place torch, Enter confirm
+- Keyboard: WASD move, F gather, E repair/light/remove, R forge (repair only, one-shot), T place torch, Enter confirm
 - Arrow Up/Down navigate context panel rows
 
 ### Mine shaft depth system
@@ -86,33 +92,55 @@
 
 1. **Brewing skill not implemented** — skill exists, XP never earned, no recipes. Ales from stoneshroom should give buffs. This completes the garden → kiln → brewing loop.
 
-2. **Ironwood tool handles** — higher tier tools should require ironwood handles, not just metal ingots. The design says "higher tier tools require higher tier woods." TOOL_RECIPES in smithing.ts need ironwood added as a cost for iron/deepstone tier tools.
-
-3. **Starstone vein** — shaft depth 2 promises a new vein appears. No starstone `RockNode`, no `MaterialId`, no vein placement in hubMap. Pure stub.
+2. **Starstone vein** — shaft depth 2 promises a new vein appears. No starstone `RockNode`, no `MaterialId`, no vein placement in hubMap. Pure stub.
 
 ### Medium priority (balance / polish)
 
-4. **Garden tools** — `growthSpeedMultiplier()` exists and is called from the loop but returns 1.0 always. Future: trowel/watering can tiers (Herblore-gated) reduce growth time. Design needed.
+3. **Garden tools** — `growthSpeedMultiplier()` exists and is called from the loop but returns 1.0 always. Future: trowel/watering can tiers (Herblore-gated) reduce growth time. Design needed.
 
-5. **Brewing system** — ales from fungi/herbs. Higher tier ales give bigger buffs. Brewing skill levels from brewing. The loop: garden → harvest shrooms → kiln or brewing station → ale → buff.
+4. **Brewing system** — ales from fungi/herbs. Higher tier ales give bigger buffs. Brewing skill levels from brewing. The loop: garden → harvest shrooms → kiln or brewing station → ale → buff.
 
-6. **Trade Hall narrative** — "merchant arrives" narrator line (one-time trigger). Not wired.
+5. **Trade Hall narrative** — "merchant arrives" narrator line (one-time trigger). Not wired.
 
-7. **Ore colors** — deepstone and coal look similar in the glyph renderer (both dark). Differentiate.
+6. **Ore colors** — deepstone and coal look similar in the glyph renderer (both dark). Differentiate.
 
-8. **Room visual unlocks** — Deep Foundry / Archive / Trade Hall rooms show rubble clearing correctly? Verify sealed room dynamic override in hubCellAt works for all four sealed rooms.
+7. **Room visual unlocks** — Deep Foundry / Archive / Trade Hall rooms show rubble clearing correctly? Verify sealed room dynamic override in hubCellAt works for all four sealed rooms.
 
 ### Low priority / future content
 
-9. **True Deepstone** — purification track for deepstone_ingot → true_deepstone. Smelter tier track TBD.
+8. **True Deepstone** — purification track for deepstone_ingot → true_deepstone. Smelter tier track TBD.
 
-10. **Relics system** — named in LORE.md, nothing built. Major content category.
+9. **Relics system** — named in LORE.md, nothing built. Major content category.
 
-11. **Color stages 4/5** — Architecture Returns / The Mountain Remembers. Gates TBD (restoration score thresholds already in colorStages.ts as stubs).
+10. **Color stages 4/5** — Architecture Returns / The Mountain Remembers. Gates TBD (restoration score thresholds already in colorStages.ts as stubs).
 
-12. **Wandering strangers** — model agreed, nothing built. Distinct from Narag-Bund.
+11. **Wandering strangers** — model agreed, nothing built. Distinct from Narag-Bund.
 
-13. **Ancient seeds / heartwood sapling** — trade hall sells them, but `ancient_seed` and `ancient_seed_rare` have no plant definition in garden.ts PLANT_DEFINITIONS.
+12. **Deep Tree Grove (wood tiers 4-6)** — designed 2026-07-03, not built. Wood ladder
+    continues past Gemwood (t3) with Stonewood (t4, petrified fossil wood),
+    Emberwood (t5, volcanic trees), Voidwood (t6) - accessed via a new tunnel
+    system that mirrors the Mine Shaft's depth mechanic (dig deeper → new tier
+    unlocks), rather than more Garden planter slots. Needs: map space for the
+    tunnel (Garden Room is already fully packed - 6 planters + root tangle +
+    kiln fill it), a depth-gate structure parallel to `SHAFT_DEPTHS`, and
+    sprite work per tier (t3/Gemwood sprite was ready at design time; t4-6
+    sprites not yet mentioned as ready).
+
+13. **Garden "periodic drop" harvest mode** — designed 2026-07-03, not built.
+    Currently ALL planters work one way: plant → grow → harvest (clears slot,
+    must replant). Direction from design review: trees should optionally support
+    a second mode - leave a mature tree standing and it periodically drops
+    material on its own (closer to Narag-Bund's timer-driven hauling than to
+    the current harvest-and-replant model), as an alternative to harvesting
+    it outright for a lump batch. Explicitly scoped to Gemwood and future
+    trees only, NOT retrofitted onto Ironwood. Needs real design before
+    building: what's the drop interval/amount vs. a harvest's lump sum (idle
+    passive trickle vs. active batch is a real tradeoff to balance, not just
+    an implementation detail), does a "planted, dropping" tree occupy the
+    slot indefinitely (blocking replanting) or can slots hold multiple
+    states, and how this interacts with the existing `GrowthStage`/`tickGarden`
+    model (which currently stops calling anything once stage 3/mature is
+    reached - see garden.ts's `tickGarden`).
 
 14. **Deep Foundry + Archive actual content** — panels show unlock costs and bonuses, but what IS the deep foundry beyond a smelt bonus? Design open.
 
@@ -126,6 +154,8 @@
 
 - **Mine shaft speed bonus** (2026-07-03) — `drillSpeedMultiplier(mineshaftDepth)` in drill.ts now returns 1.10 at depth 1+, passed into `tickDrill` from the game loop. Matches the +10% promised in SHAFT_DEPTHS' depth-1 unlock text.
 - **Coal drill** (2026-07-03) — added to DRILL_DEFINITIONS, gated behind Mine Shaft depth 1 via new `requiresShaftDepth` field on DrillDefinition. drillPanel.ts shows the gate message before the smelter-built check when unmet.
+- **Ironwood tool handles** (2026-07-03) — turned out to be half-done already (deepstone tier already required ironwood). Fixed the actual gap: iron-tier tools now require ironwood too (previously plain wood), and deepstone tier moved up to require the new Gemwood (see below) - tool tier now matches wood tier 1:1 (copper/cave-root, iron/ironwood, deepstone/gemwood).
+- **Gemwood (wood tier 3)** (2026-07-03) — new material + `gemwood_tree` PLANT_DEFINITIONS entry, Herblore 15, grown from the previously-orphaned `ancient_seed_rare` (already sold in Trade Hall, had no plant definition until now - this also resolves the old "ancient seeds" gap). Yields gemwood + a small bonus rough_amethyst on harvest. Sprite for the mature tree not yet integrated - currently falls back to the generic `planter_mature` tree sprite ironwood also uses.
 
 ---
 

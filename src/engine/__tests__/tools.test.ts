@@ -31,13 +31,19 @@ describe("TOOL_RECIPES", () => {
     }
   });
 
-  it("tier 1 and 2 use regular wood; tier 3 uses ironwood via woodAltId", () => {
-    const tier1 = TOOL_RECIPES.filter((r) => r.tier <= 2);
+  it("tier 1 uses regular wood; tier 2 uses ironwood, tier 3 uses gemwood (via woodAltId)", () => {
+    const tier1 = TOOL_RECIPES.filter((r) => r.tier === 1);
+    const tier2 = TOOL_RECIPES.filter((r) => r.tier === 2);
     const tier3 = TOOL_RECIPES.filter((r) => r.tier === 3);
     for (const r of tier1) expect(r.woodCost).toBeGreaterThan(0);
-    for (const r of tier3) {
+    for (const r of tier2) {
       expect(r.woodCost).toBe(0);
       expect(r.woodAltId).toBe("ironwood");
+      expect(r.woodAltCost).toBeGreaterThan(0);
+    }
+    for (const r of tier3) {
+      expect(r.woodCost).toBe(0);
+      expect(r.woodAltId).toBe("gemwood");
       expect(r.woodAltCost).toBeGreaterThan(0);
     }
   });

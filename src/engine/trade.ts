@@ -69,7 +69,7 @@ export const TRADE_OFFERS: TradeOffer[] = [
     receiveId: "ancient_seed_rare",
     receiveAmount: 1,
     minStage: "restored",
-    description: "Two-hour tree. The merchant won't say where he found it.",
+    description: "Three-hour tree. Bears gemstones as fruit, the merchant swears.",
   },
   // Ironwood in bulk — saves 30 minutes of growing time
   {

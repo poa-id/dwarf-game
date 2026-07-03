@@ -12,7 +12,10 @@
  * - Planting any crop gives Herblore XP
  * - Tier 1 crops (shroom, fern): from Herblore 1
  * - Tier 2 crops (ironwood): from Herblore 8
- * - Higher tiers: Herblore 15+
+ * - Tier 3 crops (gemwood): from Herblore 15
+ * - Wood ladder continues beyond gemwood (Stonewood/Emberwood/Voidwood,
+ *   tiers 4-6) via a planned "Deep Tree Grove" depth system mirroring
+ *   the Mine Shaft - designed but not yet built, see OPEN_QUESTIONS.md.
  *
  * Planter unlock costs (per slot beyond slot 0):
  * - Slot 1: 5 Insight + 5 copper_ingot + 5 wood
@@ -85,6 +88,25 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     stageDurationsMs: [30 * 60_000, 45 * 60_000, 45 * 60_000], // 2 hr total (base)
     herbloreXp: 60,
     herbloreRequired: 8,
+  },
+  {
+    id: "gemwood_tree",
+    name: "Gemwood Tree",
+    category: "tree",
+    tier: 3,
+    seedMaterialId: "ancient_seed_rare",
+    harvestMaterialId: "gemwood",
+    harvestAmount: 3,
+    // Small bonus gem alongside the wood - "gemstone tree" is the
+    // whole premise, so a wood-only harvest felt like it was missing
+    // the point. Amethyst specifically since that's the deepest/rarest
+    // existing gem tier, matching gemwood's position as the current
+    // top rung of the ladder. Placeholder amount, not balance-tested.
+    secondaryMaterialId: "rough_amethyst",
+    secondaryAmount: 1,
+    stageDurationsMs: [45 * 60_000, 60 * 60_000, 75 * 60_000], // 3 hr total (base)
+    herbloreXp: 100,
+    herbloreRequired: 15,
   },
 ];
 

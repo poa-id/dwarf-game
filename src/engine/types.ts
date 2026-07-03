@@ -130,6 +130,14 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   // Ironwood — from ancient seeds found in the Garden's sealed seed chest.
   // Extremely hard, used for tier 3 tool handles. Grows slowly (30 min/cycle).
   ironwood: { id: "ironwood", name: "Ironwood", category: "wood", tier: 3 },
+  // Gemwood - third rung of the wood ladder (Cave-Root -> Ironwood -> Gemwood),
+  // grown from gemstone trees. Tiers 4-6 (Stonewood, Emberwood, Voidwood) are
+  // designed but deferred - see OPEN_QUESTIONS.md "Deep Tree Grove". Numeric
+  // `tier` here is cosmetic/display only, not read by any gating logic (unlike
+  // ironwood's `tier: 3`, which predates this ladder and doesn't line up
+  // cleanly - kept as-is rather than renumbered, to avoid an unnecessary
+  // churn edit to an already-shipped material).
+  gemwood: { id: "gemwood", name: "Gemwood", category: "wood", tier: 4 },
   // Ancient Seed — rare drop from the root tangle or found in the seed chest.
   // Planted in the Garden to grow Ironwood trees. One-time use.
   ancient_seed: { id: "ancient_seed", name: "Ancient Seed", category: "wood", tier: 2 },
