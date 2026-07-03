@@ -16,9 +16,11 @@ import {
   CONSOLE_POSITION,
   STOCKPILE_CHEST_POSITION,
   MINE_SHAFT_POSITION,
+  PLANTER_POSITIONS,
 } from "../engine/hubMap";
 import { ROCK_NODES, isExhausted as isOreExhausted, createFreshDepletionState } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted } from "../engine/woodcraft";
+import { growthStageCellKind, plantDefById, type PlanterSlot } from "../engine/garden";
 import type { LitTorchSet, WorldState } from "../engine/types";
 
 /**
@@ -141,15 +143,34 @@ function buildHubContent(): GridCell[] {
         set(vein.position.col + dc, vein.position.row + dr, kind);
   }
 
-  // ── 9. Wood nodes ────────────────────────────────────────────────────
+  // ── 9. Wood nodes — 3×3 footprint ────────────────────────────────────
   for (const wood of WOOD_NODE_PLACEMENTS) {
-    set(wood.position.col, wood.position.row, "wood_node");
+    for (let dr = 0; dr < 3; dr++)
+      for (let dc = 0; dc < 3; dc++)
+        set(wood.position.col + dc, wood.position.row + dr, "wood_node");
   }
 
   // ── 10. Kiln 2×2 ─────────────────────────────────────────────────────
   for (let dr = 0; dr < 2; dr++)
     for (let dc = 0; dc < 2; dc++)
       set(KILN_POSITION.col + dc, KILN_POSITION.row + dr, "kiln");
+
+  // ── 10b. Garden planters — 6 slots in 2×3 grid, all broken by default
+  // Planter 0 (first slot, SW): (8,40) — player has this from start
+  // Planters 1-5: broken, unlock via Herblore
+  const PLANTER_POSITIONS = [
+    { col: 8, row: 40 },   // slot 0 — first, unlocked
+    { col: 12, row: 40 },  // slot 1
+    { col: 8, row: 43 },   // slot 2
+    { col: 12, row: 43 },  // slot 3
+    { col: 16, row: 40 },  // slot 4 (east column if room allows)
+    { col: 16, row: 43 },  // slot 5
+  ].filter(p => p.col + 2 <= 18 && p.row + 2 <= 45); // clip to garden room
+  for (const p of PLANTER_POSITIONS) {
+    for (let dr = 0; dr < 3; dr++)
+      for (let dc = 0; dc < 3; dc++)
+        set(p.col + dc, p.row + dr, "planter_broken");
+  }
 
   // ── 11. Gemcutting station 6×6 (unbuilt) ────────────────────────────
   for (let dr = 0; dr < 6; dr++)
@@ -194,7 +215,8 @@ export function hubCellAt(
   archiveStage: string = "ruined",
   drillTiers: Record<string, number> = {},
   placedTorches: Record<string, boolean> = {},
-  mineshaftDepth: number = 0
+  mineshaftDepth: number = 0,
+  gardenSlots: PlanterSlot[] = []
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -204,6 +226,19 @@ export function hubCellAt(
   const torchKey = `${col},${row}`;
   if (placedTorches[torchKey] !== undefined) {
     return { kind: placedTorches[torchKey] ? "torch_lit" : "torch_broken" };
+  }
+
+  // Garden planters — each 3×3 slot shows its growth stage dynamically
+  for (let i = 0; i < PLANTER_POSITIONS.length; i++) {
+    const p = PLANTER_POSITIONS[i];
+    if (col >= p.col && col <= p.col + 2 && row >= p.row && row <= p.row + 2) {
+      const slot = gardenSlots[i];
+      if (!slot || !slot.unlocked) return { kind: "planter_broken" };
+      if (!slot.plantId) return { kind: "planter_empty" };
+      const def = plantDefById(slot.plantId);
+      const kind = growthStageCellKind(slot.stage, def?.category ?? "shroom");
+      return { kind: kind as import("./palette").CellKind };
+    }
   }
 
   const staticCell = getHubGrid()[row * HUB_WIDTH + col];

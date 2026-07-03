@@ -53,6 +53,8 @@ function makeStateWithProgress(): GameState {
         hearthkeeping: { id: "hearthkeeping", level: 5, xp: 1000 },
         woodcraft: { id: "woodcraft", level: 3, xp: 200 },
         tinkering: { id: "tinkering", level: 2, xp: 100 },
+        herblore: { id: "herblore", level: 1, xp: 0 },
+        brewing: { id: "brewing", level: 1, xp: 0 },
       },
       inventory: { copper_ore: 40, copper_ingot: 12, coal: 8 },
       hasRekindled: false,
@@ -68,14 +70,14 @@ function makeStateWithProgress(): GameState {
 describe("calculateRekindleInsight", () => {
   it("scales with total levels across all skills, at full multiplier when growth clears the threshold", () => {
     const state = makeStateWithProgress(); // lifetimeFuel 1500, lifetimeFuelAtLastRekindle 0 - growth 1500, well past the 500 threshold
-    // mining 20 + smithing 15 + hearthkeeping 5 + woodcraft 3 + tinkering 2 = 45 total levels * 5 = 225, full multiplier (1.0)
-    expect(calculateRekindleInsight(state.vessel, state.world)).toBe(225);
+    // mining 20 + smithing 15 + hearthkeeping 5 + woodcraft 3 + tinkering 2 + herblore 1 + brewing 1 = 47 total levels * 5 = 235, full multiplier (1.0)
+    expect(calculateRekindleInsight(state.vessel, state.world)).toBe(235);
   });
 
-  it("is 20 for a fresh vessel against a world with full growth (all 4 skills at level 1 -> total 4 -> 20 insight)", () => {
+  it("is 35 for a fresh vessel against a world with full growth (all 7 skills at level 1 -> total 7 -> 35 insight)", () => {
     const fresh = createFreshVessel();
     const world = makeStateWithProgress().world;
-    expect(calculateRekindleInsight(fresh, world)).toBe(25); // 1+1+1+1+1=5 levels (incl. tinkering) * 5, full multiplier
+    expect(calculateRekindleInsight(fresh, world)).toBe(35); // 1*7 skills = 7 levels * 5, full multiplier
   });
 
   it("diminishing returns: zero growth since the last rekindle yields ZERO insight, regardless of skill levels", () => {
@@ -94,8 +96,8 @@ describe("calculateRekindleInsight", () => {
       hearth: { ...state.world.hearth, lifetimeFuel: 250 },
       lifetimeFuelAtLastRekindle: 0, // grew from 0 to 250 - half of the 500 threshold
     };
-    // 45 total levels (incl. tinkering) * 5 = 225 base, * 0.5 scale = 112.5, JS Math.round rounds half-up -> 113
-    expect(calculateRekindleInsight(state.vessel, halfGrowthWorld)).toBe(113);
+    // 47 total levels (incl. herblore+brewing) * 5 = 235 base, * 0.5 scale = 117.5, JS Math.round rounds half-up -> 118
+    expect(calculateRekindleInsight(state.vessel, halfGrowthWorld)).toBe(118);
   });
 
   it("diminishing returns: growth beyond a full threshold's worth still caps at the full multiplier (no bonus for over-waiting)", () => {
@@ -105,7 +107,7 @@ describe("calculateRekindleInsight", () => {
       hearth: { ...state.world.hearth, lifetimeFuel: 100_000 },
       lifetimeFuelAtLastRekindle: 0,
     };
-    expect(calculateRekindleInsight(state.vessel, massiveGrowthWorld)).toBe(225); // same as exactly-enough growth, not more
+    expect(calculateRekindleInsight(state.vessel, massiveGrowthWorld)).toBe(235); // same as exactly-enough growth, not more
   });
 
   it("the very first rekindle (lifetimeFuelAtLastRekindle starts at 0) is never penalized, even if lifetimeFuel just barely cleared the threshold", () => {
@@ -115,7 +117,7 @@ describe("calculateRekindleInsight", () => {
       hearth: { ...state.world.hearth, lifetimeFuel: 500 }, // exactly at the threshold, first time ever
       lifetimeFuelAtLastRekindle: 0,
     };
-    expect(calculateRekindleInsight(state.vessel, justClearedWorld)).toBe(225); // full multiplier - 500 growth from 0 clears the threshold exactly
+    expect(calculateRekindleInsight(state.vessel, justClearedWorld)).toBe(235); // full multiplier - 500 growth from 0 clears the threshold exactly
   });
 });
 
@@ -197,8 +199,8 @@ describe("rekindle", () => {
   it("Insight earned is added to world.insightBanked, not reset", () => {
     const state = makeStateWithProgress();
     const { newState, insightEarned } = rekindle(state);
-    expect(insightEarned).toBe(225);
-    expect(newState.world.insightBanked).toBe(100 + 225);
+    expect(insightEarned).toBe(235);
+    expect(newState.world.insightBanked).toBe(100 + 235);
   });
 
   it("records lifetimeFuelAtLastRekindle at the moment of rekindling, for the NEXT rekindle's diminishing-returns check", () => {

@@ -24,6 +24,17 @@ import gemcutting4x4Url from "./tileset-assets/sliced/gemcutting_4x4.png";
 import torchLitUrl from "./tileset-assets/sliced/torch_lit.png";
 import naragBundUrl from "./tileset-assets/sliced/narag_bund.png";
 import stockpileChestUrl from "./tileset-assets/sliced/stockpile_chest.png";
+import woodNodeUrl from "./tileset-assets/sliced/wood_node.png";
+import planterBrokenUrl from "./tileset-assets/sliced/planter_broken.png";
+import planterEmptyUrl from "./tileset-assets/sliced/planter_empty.png";
+import planterSproutUrl from "./tileset-assets/sliced/planter_sprout.png";
+import planterGrowingUrl from "./tileset-assets/sliced/planter_growing.png";
+import planterMatureUrl from "./tileset-assets/sliced/planter_mature.png";
+import planterFernUrl from "./tileset-assets/sliced/planter_fern.png";
+import planterShroomUrl from "./tileset-assets/sliced/planter_shroom.png";
+import tradePostUrl from "./tileset-assets/sliced/trade_post.png";
+import drillCoalUrl from "./tileset-assets/sliced/drill_coal.png";
+import mountainConsoleUrl from "./tileset-assets/sliced/mountain_console.png";
 
 /**
  * Maps each CellKind to an actual tile image, instead of a glyph+color.
@@ -71,7 +82,6 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   ore_deep: { assetUrl: oreDeepUrl, tileSpan: { cols: 3, rows: 3 } },
   ore_coal: { assetUrl: oreCoalUrl, tileSpan: { cols: 3, rows: 3 } },
   ore_exhausted: { assetUrl: rockFloorUrl },
-  wood_node: { assetUrl: oreBaseUrl, tint: "#7a8a4a" },
   wood_exhausted: { assetUrl: rockFloorUrl },
   dwarf: { assetUrl: dwarfUrl },
   // Real 4x4 sprites (added 2026-06-30). tileSpan tells TilesetRenderer
@@ -91,13 +101,23 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
   torch_lit: { assetUrl: torchLitUrl },
   companion: { assetUrl: naragBundUrl },
-  mountain_console: { assetUrl: rockWallUrl, tint: "#2a5a7a" },
   stockpile_chest: { assetUrl: stockpileChestUrl, tileSpan: { cols: 6, rows: 7 } },
   drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 3, rows: 3 } },
   mineshaft_broken: { assetUrl: mineshaftBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
   mineshaft_lit: { assetUrl: mineshaftLitUrl, tileSpan: { cols: 3, rows: 3 } },
+  mountain_console: { assetUrl: mountainConsoleUrl, tileSpan: { cols: 3, rows: 3 } },
+  wood_node: { assetUrl: woodNodeUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_broken: { assetUrl: planterBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_empty: { assetUrl: planterEmptyUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_sprout: { assetUrl: planterSproutUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_growing: { assetUrl: planterGrowingUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_mature: { assetUrl: planterMatureUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_fern: { assetUrl: planterFernUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_shroom: { assetUrl: planterShroomUrl, tileSpan: { cols: 3, rows: 3 } },
+  trade_post: { assetUrl: tradePostUrl, tileSpan: { cols: 5, rows: 5 } },
+  drill_coal: { assetUrl: drillCoalUrl, tileSpan: { cols: 3, rows: 3 } },
 };
 
 export const NATIVE_TILE_SIZE = 32;

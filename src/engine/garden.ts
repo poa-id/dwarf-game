@@ -1,229 +1,188 @@
 /**
- * Garden growth system — passive resource production in the Garden Room.
+ * Garden — individual planter slots with growth stages.
  *
- * The Garden Room (SW) has a wood node and kiln already. This module
- * adds the passive growth layer: planted slots that produce materials
- * over time without the player's presence.
+ * Architecture:
+ * - 4 planter slots (expandable), each independently managed
+ * - Seeds are consumable: planted on slot, consumed on harvest, must replant
+ * - Growth has 4 visual stages (empty → sprout → growing → mature)
+ * - Harvest clears the slot (no auto-replant)
+ * - Plant types: shroom (→ Brewing), fern (→ hearthsap), tree (→ lumber + fruit)
  *
- * Growth cadence (deliberately slow — patience is the idiom):
- *   Stoneshroom:  2 min cycle, 1 yield — fast, reliable
- *   Cave Fern:    5 min cycle, 2 wood — medium
- *   Ironwood:    30 min cycle, 3 ironwood — slow, high value
- *   Ancient Heartwood: 2 hr cycle, 8 ironwood + 1 hearthsap — very slow
+ * Herblore skill:
+ * - Planting any crop gives Herblore XP
+ * - Tier 1 crops (shroom, fern): from Herblore 1
+ * - Tier 2 crops (ironwood): from Herblore 8
+ * - Higher tiers: Herblore 15+
  *
- * Seeds are found by:
- *   - Stoneshroom: drops from root_tangle wood cutting (rare, 2%)
- *   - Cave Fern: purchased from Trade Hall once opened
- *   - Ancient Seed (→ Ironwood): the Garden's sealed seed chest,
- *     a restoration object unlocked at garden_room "restored" stage
- *
- * Garden room stages (room-state framework):
- *   ruined    — overgrown, the old planters collapsed
- *   cleared   — floor swept, basic planters rebuilt (2 slots)
- *   restored  — full planters + seed chest opened (6 slots)
- *   masterwork— the ancient growing-lights rekindled (10 slots)
+ * Planter unlock costs (per slot beyond slot 0):
+ * - Slot 1: 5 Insight + 5 copper_ingot + 5 wood
+ * - Slot 2: 15 Insight + 10 iron_ingot + 10 wood
+ * - Slot 3: 40 Insight + 5 deepstone_ingot + 5 ironwood
  */
 
 import type { MaterialId } from "./types";
-import { getMaterialAmount, deductMaterials, addMaterial } from "./types";
-import type { ResourceBag } from "./types";
 
 // ---------------------------------------------------------------------------
 // Plant definitions
 // ---------------------------------------------------------------------------
 
+export type PlantTier = 1 | 2 | 3;
+export type PlantCategory = "shroom" | "fern" | "tree";
+
 export interface PlantDefinition {
   id: string;
   name: string;
-  seedMaterialId: MaterialId;    // what you plant
-  producedMaterialId: MaterialId; // what it yields
-  cycleMs: number;
-  yield: number;
-  /** Secondary yield (e.g. hearthsap from heartwood) */
+  category: PlantCategory;
+  tier: PlantTier;
+  seedMaterialId: MaterialId;
+  harvestMaterialId: MaterialId;
+  harvestAmount: number;
+  /** Secondary harvest (trees: fruit / hearthsap) */
   secondaryMaterialId?: MaterialId;
-  secondaryYield?: number;
+  secondaryAmount?: number;
+  /** Growth stage durations in ms for each stage (empty→sprout, sprout→growing, growing→mature) */
+  stageDurationsMs: [number, number, number];
+  herbloreXp: number;
+  /** Herblore level required to plant */
+  herbloreRequired: number;
 }
 
 export const PLANT_DEFINITIONS: PlantDefinition[] = [
   {
     id: "stoneshroom",
     name: "Stoneshroom",
+    category: "shroom",
+    tier: 1,
     seedMaterialId: "stoneshroom_spore",
-    producedMaterialId: "stoneshroom",
-    cycleMs: 2 * 60 * 1000,  // 2 min
-    yield: 1,
+    harvestMaterialId: "stoneshroom",
+    harvestAmount: 2,
+    stageDurationsMs: [60_000, 90_000, 90_000], // 4 min total
+    herbloreXp: 15,
+    herbloreRequired: 1,
   },
   {
     id: "cave_fern",
     name: "Cave Fern",
+    category: "fern",
+    tier: 1,
     seedMaterialId: "cave_fern_spore",
-    producedMaterialId: "wood",
-    cycleMs: 5 * 60 * 1000,  // 5 min
-    yield: 2,
+    harvestMaterialId: "hearthsap",
+    harvestAmount: 1,
+    stageDurationsMs: [120_000, 150_000, 150_000], // 7 min total
+    herbloreXp: 20,
+    herbloreRequired: 1,
   },
   {
     id: "ironwood_sapling",
     name: "Ironwood Sapling",
+    category: "tree",
+    tier: 2,
     seedMaterialId: "ancient_seed",
-    producedMaterialId: "ironwood",
-    cycleMs: 30 * 60 * 1000, // 30 min
-    yield: 3,
-  },
-  {
-    id: "ancient_heartwood",
-    name: "Ancient Heartwood",
-    seedMaterialId: "ancient_seed_rare",
-    producedMaterialId: "ironwood",
-    cycleMs: 2 * 60 * 60 * 1000, // 2 hours
-    yield: 8,
-    secondaryMaterialId: "hearthsap",
-    secondaryYield: 1,
+    harvestMaterialId: "ironwood",
+    harvestAmount: 3,
+    secondaryMaterialId: "cave_fern_spore",
+    secondaryAmount: 1,
+    stageDurationsMs: [10 * 60_000, 10 * 60_000, 10 * 60_000], // 30 min total
+    herbloreXp: 60,
+    herbloreRequired: 8,
   },
 ];
 
-export function plantById(id: string): PlantDefinition | undefined {
+export function plantDefById(id: string): PlantDefinition | undefined {
   return PLANT_DEFINITIONS.find((p) => p.id === id);
 }
 
 // ---------------------------------------------------------------------------
-// Garden slot state
+// Growth stages
 // ---------------------------------------------------------------------------
 
-export interface GardenSlot {
-  plantId: string | null;    // null = empty
-  plantedAt: number;         // timestamp, 0 if empty
-  readyCount: number;        // how many harvests are ready
-}
+/** 0 = empty (seeded but not sprouting), 1 = sprout, 2 = growing, 3 = mature */
+export type GrowthStage = 0 | 1 | 2 | 3;
 
-export const MAX_GARDEN_SLOTS_BY_STAGE: Record<string, number> = {
-  ruined: 0,
-  cleared: 2,
-  restored: 6,
-  masterwork: 10,
-};
-
-export function createEmptySlot(): GardenSlot {
-  return { plantId: null, plantedAt: 0, readyCount: 0 };
+export function growthStageCellKind(
+  stage: GrowthStage,
+  category: PlantCategory
+): string {
+  if (stage === 3) {
+    if (category === "shroom") return "planter_shroom";
+    if (category === "fern") return "planter_fern";
+    return "planter_mature"; // tree uses generic mature sprite
+  }
+  if (stage === 2) return "planter_growing";
+  if (stage === 1) return "planter_sprout";
+  return "planter_empty";
 }
 
 // ---------------------------------------------------------------------------
-// Tick — advances all garden slots
+// Planter slot state
+// ---------------------------------------------------------------------------
+
+export interface PlanterSlot {
+  /** Which plant is growing, or null if empty */
+  plantId: string | null;
+  /** Growth stage (0-3). Only meaningful when plantId is set. */
+  stage: GrowthStage;
+  /** Timestamp when the current stage started (ms since epoch) */
+  stageStartedAt: number;
+  /** Whether this slot has been unlocked by the player */
+  unlocked: boolean;
+}
+
+export function createFreshPlanterSlot(unlocked: boolean): PlanterSlot {
+  return { plantId: null, stage: 0, stageStartedAt: 0, unlocked };
+}
+
+// ---------------------------------------------------------------------------
+// Planter unlock costs
+// ---------------------------------------------------------------------------
+
+export interface PlanterUnlockCost {
+  insightCost: number;
+  materialCost: Record<string, number>;
+  herbloreRequired: number;
+}
+
+export const PLANTER_UNLOCK_COSTS: PlanterUnlockCost[] = [
+  // Slot 0 is always unlocked
+  { insightCost: 0, materialCost: {}, herbloreRequired: 0 },
+  // Slot 1
+  { insightCost: 5, materialCost: { copper_ingot: 5, wood: 5 }, herbloreRequired: 1 },
+  // Slot 2
+  { insightCost: 15, materialCost: { iron_ingot: 10, wood: 10 }, herbloreRequired: 5 },
+  // Slot 3
+  { insightCost: 40, materialCost: { deepstone_ingot: 5, ironwood: 5 }, herbloreRequired: 10 },
+];
+
+// ---------------------------------------------------------------------------
+// Tick — advance growth stages
 // ---------------------------------------------------------------------------
 
 export interface GardenTickResult {
-  slots: GardenSlot[];
-  harvested: ResourceBag;
+  slots: PlanterSlot[];
   changed: boolean;
 }
 
-/**
- * Advances all garden slots based on elapsed time. Handles offline
- * catch-up (same pattern as Hearth/drills — capped at 24h).
- */
-export function tickGarden(
-  slots: GardenSlot[],
-  now: number
-): GardenTickResult {
-  const MAX_OFFLINE_MS = 24 * 60 * 60 * 1000;
-  let newSlots = [...slots];
-  let harvested: ResourceBag = {};
+export function tickGarden(slots: PlanterSlot[], now: number): GardenTickResult {
   let changed = false;
+  const nextSlots = slots.map((slot): PlanterSlot => {
+    if (!slot.unlocked || !slot.plantId || slot.stage >= 3) return slot;
 
-  for (let i = 0; i < newSlots.length; i++) {
-    const slot = newSlots[i];
-    if (!slot.plantId || slot.plantedAt === 0) continue;
+    const def = plantDefById(slot.plantId);
+    if (!def) return slot;
 
-    const plant = plantById(slot.plantId);
-    if (!plant) continue;
+    const stageDuration = def.stageDurationsMs[slot.stage as 0 | 1 | 2];
+    const elapsed = now - slot.stageStartedAt;
 
-    const elapsedMs = Math.min(now - slot.plantedAt, MAX_OFFLINE_MS);
-    const cyclesReady = Math.floor(elapsedMs / plant.cycleMs);
-    const newReady = slot.readyCount + cyclesReady;
-
-    if (cyclesReady > 0) {
-      // Auto-collect up to 10 cycles into the harvested bag (overflow
-      // stays as readyCount for manual collection if the player wants).
-      // For now just accumulate in readyCount — player manually harvests.
-      newSlots[i] = {
-        ...slot,
-        readyCount: newReady,
-        plantedAt: slot.plantedAt + cyclesReady * plant.cycleMs,
-      };
+    if (elapsed >= stageDuration) {
       changed = true;
+      return {
+        ...slot,
+        stage: (slot.stage + 1) as GrowthStage,
+        stageStartedAt: now,
+      };
     }
-  }
+    return slot;
+  });
 
-  return { slots: newSlots, harvested, changed };
-}
-
-// ---------------------------------------------------------------------------
-// Player interactions
-// ---------------------------------------------------------------------------
-
-export interface PlantResult {
-  slot: GardenSlot;
-  inventory: ResourceBag;
-}
-
-export function plantSeed(
-  slotIndex: number,
-  slots: GardenSlot[],
-  plantId: string,
-  inventory: ResourceBag,
-  now: number
-): PlantResult {
-  const plant = plantById(plantId);
-  if (!plant) throw new Error(`Unknown plant: ${plantId}`);
-
-  const seedHeld = getMaterialAmount(inventory, plant.seedMaterialId);
-  if (seedHeld < 1) throw new Error(`No ${plant.seedMaterialId} to plant`);
-
-  const slot = slots[slotIndex];
-  if (!slot) throw new Error(`Invalid slot ${slotIndex}`);
-  if (slot.plantId) throw new Error(`Slot ${slotIndex} is already planted`);
-
-  return {
-    slot: { plantId, plantedAt: now, readyCount: 0 },
-    inventory: deductMaterials(inventory, { [plant.seedMaterialId]: 1 }),
-  };
-}
-
-export interface HarvestResult {
-  slot: GardenSlot;
-  gained: ResourceBag;
-}
-
-export function harvestSlot(
-  slot: GardenSlot
-): HarvestResult {
-  if (!slot.plantId || slot.readyCount === 0) {
-    return { slot, gained: {} };
-  }
-
-  const plant = plantById(slot.plantId);
-  if (!plant) return { slot, gained: {} };
-
-  let gained: ResourceBag = {};
-  const batches = slot.readyCount;
-  gained = addMaterial(gained, plant.producedMaterialId, plant.yield * batches);
-
-  if (plant.secondaryMaterialId && plant.secondaryYield) {
-    gained = addMaterial(gained, plant.secondaryMaterialId, plant.secondaryYield * batches);
-  }
-
-  return {
-    slot: { ...slot, readyCount: 0 },
-    gained,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Seed drop from woodcutting (2% stoneshroom spore)
-// ---------------------------------------------------------------------------
-
-export const STONESHROOM_SPORE_DROP_CHANCE = 0.03;
-
-export function rollSeedDrop(roll: number): MaterialId | null {
-  if (roll < STONESHROOM_SPORE_DROP_CHANCE) return "stoneshroom_spore";
-  return null;
+  return { slots: nextSlots, changed };
 }

@@ -2,6 +2,7 @@ import type { GameState, VesselState, WorldState, SkillState, SkillId } from "./
 import { HEARTH_SPAWN_POSITION } from "./hubMap";
 import { createInitialHearth } from "./hearth";
 import { COLOR_STAGES } from "./colorStages";
+import { createFreshPlanterSlot } from "./garden";
 import { createInitialNarratorState } from "../narration/narrator";
 
 /**
@@ -68,6 +69,8 @@ export function createFreshVessel(): VesselState {
       hearthkeeping: freshSkill("hearthkeeping"),
       woodcraft: freshSkill("woodcraft"),
       tinkering: freshSkill("tinkering"),
+      herblore: freshSkill("herblore"),
+      brewing: freshSkill("brewing"),
     },
     inventory: {},
     hasRekindled: false,
@@ -99,7 +102,12 @@ export function createInitialWorld(now: number): WorldState {
     roomStates: {},
     stockpileOre: {},
     lastMerchantAt: 0,
-    gardenSlots: [],
+    gardenSlots: [
+      createFreshPlanterSlot(true),   // slot 0 — always unlocked
+      createFreshPlanterSlot(false),  // slots 1-3 require Herblore upgrades
+      createFreshPlanterSlot(false),
+      createFreshPlanterSlot(false),
+    ],
     toolsForged: { pickaxe: 0, axe: 0 },
     lifetimeFuelAtLastRekindle: 0,
     smelterBuilt: false,

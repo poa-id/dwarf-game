@@ -25,7 +25,8 @@ function isSolidAt(col: number, row: number): boolean {
       roomStates["the_archive"] ?? "ruined",
       drillTiers,
       world.placedTorches,
-      world.mineshaftDepth
+      world.mineshaftDepth,
+      world.gardenSlots
     ).kind
   );
 }

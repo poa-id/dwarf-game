@@ -151,7 +151,7 @@ export const SMELTER_POSITION: Position = {
 export const GEMCUTTING_POSITION: Position = { col: 54, row: 36 };
 
 /** Charcoal Kiln in the Garden Room, beside the wood node. */
-export const KILN_POSITION: Position = { col: 10, row: 38 };
+export const KILN_POSITION: Position = { col: 15, row: 37 }; // east side of garden room, 2×2: cols 15-16, rows 37-38
 
 /**
  * Narag-Bund's resting spot once befriended — just south-east of the
@@ -218,12 +218,11 @@ export interface WoodNodePlacement {
 }
 
 export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
-  // Garden Room — skylit, living wood. The dwarf harvests from here
-  // rather than mining ore. Future: rare tree species in restored planters.
+  // Garden Room — root tangle on the west wall, 3×3 footprint.
   {
     id: "garden_roots",
     woodNodeId: "root_tangle",
-    position: { col: 8, row: 38 },
+    position: { col: 6, row: 37 },  // 3×3: cols 6-8, rows 37-39
   },
 ];
 
@@ -238,3 +237,13 @@ export const LIGHT_SOURCES: LightSourceDefinition[] = [];
 export function lightSourceById(id: string): LightSourceDefinition | undefined {
   return LIGHT_SOURCES.find((l) => l.id === id);
 }
+
+/** The 6 planter slot positions in the Garden Room (2×3 grid of 3×3 planters). */
+export const PLANTER_POSITIONS: Position[] = [
+  { col: 8,  row: 40 }, // slot 0 — unlocked from start
+  { col: 12, row: 40 }, // slot 1
+  { col: 8,  row: 43 }, // slot 2
+  { col: 12, row: 43 }, // slot 3
+];
+// Slots 4 and 5 use cols 16+ which may clip into kiln area; limited to 4 for now.
+// The garden room (cols 6-18) safely fits 2 columns of 3×3 planters at cols 8 and 12.

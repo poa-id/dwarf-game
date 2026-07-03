@@ -73,7 +73,19 @@ function backfillMissingFields(state: any): any {
     if (state.world.roomStates === undefined) state.world.roomStates = {};
     if (state.world.stockpileOre === undefined) state.world.stockpileOre = {};
     if (state.world.lastMerchantAt === undefined) state.world.lastMerchantAt = 0;
-    if (state.world.gardenSlots === undefined) state.world.gardenSlots = [];
+    if (state.world.gardenSlots === undefined || state.world.gardenSlots.length === 0) {
+      // Migration: old gardenSlots used a different format; replace with fresh planter slots
+      state.world.gardenSlots = [
+        { plantId: null, stage: 0, stageStartedAt: 0, unlocked: true },
+        { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
+        { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
+        { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
+      ];
+    }
+    // Backfill new skills
+    const skills = state.vessel.skills as Record<string, unknown>;
+    if (!skills["herblore"]) skills["herblore"] = { id: "herblore", level: 1, xp: 0 };
+    if (!skills["brewing"]) skills["brewing"] = { id: "brewing", level: 1, xp: 0 };
     if (state.world.hearthTier === undefined) state.world.hearthTier = 0;
     if (state.world.fuelReserve === undefined) state.world.fuelReserve = {};
     if (state.world.companion === undefined) {

@@ -35,8 +35,18 @@ export type CellKind =
   | "drill_copper"
   | "drill_iron"
   | "drill_deep"
+  | "drill_coal"
   | "mineshaft_broken"
   | "mineshaft_lit"
+  | "wood_node"
+  | "planter_broken"
+  | "planter_empty"
+  | "planter_sprout"
+  | "planter_growing"
+  | "planter_mature"
+  | "planter_fern"
+  | "planter_shroom"
+  | "trade_post"
   | "tunnel_edge"
   | "torch_broken"
   | "torch_lit";
@@ -58,6 +68,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "drill_copper",
   "drill_iron",
   "drill_deep",
+  "drill_coal",
   "hearth",
   "forge",
   "forge_broken",
@@ -74,6 +85,15 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "torch_lit",
   "mineshaft_broken",
   "mineshaft_lit",
+  "wood_node",
+  "planter_broken",
+  "planter_empty",
+  "planter_sprout",
+  "planter_growing",
+  "planter_mature",
+  "planter_fern",
+  "planter_shroom",
+  "trade_post",
 ]);
 
 export function isSolidCellKind(kind: CellKind): boolean {
@@ -121,10 +141,19 @@ const STAGE_0: StagePalette = {
     mountain_console: "#7ab8d4",
     stockpile_chest: "#b89a4a",
     drill_copper: "#c87830",
+    drill_coal: "#404040",
     drill_iron: "#8898a8",
     drill_deep: "#6858a0",
     mineshaft_broken: "#3a3028",
     mineshaft_lit: "#4a3820",
+    planter_broken: "#2a2820",
+    planter_empty: "#3a3430",
+    planter_sprout: "#2a3a1a",
+    planter_growing: "#2a4a1a",
+    planter_mature: "#2a5a1a",
+    planter_fern: "#1a4a2a",
+    planter_shroom: "#3a2a4a",
+    trade_post: "#2a3040",
     tunnel_edge: "#9a9a9a",
     torch_broken: "#9a9a9a", // inert, indistinguishable from any other stone shape until repaired
     // Torches now follow the SAME flat-gray Stage 0 rule as everything
@@ -190,10 +219,19 @@ const STAGE_2: StagePalette = {
     mountain_console: "#5a9ab8",
     stockpile_chest: "#c8a830",
     drill_copper: "#d4894a",
+    drill_coal: "#505050",
     drill_iron: "#9aa3ad",
     drill_deep: "#7868b8",
     mineshaft_broken: "#4a3a30",
     mineshaft_lit: "#5a4828",
+    planter_broken: "#3a3830",
+    planter_empty: "#4a4440",
+    planter_sprout: "#3a4a2a",
+    planter_growing: "#3a5a2a",
+    planter_mature: "#3a6a2a",
+    planter_fern: "#2a5a3a",
+    planter_shroom: "#4a3a5a",
+    trade_post: "#3a4050",
     tunnel_edge: "#4a3a2a",
     torch_broken: "#6b5640", // same as plain stone at this stage - inert
     torch_lit: "#ff7a2a",
@@ -233,10 +271,19 @@ const STAGE_3: StagePalette = {
     mountain_console: "#8accd8",
     stockpile_chest: "#d4b840",
     drill_copper: "#e09a5a",
+    drill_coal: "#606060",
     drill_iron: "#aab3bd",
     drill_deep: "#8878c8",
     mineshaft_broken: "#5a4a40",
     mineshaft_lit: "#6a5838",
+    planter_broken: "#4a4840",
+    planter_empty: "#5a5450",
+    planter_sprout: "#4a5a3a",
+    planter_growing: "#4a6a3a",
+    planter_mature: "#4a7a3a",
+    planter_fern: "#3a6a4a",
+    planter_shroom: "#5a4a6a",
+    trade_post: "#4a5060",
     tunnel_edge: "#454d56",
     torch_broken: "#5a6472",
     torch_lit: "#ff9a3a",
@@ -276,8 +323,17 @@ export const GLYPHS: Record<CellKind, string> = {
   drill_copper: "d",
   drill_iron: "d",
   drill_deep: "d",
+  drill_coal: "d",
   mineshaft_broken: "m",
   mineshaft_lit: "M",
+  planter_broken: "p",
+  planter_empty: "P",
+  planter_sprout: "1",
+  planter_growing: "2",
+  planter_mature: "3",
+  planter_fern: "f",
+  planter_shroom: "s",
+  trade_post: "T",
   tunnel_edge: "%",
   torch_broken: "¡", // inverted exclamation - a snapped, hollow shape
   torch_lit: "!", // upright, bright - deliberately the "completed" version of the same glyph idea

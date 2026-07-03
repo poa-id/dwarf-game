@@ -55,7 +55,7 @@ import {
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer } from "../ui/drillPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
-import { renderGardenPanel, performAdvanceGardenRoom, performPlantSeed, performHarvestSlot } from "../ui/gardenPanel";
+import { renderGardenPanel, performPlantSeed, performHarvestSlot, performUnlockPlanter } from "../ui/gardenPanel";
 import { renderTradeHallPanel, performAdvanceTradeHall, performTrade, isNearTradeHall } from "../ui/tradeHallPanel";
 import { renderRoomPanel, performAdvanceRoom, isNearDeepFoundry, isNearArchive } from "../ui/roomPanel";
 import { renderMineshaftPanel, performMineshaftUpgrade, isNearMineshaft } from "../ui/mineshaftPanel";
@@ -187,6 +187,24 @@ function updateStatsPanel(): void {
   (refs.statEls.barWoodcraft as HTMLDivElement).style.width = `${levelProgressPercent(skills.woodcraft.xp)}%`;
   (refs.statEls.barTinkering as HTMLDivElement).style.width = `${levelProgressPercent(skills.tinkering.xp)}%`;
 
+  // Herblore and Brewing — shown once the player has actually used them
+  const herbloreRow = document.getElementById("skill-herblore-row");
+  const brewingRow = document.getElementById("skill-brewing-row");
+  const herbloreEl = document.getElementById("stat-herblore");
+  const herbloreBar = document.getElementById("bar-herblore");
+  const brewingEl = document.getElementById("stat-brewing");
+  const brewingBar = document.getElementById("bar-brewing");
+  if (herbloreRow && skills.herblore && skills.herblore.xp > 0) {
+    herbloreRow.style.display = "";
+    if (herbloreEl) herbloreEl.textContent = `Herblore ${skills.herblore.level}`;
+    if (herbloreBar) (herbloreBar as HTMLDivElement).style.width = `${levelProgressPercent(skills.herblore.xp)}%`;
+  }
+  if (brewingRow && skills.brewing && skills.brewing.xp > 0) {
+    brewingRow.style.display = "";
+    if (brewingEl) brewingEl.textContent = `Brewing ${skills.brewing.level}`;
+    if (brewingBar) (brewingBar as HTMLDivElement).style.width = `${levelProgressPercent(skills.brewing.xp)}%`;
+  }
+
   // Tools - shows what's CURRENTLY equipped per slot (bestAvailablePickaxe/
   // bestAvailableAxe already pick the right ToolTier given the forged
   // tier), not the forging recipes themselves (those live in the
@@ -246,14 +264,11 @@ export function updateActionHint(): void {
   }
 
   if (isNearGarden()) {
-    const gardenStage = world.roomStates["garden_room"] ?? "ruined";
-    const readySlots = world.gardenSlots.filter(s => s.readyCount > 0).length;
+    const readySlots = world.gardenSlots.filter(s => s.unlocked && s.stage === 3).length;
     if (readySlots > 0) {
-      refs.actionHint.textContent = `Garden (${gardenStage}) — ${readySlots} slot${readySlots !== 1 ? "s" : ""} ready to harvest`;
+      refs.actionHint.textContent = `Garden — ${readySlots} slot${readySlots !== 1 ? "s" : ""} ready to harvest`;
     } else {
-      refs.actionHint.textContent = gardenStage === "ruined"
-        ? "Overgrown garden — restore it to plant seeds"
-        : `Garden (${gardenStage}) — ${world.gardenSlots.length} slots`;
+      refs.actionHint.textContent = "The garden waits";
     }
     return;
   }
@@ -581,9 +596,9 @@ function updateContextualPanel(): void {
     renderGardenPanel(
       state,
       refs.contextualPanel,
-      () => { setState(performAdvanceGardenRoom(getState())); render(); },
-      (slotIndex, plantId) => { setState(performPlantSeed(getState(), slotIndex, plantId)); render(); },
-      (slotIndex) => { setState(performHarvestSlot(getState(), slotIndex)); render(); }
+      (slotIndex: number, plantId: string) => { setState(performPlantSeed(getState(), slotIndex, plantId)); render(); },
+      (slotIndex: number) => { setState(performHarvestSlot(getState(), slotIndex)); render(); },
+      (slotIndex: number) => { setState(performUnlockPlanter(getState(), slotIndex)); render(); }
     );
     reapplyPanelHighlight(refs.contextualPanel);
     return;
@@ -824,7 +839,8 @@ export function render(): void {
         state.world.roomStates["the_archive"] ?? "ruined",
         Object.fromEntries(Object.entries(state.world.drills).map(([id, d]) => [id, d.tier])),
         state.world.placedTorches,
-        state.world.mineshaftDepth
+        state.world.mineshaftDepth,
+        state.world.gardenSlots
       );
     },
     (col, row) => {
@@ -845,7 +861,8 @@ export function render(): void {
         state.world.roomStates["the_archive"] ?? "ruined",
         drillTiers,
         state.world.placedTorches,
-        state.world.mineshaftDepth
+        state.world.mineshaftDepth,
+        state.world.gardenSlots
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -864,7 +881,8 @@ export function render(): void {
             state.world.roomStates["the_archive"] ?? "ruined",
             drillTiers,
             state.world.placedTorches,
-            state.world.mineshaftDepth
+            state.world.mineshaftDepth,
+            state.world.gardenSlots
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

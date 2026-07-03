@@ -57,6 +57,14 @@ app.innerHTML = `
               <p id="stat-tinkering">Tinkering 1</p>
               <div class="skill-bar"><div class="skill-bar-fill" id="bar-tinkering"></div></div>
             </div>
+            <div class="skill-row" id="skill-herblore-row" style="display:none">
+              <p id="stat-herblore">Herblore 1</p>
+              <div class="skill-bar"><div class="skill-bar-fill" id="bar-herblore"></div></div>
+            </div>
+            <div class="skill-row" id="skill-brewing-row" style="display:none">
+              <p id="stat-brewing">Brewing 1</p>
+              <div class="skill-bar"><div class="skill-bar-fill" id="bar-brewing"></div></div>
+            </div>
           </div>
           <div class="stats-section">
             <div id="tools-list"></div>

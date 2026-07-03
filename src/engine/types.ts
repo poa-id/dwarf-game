@@ -16,7 +16,7 @@
 // Skills
 // ---------------------------------------------------------------------------
 
-export type SkillId = "mining" | "smithing" | "hearthkeeping" | "woodcraft" | "tinkering";
+export type SkillId = "mining" | "smithing" | "hearthkeeping" | "woodcraft" | "tinkering" | "herblore" | "brewing";
 
 export type SkillMode = "active" | "idle";
 
@@ -411,10 +411,11 @@ export interface WorldState {
    */
   roomStates: Record<string, import("./rooms").RoomStage>;
   /**
-   * Garden growing slots — passive plant production in the Garden Room.
-   * Length varies by garden_room stage (0/2/6/10 slots).
+   * Garden planter slots — individual plants with growth stages.
+   * Each slot is independently unlocked; slot 0 is always available.
+   * Seeds are consumable; must replant after each harvest.
    */
-  gardenSlots: import("./garden").GardenSlot[];
+  gardenSlots: import("./garden").PlanterSlot[];
   /**
    * Shared ore stockpile — drills drain into this automatically once
    * the stockpile_room is at "cleared" stage or above.
