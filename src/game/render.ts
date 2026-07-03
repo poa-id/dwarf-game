@@ -175,11 +175,11 @@ function updateStatsPanel(): void {
     refs.statEls.insightRateDisplay.style.display = "none";
   }
 
-  refs.statEls.mining.textContent = `Mining ${skills.mining.level}`;
-  refs.statEls.smithing.textContent = `Smithing ${skills.smithing.level}`;
-  refs.statEls.hearthkeeping.textContent = `Hearthkeeping ${skills.hearthkeeping.level}`;
-  refs.statEls.woodcraft.textContent = `Woodcraft ${skills.woodcraft.level}`;
-  refs.statEls.tinkering.textContent = `Tinkering ${skills.tinkering.level}`;
+  refs.statEls.mining.textContent = `${skills.mining.level}`;
+  refs.statEls.smithing.textContent = `${skills.smithing.level}`;
+  refs.statEls.hearthkeeping.textContent = `${skills.hearthkeeping.level}`;
+  refs.statEls.woodcraft.textContent = `${skills.woodcraft.level}`;
+  refs.statEls.tinkering.textContent = `${skills.tinkering.level}`;
 
   (refs.statEls.barMining as HTMLDivElement).style.width = `${levelProgressPercent(skills.mining.xp)}%`;
   (refs.statEls.barSmithing as HTMLDivElement).style.width = `${levelProgressPercent(skills.smithing.xp)}%`;
@@ -196,12 +196,12 @@ function updateStatsPanel(): void {
   const brewingBar = document.getElementById("bar-brewing");
   if (herbloreRow && skills.herblore && skills.herblore.xp > 0) {
     herbloreRow.style.display = "";
-    if (herbloreEl) herbloreEl.textContent = `Herblore ${skills.herblore.level}`;
+    if (herbloreEl) herbloreEl.textContent = `${skills.herblore.level}`;
     if (herbloreBar) (herbloreBar as HTMLDivElement).style.width = `${levelProgressPercent(skills.herblore.xp)}%`;
   }
   if (brewingRow && skills.brewing && skills.brewing.xp > 0) {
     brewingRow.style.display = "";
-    if (brewingEl) brewingEl.textContent = `Brewing ${skills.brewing.level}`;
+    if (brewingEl) brewingEl.textContent = `${skills.brewing.level}`;
     if (brewingBar) (brewingBar as HTMLDivElement).style.width = `${levelProgressPercent(skills.brewing.xp)}%`;
   }
 

@@ -136,12 +136,51 @@ canvas {
   color: #bbb;
 }
 
-.skill-row {
-  margin-bottom: 6px;
+/* Skills tab grid (RuneScape-inspired, added 2026-07-03): icon badges
+   with an overlaid level number and a thin XP bar underneath, instead
+   of the old "Mining 5" text rows. Two columns keep the badges large
+   enough to read given how ornate/detailed the source art is - a
+   denser 3-4 column grid shrank them past the point of legibility in
+   the 160px-wide sidebar. */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
-.skill-row p {
-  padding-bottom: 2px;
+.skill-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skill-icon-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.skill-icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.skill-level-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 14px;
+  text-align: center;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: #e0a020;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid #3a3a3a;
+  border-radius: 3px;
+  padding: 0 3px;
 }
 
 .skill-bar {

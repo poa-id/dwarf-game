@@ -11,6 +11,7 @@ import { nearestOreVein, nearestWoodNode } from "./game/proximity";
 import { movePanelHighlight, confirmPanelHighlight } from "./game/panelNavigation";
 import { getLastSavedAt } from "./persistence/saveGame";
 import { computeOfflineSummary, renderOfflineSummaryBanner } from "./engine/offlineSummary";
+import { buildSkillsGridHtml } from "./ui/skillsGridPanel";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -37,34 +38,7 @@ app.innerHTML = `
 
         <div class="tab-content" id="tab-skills">
           <div class="stats-section">
-            <div class="skill-row">
-              <p id="stat-mining">Mining 1</p>
-              <div class="skill-bar"><div class="skill-bar-fill" id="bar-mining"></div></div>
-            </div>
-            <div class="skill-row">
-              <p id="stat-smithing">Smithing 1</p>
-              <div class="skill-bar"><div class="skill-bar-fill" id="bar-smithing"></div></div>
-            </div>
-            <div class="skill-row">
-              <p id="stat-hearthkeeping">Hearthkeeping 1</p>
-              <div class="skill-bar"><div class="skill-bar-fill" id="bar-hearthkeeping"></div></div>
-            </div>
-            <div class="skill-row">
-              <p id="stat-woodcraft">Woodcraft 1</p>
-              <div class="skill-bar"><div class="skill-bar-fill" id="bar-woodcraft"></div></div>
-            </div>
-            <div class="skill-row">
-              <p id="stat-tinkering">Tinkering 1</p>
-              <div class="skill-bar"><div class="skill-bar-fill" id="bar-tinkering"></div></div>
-            </div>
-            <div class="skill-row" id="skill-herblore-row" style="display:none">
-              <p id="stat-herblore">Herblore 1</p>
-              <div class="skill-bar"><div class="skill-bar-fill" id="bar-herblore"></div></div>
-            </div>
-            <div class="skill-row" id="skill-brewing-row" style="display:none">
-              <p id="stat-brewing">Brewing 1</p>
-              <div class="skill-bar"><div class="skill-bar-fill" id="bar-brewing"></div></div>
-            </div>
+            ${buildSkillsGridHtml()}
           </div>
           <div class="stats-section">
             <div id="tools-list"></div>
