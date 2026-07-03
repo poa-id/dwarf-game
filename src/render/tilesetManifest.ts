@@ -107,7 +107,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 3, rows: 3 } },
   mineshaft_broken: { assetUrl: mineshaftBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
   mineshaft_lit: { assetUrl: mineshaftLitUrl, tileSpan: { cols: 3, rows: 3 } },
-  mountain_console: { assetUrl: mountainConsoleUrl, tileSpan: { cols: 3, rows: 3 } },
+  mountain_console: { assetUrl: mountainConsoleUrl, tileSpan: { cols: 2, rows: 2 } },
   wood_node: { assetUrl: woodNodeUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_broken: { assetUrl: planterBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_empty: { assetUrl: planterEmptyUrl, tileSpan: { cols: 3, rows: 3 } },

@@ -53,9 +53,10 @@ export const nearestGatheredWoodNode = nearestWoodNode;
 
 export function isNearConsole(): boolean {
   const { position } = getState().vessel;
+  // Console is 2×2 at (35,22)-(36,23)
   return (
-    Math.abs(position.col - CONSOLE_POSITION.col) <= 1 &&
-    Math.abs(position.row - CONSOLE_POSITION.row) <= 1
+    position.col >= CONSOLE_POSITION.col - 1 && position.col <= CONSOLE_POSITION.col + 2 &&
+    position.row >= CONSOLE_POSITION.row - 1 && position.row <= CONSOLE_POSITION.row + 2
   );
 }
 
@@ -69,8 +70,8 @@ export function isNearCompanion(): boolean {
   const { position } = getState().vessel;
   const world = getState().world;
   if (!world.companion.befriended) return false;
-  // Narag-Bund sits at COMPANION_POSITION (42, 27)
-  return Math.abs(position.col - 42) <= 2 && Math.abs(position.row - 27) <= 2;
+  // Narag-Bund sits at COMPANION_POSITION (40, 29) — south of the hearth
+  return Math.abs(position.col - 40) <= 2 && Math.abs(position.row - 29) <= 2;
 }
 
 export function isForgeRepaired(): boolean {

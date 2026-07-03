@@ -159,7 +159,7 @@ export const KILN_POSITION: Position = { col: 15, row: 35 }; // against north wa
  * has unlocked the Friend of Burden upgrade. His map presence
  * confirms he's real rather than just a UI panel status line.
  */
-export const COMPANION_POSITION: Position = { col: 42, row: 27 };
+export const COMPANION_POSITION: Position = { col: 40, row: 29 }; // south of hearth (hearth ends row 27)
 
 /** The Mountain Console — ancient stone terminal in the northwest quadrant of the central hall. */
 export const CONSOLE_POSITION: Position = { col: 35, row: 22 };

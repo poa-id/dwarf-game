@@ -169,10 +169,10 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 6; dc++)
       set(GEMCUTTING_POSITION.col + dc, GEMCUTTING_POSITION.row + dr, "gemcutting_unbuilt");
 
-  // ── 12. Mountain Console ──────────────────────────────────────────────
-  // Always present as a static cell — the console was always here.
-  // The dwarf just needs to find and awaken it.
-  set(CONSOLE_POSITION.col, CONSOLE_POSITION.row, "mountain_console");
+  // ── 12. Mountain Console — 2×2 ──────────────────────────────────────────
+  for (let dr = 0; dr < 2; dr++)
+    for (let dc = 0; dc < 2; dc++)
+      set(CONSOLE_POSITION.col + dc, CONSOLE_POSITION.row + dr, "mountain_console");
 
   // ── 13. Mine shaft — 3×3, partially into north wall ────────────────────
   // Anchor at row 17 — shaft body rows 17-19 in the wall, mouth at row 20.
