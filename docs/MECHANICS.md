@@ -852,6 +852,17 @@ asset files having existed since early in the project):**
   be felt other ways (architecture/memory beats, not yet built - see
   OPEN_QUESTIONS.md).
 
+**The same threshold now also gates UI chrome, not just the world
+canvas** (added 2026-07-03): the Skills tab shows a plain text-row list
+below colorStage 2, switching to a painted icon-badge grid at colorStage
+2+ (see `skillsGridPanel.ts`). This was an explicit correction after the
+icon grid shipped showing its full art from a fresh Stage-0 save -
+richly-rendered UI is exactly the kind of thing Perception Is Progression
+says should be earned, not just world tiles. Worth remembering as a
+general principle for future UI work: any new visually-rich chrome
+(not just canvas sprites) should default to asking whether it belongs
+behind this same gate before shipping unconditionally.
+
 **What actually had to be fixed**, since the two renderers had quietly
 diverged despite an old docstring claiming "drop-in alternative, same
 input shape": `GridRenderer.render()` takes lazy per-cell lookup

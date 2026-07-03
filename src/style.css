@@ -115,7 +115,7 @@ canvas {
 }
 
 .stats-panel {
-  width: 160px;
+  width: 220px;
   height: 576px; /* matches canvas height exactly (18 viewportRows * 32px cellSize, see main.ts) - the sidebar must never grow the page itself */
   display: flex;
   flex-direction: column;
@@ -171,7 +171,23 @@ canvas {
    of the old "Mining 5" text rows. Two columns keep the badges large
    enough to read given how ornate/detailed the source art is - a
    denser 3-4 column grid shrank them past the point of legibility in
-   the 160px-wide sidebar. */
+   the sidebar. */
+/* Basic skill list (colorStage < 2, pre-sprite-unlock): the plain
+   "Mining 1" + bar layout that predates the icon grid, restored
+   verbatim for this stage per Perception-Is-Progression - badge art
+   is a Stage 2+ reward, not a day-one given. See skillsGridPanel.ts. */
+.skills-basic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skill-row-basic p {
+  margin: 0;
+  padding-bottom: 2px;
+  color: #bbb;
+}
+
 .skills-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

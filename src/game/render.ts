@@ -205,6 +205,42 @@ function updateStatsPanel(): void {
     if (brewingBar) (brewingBar as HTMLDivElement).style.width = `${levelProgressPercent(skills.brewing.xp)}%`;
   }
 
+  // Skills tab: basic text-row list vs. icon badge grid, gated by the
+  // same colorStage threshold that switches the world to sprite art
+  // (TILESET_MODE_MIN_COLOR_STAGE, defined below) - see skillsGridPanel.ts's
+  // doc comment. Both trees stay in the DOM at all times; only display
+  // toggles, same pattern as the herblore/brewing reveal above.
+  const basicLabels: Record<string, string> = {
+    mining: "Mining", smithing: "Smithing", hearthkeeping: "Hearthkeeping",
+    woodcraft: "Woodcraft", tinkering: "Tinkering", herblore: "Herblore", brewing: "Brewing",
+  };
+  const basicLevels: Record<string, number> = {
+    mining: skills.mining.level, smithing: skills.smithing.level, hearthkeeping: skills.hearthkeeping.level,
+    woodcraft: skills.woodcraft.level, tinkering: skills.tinkering.level,
+    herblore: skills.herblore?.level ?? 1, brewing: skills.brewing?.level ?? 1,
+  };
+  const basicXp: Record<string, number> = {
+    mining: skills.mining.xp, smithing: skills.smithing.xp, hearthkeeping: skills.hearthkeeping.xp,
+    woodcraft: skills.woodcraft.xp, tinkering: skills.tinkering.xp,
+    herblore: skills.herblore?.xp ?? 0, brewing: skills.brewing?.xp ?? 0,
+  };
+  for (const id of Object.keys(basicLabels)) {
+    const el = document.getElementById(`stat-${id}-basic`);
+    const bar = document.getElementById(`bar-${id}-basic`);
+    if (el) el.textContent = `${basicLabels[id]} ${basicLevels[id]}`;
+    if (bar) (bar as HTMLDivElement).style.width = `${levelProgressPercent(basicXp[id])}%`;
+    if (id === "herblore" || id === "brewing") {
+      const rowBasic = document.getElementById(`skill-${id}-row-basic`);
+      if (rowBasic && basicXp[id] > 0) rowBasic.style.display = "";
+    }
+  }
+
+  const skillsAdvanced = world.hearth.colorStage >= TILESET_MODE_MIN_COLOR_STAGE;
+  const basicList = document.getElementById("skills-basic-list");
+  const iconGrid = document.getElementById("skills-icon-grid");
+  if (basicList) basicList.style.display = skillsAdvanced ? "none" : "";
+  if (iconGrid) iconGrid.style.display = skillsAdvanced ? "" : "none";
+
   // Tools - shows what's CURRENTLY equipped per slot (bestAvailablePickaxe/
   // bestAvailableAxe already pick the right ToolTier given the forged
   // tier), not the forging recipes themselves (those live in the
