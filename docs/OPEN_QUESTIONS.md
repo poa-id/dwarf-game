@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-401/401 tests passing. TSC clean. Build clean.
+403/403 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -117,14 +117,16 @@
 11. **Wandering strangers** — model agreed, nothing built. Distinct from Narag-Bund.
 
 12. **Deep Tree Grove (wood tiers 4-6)** — designed 2026-07-03, not built. Wood ladder
-    continues past Gemwood (t3) with Stonewood (t4, petrified fossil wood),
+    continues past Gemwood (t3, sprite integrated) with Stonewood (t4, petrified fossil wood),
     Emberwood (t5, volcanic trees), Voidwood (t6) - accessed via a new tunnel
     system that mirrors the Mine Shaft's depth mechanic (dig deeper → new tier
     unlocks), rather than more Garden planter slots. Needs: map space for the
     tunnel (Garden Room is already fully packed - 6 planters + root tangle +
     kiln fill it), a depth-gate structure parallel to `SHAFT_DEPTHS`, and
-    sprite work per tier (t3/Gemwood sprite was ready at design time; t4-6
-    sprites not yet mentioned as ready).
+    sprite work per tier (t3/Gemwood sprite integrated 2026-07-03; t4-6
+    sprites not yet made). An "Ancient Grove" entrance sprite exists
+    (uploaded 2026-07-03, not yet wired to anything) - queued for when this
+    system gets built.
 
 13. **Garden "periodic drop" harvest mode** — designed 2026-07-03, not built.
     Currently ALL planters work one way: plant → grow → harvest (clears slot,
@@ -155,7 +157,15 @@
 - **Mine shaft speed bonus** (2026-07-03) — `drillSpeedMultiplier(mineshaftDepth)` in drill.ts now returns 1.10 at depth 1+, passed into `tickDrill` from the game loop. Matches the +10% promised in SHAFT_DEPTHS' depth-1 unlock text.
 - **Coal drill** (2026-07-03) — added to DRILL_DEFINITIONS, gated behind Mine Shaft depth 1 via new `requiresShaftDepth` field on DrillDefinition. drillPanel.ts shows the gate message before the smelter-built check when unmet.
 - **Ironwood tool handles** (2026-07-03) — turned out to be half-done already (deepstone tier already required ironwood). Fixed the actual gap: iron-tier tools now require ironwood too (previously plain wood), and deepstone tier moved up to require the new Gemwood (see below) - tool tier now matches wood tier 1:1 (copper/cave-root, iron/ironwood, deepstone/gemwood).
-- **Gemwood (wood tier 3)** (2026-07-03) — new material + `gemwood_tree` PLANT_DEFINITIONS entry, Herblore 15, grown from the previously-orphaned `ancient_seed_rare` (already sold in Trade Hall, had no plant definition until now - this also resolves the old "ancient seeds" gap). Yields gemwood + a small bonus rough_amethyst on harvest. Sprite for the mature tree not yet integrated - currently falls back to the generic `planter_mature` tree sprite ironwood also uses.
+- **Gemwood (wood tier 3)** (2026-07-03) — new material + `gemwood_tree` PLANT_DEFINITIONS entry, Herblore 15, grown from the previously-orphaned `ancient_seed_rare` (already sold in Trade Hall, had no plant definition until now - this also resolves the old "ancient seeds" gap). Yields gemwood + a small bonus rough_amethyst on harvest.
+- **Gemwood tree sprite** (2026-07-03) — wired into the planter's mature stage. Required a small architecture change: `growthStageCellKind` and `PlantDefinition` now support a per-plant `matureCellKind` override (gemwood_tree sets one; ironwood_sapling doesn't, still shares the generic `planter_mature`), since gemwood's art is a full dramatic "shrine tree" scene rather than a plant-in-a-box like every other mature sprite - deliberate per design direction, not a mismatch to fix.
+
+**5 more sprites received 2026-07-03, confirmed build order (not yet built):**
+1. ~~Gemwood tree~~ (done, see above)
+2. Sawmill (wood → planks)
+3. Kiln tier system + Hearth Infuser (hearthsap + coal → infused coal) + infused coal's drill-performance effect
+4. Brewery + Brewing skill (recipes, ale buffs)
+5. Ancient Grove entrance + Deep Tree Grove depth system (see gap #12 above)
 
 ---
 

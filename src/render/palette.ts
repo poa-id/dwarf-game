@@ -44,6 +44,7 @@ export type CellKind =
   | "planter_sprout"
   | "planter_growing"
   | "planter_mature"
+  | "planter_gemwood"
   | "planter_fern"
   | "planter_shroom"
   | "trade_post"
@@ -91,7 +92,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "planter_sprout",
   "planter_growing",
   "planter_mature",
-  "planter_fern",
+  "planter_gemwood",
   "planter_shroom",
   "trade_post",
 ]);
@@ -151,6 +152,7 @@ const STAGE_0: StagePalette = {
     planter_sprout: "#2a3a1a",
     planter_growing: "#2a4a1a",
     planter_mature: "#2a5a1a",
+    planter_gemwood: "#241a40",
     planter_fern: "#1a4a2a",
     planter_shroom: "#3a2a4a",
     trade_post: "#2a3040",
@@ -229,6 +231,7 @@ const STAGE_2: StagePalette = {
     planter_sprout: "#3a4a2a",
     planter_growing: "#3a5a2a",
     planter_mature: "#3a6a2a",
+    planter_gemwood: "#6a4a9a",
     planter_fern: "#2a5a3a",
     planter_shroom: "#4a3a5a",
     trade_post: "#3a4050",
@@ -281,6 +284,7 @@ const STAGE_3: StagePalette = {
     planter_sprout: "#4a5a3a",
     planter_growing: "#4a6a3a",
     planter_mature: "#4a7a3a",
+    planter_gemwood: "#8a6ac0",
     planter_fern: "#3a6a4a",
     planter_shroom: "#5a4a6a",
     trade_post: "#4a5060",
@@ -331,6 +335,7 @@ export const GLYPHS: Record<CellKind, string> = {
   planter_sprout: "1",
   planter_growing: "2",
   planter_mature: "3",
+  planter_gemwood: "♦",
   planter_fern: "f",
   planter_shroom: "s",
   trade_post: "T",

@@ -54,6 +54,19 @@ describe("growthStageCellKind", () => {
     expect(growthStageCellKind(3, "fern")).toBe("planter_fern");
     expect(growthStageCellKind(3, "tree")).toBe("planter_mature");
   });
+
+  it("a per-plant matureCellKind override takes priority over the category default", () => {
+    expect(growthStageCellKind(3, "tree", "planter_gemwood")).toBe("planter_gemwood");
+    // Only applies at stage 3 - earlier stages are unaffected by the override
+    expect(growthStageCellKind(1, "tree", "planter_gemwood")).toBe("planter_sprout");
+  });
+
+  it("gemwood_tree's own definition actually carries the override (regression guard)", () => {
+    const gemwood = plantDefById("gemwood_tree")!;
+    expect(gemwood.matureCellKind).toBe("planter_gemwood");
+    const ironwood = plantDefById("ironwood_sapling")!;
+    expect(ironwood.matureCellKind).toBeUndefined();
+  });
 });
 
 describe("createFreshPlanterSlot", () => {

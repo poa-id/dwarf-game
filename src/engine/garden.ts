@@ -48,6 +48,14 @@ export interface PlantDefinition {
   herbloreXp: number;
   /** Herblore level required to plant */
   herbloreRequired: number;
+  /**
+   * Optional override for the mature-stage (stage 3) sprite, used when a
+   * specific plant needs its own sprite rather than the shared
+   * category-generic one (see growthStageCellKind). Added for gemwood_tree
+   * (2026-07-03) - the first "tree" category plant to get its own distinct
+   * art instead of sharing ironwood_sapling's "planter_mature" sprite.
+   */
+  matureCellKind?: string;
 }
 
 export const PLANT_DEFINITIONS: PlantDefinition[] = [
@@ -107,6 +115,11 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     stageDurationsMs: [45 * 60_000, 60 * 60_000, 75 * 60_000], // 3 hr total (base)
     herbloreXp: 100,
     herbloreRequired: 15,
+    // Distinct mature sprite (2026-07-03) - a full dramatic "shrine tree"
+    // scene rather than a plant-in-a-planter-box like every other mature
+    // sprite. Deliberate per design direction: gemwood is meant to stand
+    // out, not blend into the same box the tier-1/2 crops use.
+    matureCellKind: "planter_gemwood",
   },
 ];
 
@@ -123,9 +136,11 @@ export type GrowthStage = 0 | 1 | 2 | 3;
 
 export function growthStageCellKind(
   stage: GrowthStage,
-  category: PlantCategory
+  category: PlantCategory,
+  matureCellKind?: string
 ): string {
   if (stage === 3) {
+    if (matureCellKind) return matureCellKind;
     if (category === "shroom") return "planter_shroom";
     if (category === "fern") return "planter_fern";
     return "planter_mature"; // tree uses generic mature sprite

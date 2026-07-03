@@ -30,6 +30,7 @@ import planterEmptyUrl from "./tileset-assets/sliced/planter_empty.png";
 import planterSproutUrl from "./tileset-assets/sliced/planter_sprout.png";
 import planterGrowingUrl from "./tileset-assets/sliced/planter_growing.png";
 import planterMatureUrl from "./tileset-assets/sliced/planter_mature.png";
+import planterGemwoodUrl from "./tileset-assets/sliced/planter_gemwood.png";
 import planterFernUrl from "./tileset-assets/sliced/planter_fern.png";
 import planterShroomUrl from "./tileset-assets/sliced/planter_shroom.png";
 import tradePostUrl from "./tileset-assets/sliced/trade_post.png";
@@ -114,6 +115,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   planter_sprout: { assetUrl: planterSproutUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_growing: { assetUrl: planterGrowingUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_mature: { assetUrl: planterMatureUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_gemwood: { assetUrl: planterGemwoodUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_fern: { assetUrl: planterFernUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_shroom: { assetUrl: planterShroomUrl, tileSpan: { cols: 3, rows: 3 } },
   trade_post: { assetUrl: tradePostUrl, tileSpan: { cols: 5, rows: 5 } },

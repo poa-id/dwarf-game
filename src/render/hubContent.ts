@@ -228,7 +228,7 @@ export function hubCellAt(
       if (!slot || !slot.unlocked) return { kind: "planter_broken" };
       if (!slot.plantId) return { kind: "planter_empty" };
       const def = plantDefById(slot.plantId);
-      const kind = growthStageCellKind(slot.stage, def?.category ?? "shroom");
+      const kind = growthStageCellKind(slot.stage, def?.category ?? "shroom", def?.matureCellKind);
       return { kind: kind as import("./palette").CellKind };
     }
   }
