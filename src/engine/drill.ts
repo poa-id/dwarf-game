@@ -101,6 +101,14 @@ export interface DrillDefinition {
   coalPerCycle: number;
   /** Tier definitions - tier 1 is the base (just-built) state */
   tiers: DrillTier[];
+  /**
+   * Minimum Mine Shaft depth (see SHAFT_DEPTHS in mineshaftPanel.ts)
+   * required before this drill can be built. Undefined/0 = no gate
+   * (copper/iron drills predate the shaft depth system and were never
+   * meant to be gated by it - only drills introduced alongside a depth
+   * tier's "unlocks" text should set this).
+   */
+  requiresShaftDepth?: number;
 }
 
 export const DRILL_DEFINITIONS: DrillDefinition[] = [
@@ -170,6 +178,33 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
       { tier: 4, name: "Deep Core Drill",    cycleMs: 15_000, orePerCycle: 3, upgradeCost: { iron_ingot: 50, true_iron: 5 } },
     ],
   },
+  // Coal drill - gated behind Mine Shaft depth 1 (see SHAFT_DEPTHS in
+  // mineshaftPanel.ts: "Coal drill buildable" is promised as part of
+  // that unlock). Same fuel-per-cycle pattern as the others - a coal
+  // drill still burns coal to run, same as any other machine in the
+  // mountain; it just happens to extract the substance it burns. That's
+  // a deliberate bit of coherence (mirrors real mining-rig fuel use)
+  // rather than an oversight - the drill still needs a hand-mined coal
+  // bootstrap before it can sustain itself.
+  {
+    id: "coal_drill",
+    name: "Coal Drill",
+    veinId: "mine_coal",
+    oreMaterialId: "coal",
+    buildCost: {
+      iron_ingot: 15,
+      copper_ingot: 10,
+      wood: 10,
+    },
+    coalPerCycle: 1,
+    requiresShaftDepth: 1,
+    tiers: [
+      { tier: 1, name: "Basic Drill",        cycleMs: 30_000, orePerCycle: 1, upgradeCost: {} },
+      { tier: 2, name: "Sharpened Bits",     cycleMs: 20_000, orePerCycle: 1, upgradeCost: { iron_ingot: 10 } },
+      { tier: 3, name: "Reinforced Housing", cycleMs: 15_000, orePerCycle: 2, upgradeCost: { iron_ingot: 20 } },
+      { tier: 4, name: "Deep Core Drill",    cycleMs: 10_000, orePerCycle: 3, upgradeCost: { iron_ingot: 30, true_iron: 5 } },
+    ],
+  },
 ];
 
 export function drillDefinitionByVeinId(veinId: string): DrillDefinition | undefined {
@@ -178,6 +213,25 @@ export function drillDefinitionByVeinId(veinId: string): DrillDefinition | undef
 
 export function drillTierDefinition(def: DrillDefinition, tier: number): DrillTier {
   return def.tiers.find((t) => t.tier === tier) ?? def.tiers[0];
+}
+
+// ---------------------------------------------------------------------------
+// Mine Shaft depth bonus
+// ---------------------------------------------------------------------------
+
+/**
+ * Drill cycle speed bonus unlocked at Mine Shaft depth 1 (see
+ * SHAFT_DEPTHS in mineshaftPanel.ts - "Drill cycle speed +10%"). Kept
+ * here rather than importing from the UI layer since drill.ts is pure
+ * engine code and mineshaftPanel.ts isn't - the promised-text number
+ * there and this constant are a shared contract, not type-enforced, so
+ * if that copy ever changes this needs a matching update.
+ */
+export const MINESHAFT_DEPTH1_DRILL_SPEED_BONUS = 0.10; // +10%
+
+/** Multiplier applied to cycle duration - >1 means cycles complete faster. */
+export function drillSpeedMultiplier(mineshaftDepth: number): number {
+  return mineshaftDepth >= 1 ? 1 + MINESHAFT_DEPTH1_DRILL_SPEED_BONUS : 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -224,13 +278,18 @@ export interface DrillTickResult {
 export function tickDrill(
   drill: DrillState,
   def: DrillDefinition,
-  now: number
+  now: number,
+  speedMultiplier: number = 1
 ): DrillTickResult {
   if (drill.tier === 0) {
     return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason: null };
   }
 
   const tierDef = drillTierDefinition(def, drill.tier);
+  // Speed multiplier shrinks the effective cycle time (>1 = faster).
+  // Rounded to the nearest ms so cyclesElapsed math below stays exact
+  // integer division rather than drifting on repeated fractional ticks.
+  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / speedMultiplier));
   const elapsedMs = Math.max(0, now - drill.lastCycleAt);
 
   if (drill.lastCycleAt === 0) {
@@ -244,7 +303,7 @@ export function tickDrill(
     };
   }
 
-  const cyclesElapsed = Math.floor(elapsedMs / tierDef.cycleMs);
+  const cyclesElapsed = Math.floor(elapsedMs / effectiveCycleMs);
   if (cyclesElapsed === 0) {
     return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason: null };
   }
@@ -271,7 +330,7 @@ export function tickDrill(
     ...drill,
     coalBuffer: coalLeft,
     oreBuffer: oreLeft,
-    lastCycleAt: drill.lastCycleAt + cyclesRun * tierDef.cycleMs,
+    lastCycleAt: drill.lastCycleAt + cyclesRun * effectiveCycleMs,
   };
 
   return {

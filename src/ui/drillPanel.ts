@@ -42,8 +42,12 @@ export function renderDrillSection(
   let html = "";
 
   if (!drillState) {
-    // Only show build option once smelter is built (iron ingots needed for the drill)
-    if (!state.world.smelterBuilt) {
+    // Depth-gated drills (currently just the coal drill) show that
+    // requirement before the smelter check - it's the more fundamental
+    // prerequisite (the vein isn't even reachable yet without it).
+    if (def.requiresShaftDepth && state.world.mineshaftDepth < def.requiresShaftDepth) {
+      html = `<h2>${def.name}</h2><p class="reserve-status" style="opacity:0.5;">Requires the Mine Shaft restored first.</p>`;
+    } else if (!state.world.smelterBuilt) {
       html = `<h2>${def.name}</h2><p class="reserve-status" style="opacity:0.5;">Build the smelter first.</p>`;
     } else {
       const canBuild = canAffordBuildDrill(def, state.vessel.inventory);
@@ -159,6 +163,7 @@ export function performBuildDrill(state: GameState, veinId: string): GameState {
   const def = drillDefinitionByVeinId(veinId);
   if (!def) return state;
   if (state.world.drills[veinId]) return state; // already built
+  if (def.requiresShaftDepth && state.world.mineshaftDepth < def.requiresShaftDepth) return state;
   if (!canAffordBuildDrill(def, state.vessel.inventory)) return state;
 
   const newInventory = deductMaterials(state.vessel.inventory, def.buildCost);

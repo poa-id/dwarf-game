@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-363/363 tests passing. TSC clean. Build clean.
+385/385 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -36,7 +36,7 @@
 - Sealed rooms: Trade Hall (S), Deep Foundry (NW), Archive (N) — full panel arcs
 
 ### Automation (idle layer)
-- Copper/iron/deepstone drills: mine from veins, coal-fueled, 4 upgrade tiers
+- Copper/iron/deepstone/coal drills: mine from veins, coal-fueled, 4 upgrade tiers. Coal drill gated behind Mine Shaft depth 1.
 - Smelting engines: per-ore-type auto-smelter (consumes stockpile → ingot buffer)
 - Narag-Bund: hauls fuel to reserve every 10s; hauls coal to drills at Hearth tier 2
 - Mountain Console: production dashboard (ore/min, drill status, hearth metrics, restoration)
@@ -55,8 +55,9 @@
 
 ### UI
 - Left sidebar: always-visible mountain stats (Restoration + Insight + rate), tabs: Skills | Bag | ⛏ Production
+- Skills tab: RuneScape-inspired 2-column icon grid (framed badge art + level number overlay + XP bar per skill), not the old text-row list
 - Right sidebar: Context panel (always visible, no tabs)
-- Herblore/Brewing bars hidden until first XP earned
+- Herblore/Brewing tiles hidden until first XP earned
 - Batch buttons (×5/×10/×50) on kiln, smelter purify, smithing smelt rows
 - Keyboard: WASD move, F gather, E repair/light/remove, R forge, T place torch, Enter confirm
 - Arrow Up/Down navigate context panel rows
@@ -87,39 +88,44 @@
 
 2. **Ironwood tool handles** — higher tier tools should require ironwood handles, not just metal ingots. The design says "higher tier tools require higher tier woods." TOOL_RECIPES in smithing.ts need ironwood added as a cost for iron/deepstone tier tools.
 
-3. **Mine shaft speed bonus** — depth 1 promises "+10% drill speed" but nothing reads `mineshaftDepth` in the drill tick. Wire the bonus.
-
-4. **Coal drill** — `drill_coal` CellKind and sprite exist. DRILL_DEFINITIONS needs a coal drill entry. Should unlock at shaft depth 1.
-
-5. **Starstone vein** — shaft depth 2 promises a new vein appears. No starstone `RockNode`, no `MaterialId`, no vein placement in hubMap. Pure stub.
+3. **Starstone vein** — shaft depth 2 promises a new vein appears. No starstone `RockNode`, no `MaterialId`, no vein placement in hubMap. Pure stub.
 
 ### Medium priority (balance / polish)
 
-6. **Garden tools** — `growthSpeedMultiplier()` exists and is called from the loop but returns 1.0 always. Future: trowel/watering can tiers (Herblore-gated) reduce growth time. Design needed.
+4. **Garden tools** — `growthSpeedMultiplier()` exists and is called from the loop but returns 1.0 always. Future: trowel/watering can tiers (Herblore-gated) reduce growth time. Design needed.
 
-7. **Brewing system** — ales from fungi/herbs. Higher tier ales give bigger buffs. Brewing skill levels from brewing. The loop: garden → harvest shrooms → kiln or brewing station → ale → buff.
+5. **Brewing system** — ales from fungi/herbs. Higher tier ales give bigger buffs. Brewing skill levels from brewing. The loop: garden → harvest shrooms → kiln or brewing station → ale → buff.
 
-8. **Trade Hall narrative** — "merchant arrives" narrator line (one-time trigger). Not wired.
+6. **Trade Hall narrative** — "merchant arrives" narrator line (one-time trigger). Not wired.
 
-9. **Ore colors** — deepstone and coal look similar in the glyph renderer (both dark). Differentiate.
+7. **Ore colors** — deepstone and coal look similar in the glyph renderer (both dark). Differentiate.
 
-10. **Room visual unlocks** — Deep Foundry / Archive / Trade Hall rooms show rubble clearing correctly? Verify sealed room dynamic override in hubCellAt works for all four sealed rooms.
+8. **Room visual unlocks** — Deep Foundry / Archive / Trade Hall rooms show rubble clearing correctly? Verify sealed room dynamic override in hubCellAt works for all four sealed rooms.
 
 ### Low priority / future content
 
-11. **True Deepstone** — purification track for deepstone_ingot → true_deepstone. Smelter tier track TBD.
+9. **True Deepstone** — purification track for deepstone_ingot → true_deepstone. Smelter tier track TBD.
 
-12. **Relics system** — named in LORE.md, nothing built. Major content category.
+10. **Relics system** — named in LORE.md, nothing built. Major content category.
 
-13. **Color stages 4/5** — Architecture Returns / The Mountain Remembers. Gates TBD (restoration score thresholds already in colorStages.ts as stubs).
+11. **Color stages 4/5** — Architecture Returns / The Mountain Remembers. Gates TBD (restoration score thresholds already in colorStages.ts as stubs).
 
-14. **Wandering strangers** — model agreed, nothing built. Distinct from Narag-Bund.
+12. **Wandering strangers** — model agreed, nothing built. Distinct from Narag-Bund.
 
-15. **Ancient seeds / heartwood sapling** — trade hall sells them, but `ancient_seed` and `ancient_seed_rare` have no plant definition in garden.ts PLANT_DEFINITIONS.
+13. **Ancient seeds / heartwood sapling** — trade hall sells them, but `ancient_seed` and `ancient_seed_rare` have no plant definition in garden.ts PLANT_DEFINITIONS.
 
-16. **Deep Foundry + Archive actual content** — panels show unlock costs and bonuses, but what IS the deep foundry beyond a smelt bonus? Design open.
+14. **Deep Foundry + Archive actual content** — panels show unlock costs and bonuses, but what IS the deep foundry beyond a smelt bonus? Design open.
 
-17. **Tinkering room / gemcutting tools** — gemcutting station is built. What does Tinkering level 10+ unlock? Future tool tiers? Equipment system?
+15. **Tinkering room / gemcutting tools** — gemcutting station is built. What does Tinkering level 10+ unlock? Future tool tiers? Equipment system?
+
+16. **MECHANICS.md has no Drills/Automation section** — the whole drill/automation system (DrillDefinition, tiers, buffers, Mine Shaft depth gating) is documented only in this file's "What Is Built" summary and in code comments, never promoted to MECHANICS.md as settled fact. Noticed while wiring the coal drill + shaft speed bonus (2026-07-03); didn't fix in that pass since it's a standalone doc-writing task, not incidental to the code change.
+
+---
+
+## Recently Resolved (changelog)
+
+- **Mine shaft speed bonus** (2026-07-03) — `drillSpeedMultiplier(mineshaftDepth)` in drill.ts now returns 1.10 at depth 1+, passed into `tickDrill` from the game loop. Matches the +10% promised in SHAFT_DEPTHS' depth-1 unlock text.
+- **Coal drill** (2026-07-03) — added to DRILL_DEFINITIONS, gated behind Mine Shaft depth 1 via new `requiresShaftDepth` field on DrillDefinition. drillPanel.ts shows the gate message before the smelter-built check when unmet.
 
 ---
 

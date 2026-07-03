@@ -11,7 +11,7 @@ import {
 } from "../engine/hearth";
 import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
-import { tickDrill, drillDefinitionByVeinId } from "../engine/drill";
+import { tickDrill, drillDefinitionByVeinId, drillSpeedMultiplier } from "../engine/drill";
 import { getRestorationScore } from "../engine/production";
 import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
@@ -173,11 +173,12 @@ function gameTick(): void {
        state.world.roomStates["stockpile_room"] === "restored" ||
        state.world.roomStates["stockpile_room"] === "masterwork");
     let drillChanged = false;
+    const speedMultiplier = drillSpeedMultiplier(state.world.mineshaftDepth);
 
     for (const [veinId, drillState] of drillEntries) {
       const def = drillDefinitionByVeinId(veinId);
       if (!def) continue;
-      const result = tickDrill(drillState, def, now);
+      const result = tickDrill(drillState, def, now, speedMultiplier);
       if (result.ranCycle || result.drill.lastCycleAt !== drillState.lastCycleAt) {
         let finalDrill = result.drill;
         // If stockpile is active and ore was produced, drain ore buffer
