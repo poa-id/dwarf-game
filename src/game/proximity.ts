@@ -41,10 +41,10 @@ export const nearestMinedOreVein = nearestOreVein;
 export function nearestWoodNode() {
   const { position } = getState().vessel;
   return WOOD_NODE_PLACEMENTS.find((w) => {
-    return (
-      Math.abs(position.col - w.position.col) <= 1 &&
-      Math.abs(position.row - w.position.row) <= 1
-    );
+    // 3×3 footprint — player within 1 tile of any of the 9 cells
+    const nearCol = position.col >= w.position.col - 1 && position.col <= w.position.col + 3;
+    const nearRow = position.row >= w.position.row - 1 && position.row <= w.position.row + 3;
+    return nearCol && nearRow;
   });
 }
 
