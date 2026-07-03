@@ -268,12 +268,10 @@ window.addEventListener("keydown", (e) => {
     return;
   }
 
-  // Space confirms the highlighted row - dispatches a real click on
-  // it, so every panel's existing onClick wiring fires unchanged. Per
-  // explicit direction: Space, not Enter, not reusing F.
-  if (e.key === " ") {
+  // Enter confirms the highlighted row in the contextual panel.
+  if (e.key === "Enter") {
     if (confirmPanelHighlight(contextualPanel)) {
-      e.preventDefault(); // only swallow the keypress if something was actually confirmed - an empty panel shouldn't eat Space for no reason
+      e.preventDefault();
     }
     return;
   }
