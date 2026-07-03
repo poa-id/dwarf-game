@@ -155,17 +155,10 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 2; dc++)
       set(KILN_POSITION.col + dc, KILN_POSITION.row + dr, "kiln");
 
-  // ── 10b. Garden planters — 6 slots in 2×3 grid, all broken by default
-  // Planter 0 (first slot, SW): (8,40) — player has this from start
-  // Planters 1-5: broken, unlock via Herblore
-  const PLANTER_POSITIONS = [
-    { col: 8, row: 40 },   // slot 0 — first, unlocked
-    { col: 12, row: 40 },  // slot 1
-    { col: 8, row: 43 },   // slot 2
-    { col: 12, row: 43 },  // slot 3
-    { col: 16, row: 40 },  // slot 4 (east column if room allows)
-    { col: 16, row: 43 },  // slot 5
-  ].filter(p => p.col + 2 <= 18 && p.row + 2 <= 45); // clip to garden room
+  // ── 10b. Garden planters — 4 slots in 2×2 grid (from hubMap PLANTER_POSITIONS)
+  // Wood root at (6,35) rows 35-37, kiln at (15,35) rows 35-36 (both north wall)
+  // Planters: top row rows 38-40, bottom row rows 41-43
+  // Corridor enters at rows 42-44; gap at col 11 between planter columns always open
   for (const p of PLANTER_POSITIONS) {
     for (let dr = 0; dr < 3; dr++)
       for (let dc = 0; dc < 3; dc++)

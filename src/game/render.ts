@@ -400,10 +400,29 @@ export function updateActionHint(): void {
     return;
   }
 
-  // Show torch placement hint when player has materials
+  // Show torch placement hint only when adjacent to a wall and carrying materials
   const { inventory } = getState().vessel;
   if ((inventory["wood"] ?? 0) >= 1 && (inventory["coal"] ?? 0) >= 1) {
-    refs.actionHint.textContent = "T — place torch on nearby wall";
+    const pos = getState().vessel.position;
+    const s = getState();
+    const w = s.world;
+    const drillTiers = Object.fromEntries(Object.entries(w.drills).map(([id, d]) => [id, d.tier]));
+    const adjacentWall = [
+      { col: pos.col, row: pos.row - 1 },
+      { col: pos.col, row: pos.row + 1 },
+      { col: pos.col - 1, row: pos.row },
+      { col: pos.col + 1, row: pos.row },
+    ].some(c => {
+      const cell = hubCellAt(c.col, c.row, w.litTorches, w.veinDepletion, w.woodDepletion,
+        w.forgeTier, w.smelterBuilt, w.gemcuttingBuilt, w.companion.befriended,
+        w.consoleAwakened, w.roomStates["stockpile_room"] ?? "ruined",
+        w.roomStates["trade_hall"] ?? "ruined", w.roomStates["deep_foundry"] ?? "ruined",
+        w.roomStates["the_archive"] ?? "ruined", drillTiers, w.placedTorches, w.mineshaftDepth, w.gardenSlots);
+      return cell.kind === "rock_wall" || cell.kind === "rubble";
+    });
+    if (adjacentWall) {
+      refs.actionHint.textContent = "T — place torch on nearby wall";
+    }
   }
 }
 

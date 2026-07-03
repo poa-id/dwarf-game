@@ -25,12 +25,11 @@ export function nearestUnrepairedTorch() {
 export function nearestOreVein() {
   const { position } = getState().vessel;
   return ORE_VEINS.find((v) => {
-    // 3×3 vein footprint with 1-tile buffer on south/north/left edges only.
-    // No right-side buffer for west-wall veins (col anchor 6) — this prevents
-    // the iron vein proximity from bleeding into the mine shaft zone (col 10+).
-    const leftBuf  = v.position.col <= 8 ? 1 : 1;  // 1 tile left of anchor
-    const rightBuf = v.position.col <= 8 ? 0 : 1;  // no right-side buffer for west-wall veins
-    const nearCol = position.col >= v.position.col - leftBuf && position.col <= v.position.col + 2 + rightBuf;
+    // 3×3 vein footprint. Player must be within 1 tile on any side.
+    // For west-wall veins (col 6-8): player stands at col 9 (east side) to mine.
+    // The shaft panel check (cols 10-12) runs BEFORE the drill panel in render.ts,
+    // so the shaft wins at col 10+ regardless of this proximity check.
+    const nearCol = position.col >= v.position.col - 1 && position.col <= v.position.col + 3;
     const nearRow = position.row >= v.position.row - 1 && position.row <= v.position.row + 3;
     return nearCol && nearRow;
   });

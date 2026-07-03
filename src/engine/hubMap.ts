@@ -151,7 +151,7 @@ export const SMELTER_POSITION: Position = {
 export const GEMCUTTING_POSITION: Position = { col: 54, row: 36 };
 
 /** Charcoal Kiln in the Garden Room, beside the wood node. */
-export const KILN_POSITION: Position = { col: 15, row: 37 }; // east side of garden room, 2×2: cols 15-16, rows 37-38
+export const KILN_POSITION: Position = { col: 15, row: 35 }; // against north wall, 2×2: cols 15-16, rows 35-36
 
 /**
  * Narag-Bund's resting spot once befriended — just south-east of the
@@ -222,7 +222,7 @@ export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
   {
     id: "garden_roots",
     woodNodeId: "root_tangle",
-    position: { col: 6, row: 37 },  // 3×3: cols 6-8, rows 37-39
+    position: { col: 6, row: 35 },  // 3×3: cols 6-8, rows 35-37 (against north wall)
   },
 ];
 
@@ -238,12 +238,13 @@ export function lightSourceById(id: string): LightSourceDefinition | undefined {
   return LIGHT_SOURCES.find((l) => l.id === id);
 }
 
-/** The 6 planter slot positions in the Garden Room (2×3 grid of 3×3 planters). */
+/** The 4 planter slot positions in the Garden Room (2×2 grid of 3×3 planters).
+ * Left column: cols 8-10. Right column: cols 12-14. Gap at col 11 is always walkable.
+ * Corridor enters at rows 42-44; planters end at row 43, row 44 is always clear.
+ * North: wood root (6,35) and kiln (15,35) against the ceiling (row 35). */
 export const PLANTER_POSITIONS: Position[] = [
-  { col: 8,  row: 40 }, // slot 0 — unlocked from start
-  { col: 12, row: 40 }, // slot 1
-  { col: 8,  row: 43 }, // slot 2
-  { col: 12, row: 43 }, // slot 3
+  { col: 8,  row: 38 }, // slot 0 — north-left (rows 38-40), unlocked from start
+  { col: 12, row: 38 }, // slot 1 — north-right (rows 38-40)
+  { col: 8,  row: 41 }, // slot 2 — south-left (rows 41-43)
+  { col: 12, row: 41 }, // slot 3 — south-right (rows 41-43)
 ];
-// Slots 4 and 5 use cols 16+ which may clip into kiln area; limited to 4 for now.
-// The garden room (cols 6-18) safely fits 2 columns of 3×3 planters at cols 8 and 12.
