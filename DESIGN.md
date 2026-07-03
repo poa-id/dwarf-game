@@ -25,6 +25,18 @@ OPEN_QUESTIONS.md for the current audit status of this loop.
   placeholders, and unresolved decisions. Changes fastest of the
   three; check here before assuming something is finished, and update
   it the moment something gets resolved or a new gap is found.
+- **[docs/wiki/](docs/wiki/Home.md)** — the player-facing wiki (RuneScape/
+  Terraria-wiki style): skills, recipes, costs, rooms, materials. This
+  is a separate audience from the three docs above — those are for
+  whoever (human or Claude) is building the game; the wiki is for
+  people playing it. Meant to be published somewhere else (e.g. GitHub
+  Pages or a real wiki host) so players don't need the repo itself.
+  Update it alongside a session's other doc updates whenever a change
+  touches something player-visible (new recipe, cost, room, material).
+  Some pages use `<details>` spoiler-collapse blocks for content the
+  game itself hides until late-game discovery (e.g. Narag-Bund, the
+  rekindle threshold) - keep that pattern for future spoiler-sensitive
+  content rather than exposing it plainly.
 
 ## Quick orientation for a fresh session
 
