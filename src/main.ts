@@ -17,19 +17,21 @@ const app = document.querySelector<HTMLDivElement>("#app")!;
 
 app.innerHTML = `
   <div class="shell">
-    <h1>the hearth &amp; the deep</h1>
-    <p class="subtitle">WASD move &middot; F gather &middot; E repair/light &middot; R forge &middot; T place torch &middot; B build</p>
+    <div class="topbar">
+      <h1>the hearth &amp; the deep</h1>
+      <div class="topbar-stats">
+        <span id="stat-restoration" class="topbar-restoration" style="display:none;"></span>
+        <span id="stat-insight" class="topbar-insight">Insight: 0</span>
+        <span id="stat-insight-rate" class="topbar-rate"></span>
+      </div>
+    </div>
+    <p class="subtitle">WASD move &middot; F gather &middot; E repair/light &middot; T place torch</p>
     <div class="game-area">
 
-      <!-- LEFT PANEL: always-visible mountain + tabbed Skills/Bag/Production -->
+      <!-- LEFT PANEL: tabbed Skills/Bag/Production. Restoration + Insight
+           moved to the top bar (2026-07-03) - single source of truth,
+           reclaims sidebar space for the tabs below. -->
       <div class="stats-panel stats-panel-left">
-        <!-- Always visible: mountain restoration + insight -->
-        <div class="stats-section mountain-always">
-          <p id="stat-restoration" style="display:none;color:#e09a20;font-size:0.75rem;margin:0 0 2px;"></p>
-          <p id="stat-insight" style="margin:0;padding:2px 0;">Insight: 0</p>
-          <p id="stat-insight-rate" style="font-size:0.72em;opacity:0.55;margin:0;padding:1px 0;"></p>
-        </div>
-
         <div class="tab-bar">
           <button class="tab-btn tab-active" data-panel="left" data-tab="skills">Skills</button>
           <button class="tab-btn" data-panel="left" data-tab="bag">Bag</button>
