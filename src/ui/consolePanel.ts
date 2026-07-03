@@ -129,6 +129,21 @@ export function renderConsolePanel(
         </div>
       `;
     })()}
+
+    ${(() => {
+      const depth = state.world.mineshaftDepth;
+      if (depth === 0) return "";
+      const depthNames = ["", "Surface", "First Deep", "Second Deep"];
+      const gardenActive = state.world.gardenSlots.filter(s => s.unlocked && s.plantId).length;
+      const gardenReady = state.world.gardenSlots.filter(s => s.unlocked && s.stage === 3).length;
+      const engineCount = Object.keys(state.world.smeltingEngines).length;
+      const parts = [
+        `Mine shaft: ${depthNames[depth] ?? `Depth ${depth}`}`,
+        gardenActive > 0 ? `Garden: ${gardenActive} plant${gardenActive !== 1 ? "s" : ""} growing${gardenReady > 0 ? ` (${gardenReady} ready)` : ""}` : null,
+        engineCount > 0 ? `Smelting engines: ${engineCount}` : null,
+      ].filter(Boolean).join(" · ");
+      return parts ? `<div class="reserve-status" style="opacity:0.75;">${parts}</div>` : "";
+    })()}
   `;
 }
 

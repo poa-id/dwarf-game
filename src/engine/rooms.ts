@@ -93,46 +93,7 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
     ],
   },
 
-  // ── Garden Room (SW — always accessible, needs restoration) ──────────
-  {
-    id: "garden_room",
-    name: "The Garden",
-    zoneId: "garden_room",
-    stages: [
-      {
-        stage: "ruined",
-        label: "Overgrown Garden",
-        description: "The planters collapsed long ago. Cave roots tangle through broken stone.",
-        cost: {},
-        insightCost: 0,
-        unlocks: "Nothing yet. The wood node still works.",
-      },
-      {
-        stage: "cleared",
-        label: "Garden Cleared",
-        description: "Two planters rebuilt. Soil turned. Something could grow here.",
-        cost: { wood: 30, copper_ingot: 8 },
-        insightCost: 200,
-        unlocks: "2 garden slots. Plant stoneshroom spores (drop from wood cutting).",
-      },
-      {
-        stage: "restored",
-        label: "The Garden",
-        description: "Six planters, the old watering channel cleared. The ancient seed chest found — sealed, but real.",
-        cost: { copper_ingot: 15, iron_ingot: 5, wood: 40 },
-        insightCost: 600,
-        unlocks: "6 garden slots. Ancient seed chest opened — plant Ironwood saplings.",
-      },
-      {
-        stage: "masterwork",
-        label: "The Deep Garden",
-        description: "The old growth-light veins rekindled. Whatever grows here grows faster.",
-        cost: { iron_ingot: 20, true_copper: 2, ironwood: 10 },
-        insightCost: 1500,
-        unlocks: "10 garden slots. All growth cycles 30% faster.",
-      },
-    ],
-  },
+  // Garden Room: individual planter system (see garden.ts + gardenPanel.ts)
 
   // ── Trade Hall (sealed_south → unlocked at restoration 2000) ────────
   {
