@@ -56,7 +56,7 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     seedMaterialId: "stoneshroom_spore",
     harvestMaterialId: "stoneshroom",
     harvestAmount: 2,
-    stageDurationsMs: [60_000, 90_000, 90_000], // 4 min total
+    stageDurationsMs: [5 * 60_000, 8 * 60_000, 7 * 60_000], // 20 min total (base)
     herbloreXp: 15,
     herbloreRequired: 1,
   },
@@ -68,7 +68,7 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     seedMaterialId: "cave_fern_spore",
     harvestMaterialId: "hearthsap",
     harvestAmount: 1,
-    stageDurationsMs: [120_000, 150_000, 150_000], // 7 min total
+    stageDurationsMs: [10 * 60_000, 15 * 60_000, 15 * 60_000], // 40 min total (base)
     herbloreXp: 20,
     herbloreRequired: 1,
   },
@@ -82,7 +82,7 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     harvestAmount: 3,
     secondaryMaterialId: "cave_fern_spore",
     secondaryAmount: 1,
-    stageDurationsMs: [10 * 60_000, 10 * 60_000, 10 * 60_000], // 30 min total
+    stageDurationsMs: [30 * 60_000, 45 * 60_000, 45 * 60_000], // 2 hr total (base)
     herbloreXp: 60,
     herbloreRequired: 8,
   },
@@ -143,14 +143,23 @@ export interface PlanterUnlockCost {
 }
 
 export const PLANTER_UNLOCK_COSTS: PlanterUnlockCost[] = [
-  // Slot 0 is always unlocked
+  // Slot 0 — always unlocked, the first planter is repaired as part of restoring the room
   { insightCost: 0, materialCost: {}, herbloreRequired: 0 },
-  // Slot 1
-  { insightCost: 5, materialCost: { copper_ingot: 5, wood: 5 }, herbloreRequired: 1 },
-  // Slot 2
-  { insightCost: 15, materialCost: { iron_ingot: 10, wood: 10 }, herbloreRequired: 5 },
-  // Slot 3
-  { insightCost: 40, materialCost: { deepstone_ingot: 5, ironwood: 5 }, herbloreRequired: 10 },
+
+  // Slot 1 — a second planter. Meaningful but achievable early.
+  { insightCost: 80, materialCost: { copper_ingot: 20, iron_ingot: 5, wood: 30 }, herbloreRequired: 3 },
+
+  // Slot 2 — third planter. Now you have real garden output. Iron tier investment.
+  { insightCost: 250, materialCost: { iron_ingot: 30, wood: 50, hearthsap: 5 }, herbloreRequired: 6 },
+
+  // Slot 3 — fourth planter. Deep investment. Requires deepstone access.
+  { insightCost: 600, materialCost: { iron_ingot: 60, deepstone_ingot: 10, ironwood: 15 }, herbloreRequired: 10 },
+
+  // Slot 4 — fifth planter. Late game. The garden is a significant operation.
+  { insightCost: 1500, materialCost: { deepstone_ingot: 25, ironwood: 30, true_iron: 3 }, herbloreRequired: 15 },
+
+  // Slot 5 — sixth planter. Endgame. A fully operational deep garden.
+  { insightCost: 4000, materialCost: { deepstone_ingot: 50, ironwood: 60, true_iron: 8, true_copper: 4 }, herbloreRequired: 20 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -162,7 +171,21 @@ export interface GardenTickResult {
   changed: boolean;
 }
 
-export function tickGarden(slots: PlanterSlot[], now: number): GardenTickResult {
+/**
+ * Growth speed multiplier — future tools and upgrades will reduce stage durations.
+ * Applied as a divisor: multiplier 2.0 = half the time.
+ * Sources (planned):
+ *   - Herblore level: +5% per level above required (passive knowledge)
+ *   - Garden tools (trowel, watering can): +25/50% per tier
+ *   - Kiln proximity (warmth): +10% for planters near kiln
+ * For now, base speed only. The slowness is intentional — patience is the idiom.
+ */
+export function growthSpeedMultiplier(_herbloreLevel: number): number {
+  // TODO: implement tool bonuses when garden tools are added
+  return 1.0;
+}
+
+export function tickGarden(slots: PlanterSlot[], now: number, speedMultiplier: number = 1.0): GardenTickResult {
   let changed = false;
   const nextSlots = slots.map((slot): PlanterSlot => {
     if (!slot.unlocked || !slot.plantId || slot.stage >= 3) return slot;
@@ -170,7 +193,7 @@ export function tickGarden(slots: PlanterSlot[], now: number): GardenTickResult 
     const def = plantDefById(slot.plantId);
     if (!def) return slot;
 
-    const stageDuration = def.stageDurationsMs[slot.stage as 0 | 1 | 2];
+    const stageDuration = def.stageDurationsMs[slot.stage as 0 | 1 | 2] / Math.max(0.1, speedMultiplier);
     const elapsed = now - slot.stageStartedAt;
 
     if (elapsed >= stageDuration) {

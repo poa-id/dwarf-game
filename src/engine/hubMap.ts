@@ -238,13 +238,16 @@ export function lightSourceById(id: string): LightSourceDefinition | undefined {
   return LIGHT_SOURCES.find((l) => l.id === id);
 }
 
-/** The 4 planter slot positions in the Garden Room (2×2 grid of 3×3 planters).
- * Left column: cols 8-10. Right column: cols 12-14. Gap at col 11 is always walkable.
- * Corridor enters at rows 42-44; planters end at row 43, row 44 is always clear.
- * North: wood root (6,35) and kiln (15,35) against the ceiling (row 35). */
+/** 6 planter positions in 3 columns × 2 rows.
+ * Columns at cols 6, 10, 14 (each 3 wide). Gap columns at 9 and 13 (walkable).
+ * Row 1: rows 38-40. Gap row: 41. Row 2: rows 42-44 (= SW corridor zone).
+ * The corridor passes through gap cols 9 and 13 at rows 42-44.
+ * Tree root (6,35) and kiln (15,35) are against the north wall (rows 35-37). */
 export const PLANTER_POSITIONS: Position[] = [
-  { col: 8,  row: 38 }, // slot 0 — north-left (rows 38-40), unlocked from start
-  { col: 12, row: 38 }, // slot 1 — north-right (rows 38-40)
-  { col: 8,  row: 41 }, // slot 2 — south-left (rows 41-43)
-  { col: 12, row: 41 }, // slot 3 — south-right (rows 41-43)
+  { col: 6,  row: 38 }, // slot 0 — north-west (rows 38-40), always unlocked
+  { col: 10, row: 38 }, // slot 1 — north-centre (rows 38-40)
+  { col: 14, row: 38 }, // slot 2 — north-east (rows 38-40)
+  { col: 6,  row: 42 }, // slot 3 — south-west (rows 42-44, in corridor zone)
+  { col: 10, row: 42 }, // slot 4 — south-centre (rows 42-44)
+  { col: 14, row: 42 }, // slot 5 — south-east (rows 42-44)
 ];

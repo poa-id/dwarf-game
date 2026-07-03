@@ -13,7 +13,7 @@ import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
 import { tickDrill, drillDefinitionByVeinId } from "../engine/drill";
 import { getRestorationScore } from "../engine/production";
-import { tickGarden } from "../engine/garden";
+import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
 
 export const TICK_INTERVAL_MS = 1000;
@@ -112,7 +112,9 @@ function gameTick(): void {
 
   // Tick garden slots (passive plant growth)
   if (state.world.gardenSlots.length > 0) {
-    const gardenResult = tickGarden(state.world.gardenSlots, now);
+    const herbloreLevel = state.vessel.skills.herblore?.level ?? 1;
+    const speedMult = growthSpeedMultiplier(herbloreLevel);
+    const gardenResult = tickGarden(state.world.gardenSlots, now, speedMult);
     if (gardenResult.changed) {
       setState({ ...state, world: { ...state.world, gardenSlots: gardenResult.slots } });
       state = getState();

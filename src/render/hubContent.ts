@@ -155,10 +155,9 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 2; dc++)
       set(KILN_POSITION.col + dc, KILN_POSITION.row + dr, "kiln");
 
-  // ── 10b. Garden planters — 4 slots in 2×2 grid (from hubMap PLANTER_POSITIONS)
-  // Wood root at (6,35) rows 35-37, kiln at (15,35) rows 35-36 (both north wall)
-  // Planters: top row rows 38-40, bottom row rows 41-43
-  // Corridor enters at rows 42-44; gap at col 11 between planter columns always open
+  // ── 10b. Garden planters — 6 slots in 3×2 grid (from hubMap PLANTER_POSITIONS)
+  // Row 1: rows 38-40 (3 planters). Gap: row 41. Row 2: rows 42-44 (3 planters, = corridor zone).
+  // Gap cols 9 and 13 allow corridor passage through the second row.
   for (const p of PLANTER_POSITIONS) {
     for (let dr = 0; dr < 3; dr++)
       for (let dc = 0; dc < 3; dc++)

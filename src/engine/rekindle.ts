@@ -104,7 +104,9 @@ export function createInitialWorld(now: number): WorldState {
     lastMerchantAt: 0,
     gardenSlots: [
       createFreshPlanterSlot(true),   // slot 0 — always unlocked
-      createFreshPlanterSlot(false),  // slots 1-3 require Herblore upgrades
+      createFreshPlanterSlot(false),  // slots 1-5 unlock via Herblore + materials
+      createFreshPlanterSlot(false),
+      createFreshPlanterSlot(false),
       createFreshPlanterSlot(false),
       createFreshPlanterSlot(false),
     ],

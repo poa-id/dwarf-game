@@ -74,13 +74,19 @@ function backfillMissingFields(state: any): any {
     if (state.world.stockpileOre === undefined) state.world.stockpileOre = {};
     if (state.world.lastMerchantAt === undefined) state.world.lastMerchantAt = 0;
     if (state.world.gardenSlots === undefined || state.world.gardenSlots.length === 0) {
-      // Migration: old gardenSlots used a different format; replace with fresh planter slots
+      // Migration: old gardenSlots used a different format; replace with 6 fresh planter slots
       state.world.gardenSlots = [
         { plantId: null, stage: 0, stageStartedAt: 0, unlocked: true },
         { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
         { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
         { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
+        { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
+        { plantId: null, stage: 0, stageStartedAt: 0, unlocked: false },
       ];
+    }
+    // Migrate saves with fewer than 6 slots
+    while (state.world.gardenSlots.length < 6) {
+      state.world.gardenSlots.push({ plantId: null, stage: 0, stageStartedAt: 0, unlocked: false });
     }
     // Backfill new skills
     const skills = state.vessel.skills as Record<string, unknown>;
