@@ -29,6 +29,7 @@ function makeStateWithProgress(): GameState {
       lifetimeFuelAtLastRekindle: 0, // never rekindled before - this fixture's full 1500 counts as growth
       smelterBuilt: true,
       smelterTier: 2,
+      sawmillBuilt: false,
       ironPurifyingUnlocked: false,
       ironSmelterTier: 0,
       drills: {},

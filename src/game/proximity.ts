@@ -7,6 +7,7 @@ import {
   FORGE_BUILDING_FOOTPRINT,
   HEARTH_FOOTPRINT,
   SMELTER_POSITION,
+  SAWMILL_POSITION,
   GEMCUTTING_POSITION,
   CONSOLE_POSITION,
 } from "../engine/hubMap";
@@ -123,6 +124,17 @@ export function isNearSmelter(): boolean {
   const nearCol = position.col >= SMELTER_POSITION.col - 1 && position.col <= SMELTER_POSITION.col + 2;
   const nearRow = position.row >= SMELTER_POSITION.row - 1 && position.row <= SMELTER_POSITION.row + 2;
   return nearCol && nearRow;
+}
+
+export function isNearSawmill(): boolean {
+  const { position } = getState().vessel;
+  // Sawmill 2×2 footprint, same proximity shape as the Kiln
+  return (
+    position.col >= SAWMILL_POSITION.col - 1 &&
+    position.col <= SAWMILL_POSITION.col + 2 &&
+    position.row >= SAWMILL_POSITION.row - 1 &&
+    position.row <= SAWMILL_POSITION.row + 2
+  );
 }
 
 export function isNearGemcutting(): boolean {

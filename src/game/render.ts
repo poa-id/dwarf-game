@@ -19,6 +19,7 @@ import {
   isForgeRepaired,
   isNearHearth,
   isNearKiln,
+  isNearSawmill,
   isNearSmelter,
   isNearGemcutting,
   isNearConsole,
@@ -36,6 +37,7 @@ import {
 } from "../ui/hearthPanel";
 import { nextHaulMaterial, secondsUntilNextHaul } from "../engine/hearth";
 import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "../ui/kilnPanel";
+import { renderSawmillPanel, performSawmillBuild, performSawPlanks } from "../ui/sawmillPanel";
 import {
   renderSmelterPanel,
   performSmelterBuild,
@@ -327,6 +329,11 @@ export function updateActionHint(): void {
     return;
   }
 
+  if (isNearSawmill() && world.sawmillBuilt) {
+    refs.actionHint.textContent = "Sawmill — press Enter to saw planks";
+    return;
+  }
+
   if (isNearGemcutting() && world.gemcuttingBuilt) {
     refs.actionHint.textContent = "Gemcutting station — press F to cut gems";
     return;
@@ -453,7 +460,8 @@ export function updateActionHint(): void {
         w.forgeTier, w.smelterBuilt, w.gemcuttingBuilt, w.companion.befriended,
         w.consoleAwakened, w.roomStates["stockpile_room"] ?? "ruined",
         w.roomStates["trade_hall"] ?? "ruined", w.roomStates["deep_foundry"] ?? "ruined",
-        w.roomStates["the_archive"] ?? "ruined", drillTiers, w.placedTorches, w.mineshaftDepth, w.gardenSlots);
+        w.roomStates["the_archive"] ?? "ruined", drillTiers, w.placedTorches, w.mineshaftDepth, w.gardenSlots,
+        w.sawmillBuilt);
       return cell.kind === "rock_wall" || cell.kind === "rubble";
     });
     if (adjacentWall) {
@@ -468,7 +476,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
+let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -704,6 +712,34 @@ function updateContextualPanel(): void {
     return;
   }
 
+  if (isNearSawmill()) {
+    if (lastActivePanelKind !== "sawmill") resetPanelHighlight();
+    lastActivePanelKind = "sawmill";
+    renderSawmillPanel(
+      state,
+      refs.contextualPanel,
+      () => {
+        setState(performSawmillBuild(getState()));
+        render();
+      },
+      (times = 1) => {
+        let s = getState();
+        let leveledUp = false;
+        for (let i = 0; i < times; i++) {
+          const outcome = performSawPlanks(s);
+          s = outcome.newState;
+          if (outcome.leveledUp) leveledUp = true;
+          if (!outcome.success && i < times - 1) break;
+        }
+        setState(s);
+        if (leveledUp) narrate("level_up");
+        render();
+      }
+    );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   if (isNearGemcutting()) {
     if (lastActivePanelKind !== "gemcutting") resetPanelHighlight();
     lastActivePanelKind = "gemcutting";
@@ -895,7 +931,8 @@ export function render(): void {
         Object.fromEntries(Object.entries(state.world.drills).map(([id, d]) => [id, d.tier])),
         state.world.placedTorches,
         state.world.mineshaftDepth,
-        state.world.gardenSlots
+        state.world.gardenSlots,
+        state.world.sawmillBuilt
       );
     },
     (col, row) => {
@@ -917,7 +954,8 @@ export function render(): void {
         drillTiers,
         state.world.placedTorches,
         state.world.mineshaftDepth,
-        state.world.gardenSlots
+        state.world.gardenSlots,
+        state.world.sawmillBuilt
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -937,7 +975,8 @@ export function render(): void {
             drillTiers,
             state.world.placedTorches,
             state.world.mineshaftDepth,
-            state.world.gardenSlots
+            state.world.gardenSlots,
+            state.world.sawmillBuilt
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

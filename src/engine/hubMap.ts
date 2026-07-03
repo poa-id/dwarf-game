@@ -154,6 +154,18 @@ export const GEMCUTTING_POSITION: Position = { col: 54, row: 36 };
 export const KILN_POSITION: Position = { col: 15, row: 35 }; // against north wall, 2×2: cols 15-16, rows 35-36
 
 /**
+ * Sawmill — Garden Room addon (added 2026-07-03), 2×2, immediately east
+ * of the Kiln along the same north-wall row. Placement verified against
+ * hubContent.ts's fill(6,35,18,45) room rectangle: cols 17-18 are open
+ * floor at rows 35-36 (kiln occupies 15-16, root tangle occupies 6-8),
+ * and critically this is NORTH of the room's only through-corridor
+ * (the "SW horiz" fill at rows 42-44 that exits the room east toward
+ * the Hearth Hall) - placing it there instead would have blocked the
+ * room's only exit.
+ */
+export const SAWMILL_POSITION: Position = { col: 17, row: 35 };
+
+/**
  * Narag-Bund's resting spot once befriended — just south-east of the
  * Hearth, on open hall floor. Always visible here once the player
  * has unlocked the Friend of Burden upgrade. His map presence

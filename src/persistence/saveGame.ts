@@ -140,6 +140,11 @@ function backfillMissingFields(state: any): any {
       state.world.gemcuttingTier = 0;
       state.world.cutGemsSpentOnPerk = 0;
     }
+    if (state.world.sawmillBuilt === undefined) {
+      // Old saves predate the Sawmill entirely - same backfill
+      // pattern as the Smelter/Gemcutting above.
+      state.world.sawmillBuilt = false;
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

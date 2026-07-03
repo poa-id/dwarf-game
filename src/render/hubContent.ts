@@ -8,6 +8,7 @@ import {
   WOOD_NODE_PLACEMENTS,
   KILN_POSITION,
   SMELTER_POSITION,
+  SAWMILL_POSITION,
   FORGE_BUILDING_FOOTPRINT,
   HEARTH_FOOTPRINT,
   GEMCUTTING_POSITION,
@@ -208,7 +209,8 @@ export function hubCellAt(
   drillTiers: Record<string, number> = {},
   placedTorches: Record<string, boolean> = {},
   mineshaftDepth: number = 0,
-  gardenSlots: PlanterSlot[] = []
+  gardenSlots: PlanterSlot[] = [],
+  sawmillBuilt: boolean = false
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -258,6 +260,16 @@ export function hubCellAt(
 
   if (staticCell.kind === "gemcutting_unbuilt" && gemcuttingBuilt) {
     return { kind: "gemcutting" };
+  }
+
+  if (
+    sawmillBuilt &&
+    col >= SAWMILL_POSITION.col &&
+    col < SAWMILL_POSITION.col + 2 &&
+    row >= SAWMILL_POSITION.row &&
+    row < SAWMILL_POSITION.row + 2
+  ) {
+    return { kind: "sawmill" };
   }
 
   // Mine shaft — 3×3, partially in the north wall

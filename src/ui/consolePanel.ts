@@ -107,7 +107,7 @@ export function renderConsolePanel(
 
     <div style="margin-bottom: 12px;">
       <div class="reserve-status"><strong>Structures</strong></div>
-      <div class="reserve-status">Forge: ${forgeStageName(state.world.forgeTier)} · Smelter: ${smelterStageName(state.world.smelterBuilt, state.world.smelterTier)}${state.world.gemcuttingBuilt ? " · Gemcutting: Built" : ""}</div>
+      <div class="reserve-status">Forge: ${forgeStageName(state.world.forgeTier)} · Smelter: ${smelterStageName(state.world.smelterBuilt, state.world.smelterTier)}${state.world.gemcuttingBuilt ? " · Gemcutting: Built" : ""}${state.world.sawmillBuilt ? " · Sawmill: Built" : ""}</div>
     </div>
 
     <div style="margin-bottom: 4px;">

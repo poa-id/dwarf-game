@@ -26,6 +26,7 @@ export type CellKind =
   | "forge_broken"
   | "kiln"
   | "smelter"
+  | "sawmill"
   | "gemcutting"
   | "gemcutting_unbuilt"
   | "rubble"
@@ -75,7 +76,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "forge_broken",
   "kiln",
   "smelter",
-  "gemcutting",
+  "sawmill",
   "ore_copper",
   "ore_iron",
   "ore_deep",
@@ -135,6 +136,7 @@ const STAGE_0: StagePalette = {
     forge_broken: "#9a9a9a",
     kiln: "#9a9a9a",
     smelter: "#9a9a9a",
+    sawmill: "#9a9a9a",
     gemcutting: "#9a9a9a",
     gemcutting_unbuilt: "#9a9a9a",
     rubble: "#7a7060",
@@ -214,6 +216,7 @@ const STAGE_2: StagePalette = {
     forge_broken: "#5a4a3a", // dull, cold - the forge that hasn't caught yet, distinct from the live forge's orange
     kiln: "#8a5a3a", // warm clay/brick tone - distinct from both the bright live forge and plain stone, reads as "fired earth"
     smelter: "#c4441a", // richer, more saturated red-orange than the kiln - this is intensified, purifying heat, not just a warm structure
+    sawmill: "#a47a3a", // warm worked-wood brown - richer/more saturated than raw wood_node, reads as "shaped lumber" not "still growing"
     gemcutting: "#8a6fa8", // pale violet/lavender - distinct from the warm Smelter/Kiln tones, fitting a station about light and clarity rather than heat
     gemcutting_unbuilt: "#4a4050",
     rubble: "#5a5040",
@@ -267,6 +270,7 @@ const STAGE_3: StagePalette = {
     forge_broken: "#6a5a48",
     kiln: "#9a6a45",
     smelter: "#d8501e",
+    sawmill: "#b8935a",
     gemcutting: "#a586c8",
     gemcutting_unbuilt: "#5a5060",
     rubble: "#6a6050",
@@ -318,6 +322,7 @@ export const GLYPHS: Record<CellKind, string> = {
   forge_broken: "ñ", // a near-miss of the working forge's glyph - recognizably related, visibly wrong/incomplete
   kiln: "k",
   smelter: "S",
+  sawmill: "w",
   gemcutting: "g",
   gemcutting_unbuilt: ".",
   rubble: "x",

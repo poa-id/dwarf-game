@@ -43,7 +43,7 @@ export interface SkillState {
 
 export type MaterialId = string;
 
-export type MaterialCategory = "ore" | "ingot" | "fuel" | "wood" | "currency" | "true_metal" | "gem";
+export type MaterialCategory = "ore" | "ingot" | "fuel" | "wood" | "currency" | "true_metal" | "gem" | "building";
 
 export interface MaterialDefinition {
   id: MaterialId;
@@ -138,6 +138,12 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   // cleanly - kept as-is rather than renumbered, to avoid an unnecessary
   // churn edit to an already-shipped material).
   gemwood: { id: "gemwood", name: "Gemwood", category: "wood", tier: 4 },
+  // Wood_planks - the Sawmill's output (2026-07-03). category "building"
+  // is a new category, first material of its kind - a general
+  // construction resource, distinct from raw "wood" (a wood category
+  // material burned/carved) or any ingot. No consumers yet - see
+  // sawmill.ts's doc comment and OPEN_QUESTIONS.md.
+  wood_planks: { id: "wood_planks", name: "Wood Planks", category: "building", tier: 1 },
   // Ancient Seed — rare drop from the root tangle or found in the seed chest.
   // Planted in the Garden to grow Ironwood trees. One-time use.
   ancient_seed: { id: "ancient_seed", name: "Ancient Seed", category: "wood", tier: 2 },
@@ -459,6 +465,13 @@ export interface WorldState {
    */
   smelterBuilt: boolean;
   smelterTier: number;
+  /**
+   * The Sawmill - a Garden Room addon (see sawmill.ts), built once
+   * (Insight + materials, mirroring the Smelter's pattern) for a
+   * repeatable Woodcraft sink: wood -> wood_planks. No upgrade tiers
+   * yet (unlike smelterTier) - just a single built/not-built flag for now.
+   */
+  sawmillBuilt: boolean;
   /** Unlocked via Insight spend (500) once iron ingots are in inventory.
    *  Separate from smelterTier — each metal has its own tier track. */
   ironPurifyingUnlocked: boolean;

@@ -13,6 +13,7 @@ import drillDeepUrl from "./tileset-assets/sliced/drill_deep.png";
 import mineshaftBrokenUrl from "./tileset-assets/sliced/mineshaft_broken.png";
 import mineshaftLitUrl from "./tileset-assets/sliced/mineshaft_lit.png";
 import kilnUrl from "./tileset-assets/sliced/kiln.png";
+import sawmillUrl from "./tileset-assets/sliced/sawmill.png";
 import dwarfUrl from "./tileset-assets/sliced/dwarf.png";
 import tunnelEdgeUrl from "./tileset-assets/sliced/tunnel_edge.png";
 
@@ -91,6 +92,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   forge: { assetUrl: forge4x4Url, tileSpan: { cols: 6, rows: 6 } },
   forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 6, rows: 6 } },
   kiln: { assetUrl: kilnUrl, tileSpan: { cols: 2, rows: 2 } },
+  sawmill: { assetUrl: sawmillUrl, tileSpan: { cols: 2, rows: 2 } },
   // Smelter add-on: 2x2 sprite sitting below the Forge.
   smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 2, rows: 2 } },
   gemcutting: { assetUrl: gemcutting4x4Url, tileSpan: { cols: 6, rows: 6 } },

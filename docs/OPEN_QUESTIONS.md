@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-403/403 tests passing. TSC clean. Build clean.
+415/415 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -29,7 +29,7 @@
 - Central hall (hearth 6×6, mountain console 2×2, Narag-Bund south of hearth)
 - Mine room (cols 6-18, rows 20-30): iron N, deepstone mid, copper SW, coal SE (all 3×3)
 - Mine shaft (3×3 north wall, depth system)
-- Garden room (cols 6-18, rows 35-45): 6 planters (3×2 grid), wood root, kiln
+- Garden room (cols 6-18, rows 35-45): 6 planters (3×2 grid), wood root, kiln, sawmill
 - Forge room (cols 52-63, rows 9-19): forge 6×6, smelter below
 - Stockpile room (cols 49-63, rows 21-30): 6×7 chest
 - Tinkering room (cols 52-63, rows 36-46): gemcutting 6×6
@@ -40,6 +40,14 @@
 - Smelting engines: per-ore-type auto-smelter (consumes stockpile → ingot buffer)
 - Narag-Bund: hauls fuel to reserve every 10s; hauls coal to drills at Hearth tier 2
 - Mountain Console: production dashboard (ore/min, drill status, hearth metrics, restoration)
+
+### Sawmill (Garden Room, 2×2, east of the Kiln)
+- Woodcraft-governed wood → wood_planks conversion (woodcraft.ts's own doc comment
+  anticipated this: "processing raw wood into planks/lumber" was always meant to
+  exist, just wasn't built until now)
+- Build-gated like the Smelter (Insight + materials, not free like the Kiln -
+  see sawmill.ts's doc comment for why), iron-free build cost
+- wood_planks has NO consumers yet - new resource, sink comes later (see gap below)
 
 ### Garden
 - 6 planters (slots), slot 0 always unlocked, slots 1-5 cost escalating materials+Insight
@@ -150,6 +158,10 @@
 
 16. **MECHANICS.md has no Drills/Automation section** — the whole drill/automation system (DrillDefinition, tiers, buffers, Mine Shaft depth gating) is documented only in this file's "What Is Built" summary and in code comments, never promoted to MECHANICS.md as settled fact. Noticed while wiring the coal drill + shaft speed bonus (2026-07-03); didn't fix in that pass since it's a standalone doc-writing task, not incidental to the code change.
 
+17. **wood_planks has no consumers** — the Sawmill (built 2026-07-03) produces it, but nothing spends it yet. "Building materials" was the original ask; needs a design pass on what actually costs planks (room upgrades? a new construction system? retrofitted onto existing costs?) rather than guessing. Same "new resource, sink comes later" pattern as charcoal/ironwood/gemwood before their consumers existed - not a blocker, just needs a decision eventually.
+
+18. **Kiln/Smelter/Gemcutting action-hints say "press F" but the real confirm key is Enter** — F only does mining/wood-gathering (see main.ts's keydown handler); everything else (charcoal burn, purify, cut gem, and now saw planks) is confirmed via Enter on the highlighted contextual-panel row (panelNavigation.ts). The hint text for the three pre-existing stations is stale copy, probably left over from before the Space→Enter confirm-key change (see MECHANICS.md/memory: "Space key scroll issue... panel confirm moved to Enter"). Noticed while writing the Sawmill's own hint text (written correctly, "press Enter"); didn't fix the other three since it's a one-line-per-file copy fix unrelated to the Sawmill itself, but worth a quick pass.
+
 ---
 
 ## Recently Resolved (changelog)
@@ -162,10 +174,11 @@
 
 **5 more sprites received 2026-07-03, confirmed build order (not yet built):**
 1. ~~Gemwood tree~~ (done, see above)
-2. Sawmill (wood → planks)
+2. ~~Sawmill~~ (done, see below)
 3. Kiln tier system + Hearth Infuser (hearthsap + coal → infused coal) + infused coal's drill-performance effect
 4. Brewery + Brewing skill (recipes, ale buffs)
 5. Ancient Grove entrance + Deep Tree Grove depth system (see gap #12 above)
+- **Sawmill** (2026-07-03) — new Garden Room addon (2×2, immediately east of the Kiln along the same north-wall row - see hubMap.ts SAWMILL_POSITION for the free-space verification). Woodcraft-governed wood → wood_planks conversion, build-gated like the Smelter (Insight + materials) rather than free like the Kiln. New `sawmill.ts` engine module, `sawmillPanel.ts` UI, new `building` MaterialCategory (wood_planks is its first member - has no consumers yet, see gap #17). Sprite processed with the same border-flood-fill approach as the gemwood tree. Tests: 12 new (`sawmill.test.ts`).
 
 ---
 

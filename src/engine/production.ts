@@ -144,6 +144,7 @@ export function getRestorationScore(world: WorldState): RestorationBreakdown {
   if (world.forgeTier >= 3) structureScore += 1000;  // masterwork — the great forge returns
   if (world.smelterBuilt) structureScore += 200;
   if (world.gemcuttingBuilt) structureScore += 200;
+  if (world.sawmillBuilt) structureScore += 200;
   structureScore += world.smelterTier * 100;
 
   // Room restoration contributes per stage
