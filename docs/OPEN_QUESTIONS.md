@@ -70,6 +70,9 @@
 - Skills tab: RuneScape-inspired 2-column icon grid below colorStage 2
   ("Hearthlight"), plain text-row list below it - gated by Perception Is
   Progression, same threshold that switches the world canvas to sprite art.
+- Tools display (under Skills tab): same dual-mode split as the skills
+  grid - plain "Pickaxe: Bare Hands" text below colorStage 2, tool-tier
+  sprite icons (with an "empty slot" icon at tier 0) above it.
 - Right sidebar (220px): Context panel (always visible, no tabs)
 - Herblore/Brewing tiles hidden until first XP earned
 - Batch buttons (×5/×10/×50) on kiln, smelter purify, smithing smelt rows
@@ -179,6 +182,7 @@
 4. Brewery + Brewing skill (recipes, ale buffs)
 5. Ancient Grove entrance + Deep Tree Grove depth system (see gap #12 above)
 - **Sawmill** (2026-07-03) — new Garden Room addon (2×2, immediately east of the Kiln along the same north-wall row - see hubMap.ts SAWMILL_POSITION for the free-space verification). Woodcraft-governed wood → wood_planks conversion, build-gated like the Smelter (Insight + materials) rather than free like the Kiln. New `sawmill.ts` engine module, `sawmillPanel.ts` UI, new `building` MaterialCategory (wood_planks is its first member - has no consumers yet, see gap #17). Sprite processed with the same border-flood-fill approach as the gemwood tree. Tests: 12 new (`sawmill.test.ts`).
+- **Tool tier icons** (2026-07-03) — Pickaxe/Axe display under the Skills tab gets the same basic-text/icon dual mode as the skills grid, gated on the same colorStage threshold. New `toolIconManifest.ts` + `toolsIconPanel.ts`; icon swaps automatically as better tools get forged (indexed by ToolTier.tier, 0-3), with a dedicated "empty slot" sprite for Bare Hands rather than a blank gap.
 
 ---
 

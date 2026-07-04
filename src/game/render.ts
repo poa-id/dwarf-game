@@ -7,6 +7,7 @@ import { cellKey, MATERIALS } from "../engine/types";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
 import { FORGE_REPAIR_COST } from "../engine/smithing";
 import { bestAvailablePickaxe, ROCK_NODES } from "../engine/mining";
+import { PICKAXE_ICONS, AXE_ICONS } from "../render/toolIconManifest";
 import { bestAvailableAxe } from "../engine/woodcraft";
 import { getState, setState, narrate, persist } from "./gameState";
 import {
@@ -82,7 +83,6 @@ export interface RenderRefs {
     barWoodcraft: HTMLElement;
     barTinkering: HTMLElement;
     inventoryList: HTMLElement;
-    toolsList: HTMLElement;
     insightDisplay: HTMLElement;
     restorationDisplay: HTMLElement;
     insightRateDisplay: HTMLElement;
@@ -250,9 +250,31 @@ function updateStatsPanel(): void {
   // shown plainly, not hidden, since there's nothing to spoil here -
   // unlike Narag-Bund, knowing bare-handed mining exists isn't a
   // discovery moment worth gating.
+  //
+  // Same basic-text/icon dual mode as the skills grid (2026-07-03) -
+  // gated on the same skillsAdvanced flag computed above, per the
+  // Perception Is Progression principle noted in MECHANICS.md.
   const pickaxe = bestAvailablePickaxe(toolsForged.pickaxe);
   const axe = bestAvailableAxe(toolsForged.axe);
-  refs.statEls.toolsList.innerHTML = `<p>Pickaxe: ${pickaxe.name}</p><p>Axe: ${axe.name}</p>`;
+
+  const basicPickaxeEl = document.getElementById("tools-basic-pickaxe");
+  const basicAxeEl = document.getElementById("tools-basic-axe");
+  if (basicPickaxeEl) basicPickaxeEl.textContent = `Pickaxe: ${pickaxe.name}`;
+  if (basicAxeEl) basicAxeEl.textContent = `Axe: ${axe.name}`;
+
+  const iconPickaxeEl = document.getElementById("tools-icon-pickaxe") as HTMLImageElement | null;
+  const iconAxeEl = document.getElementById("tools-icon-axe") as HTMLImageElement | null;
+  const captionPickaxeEl = document.getElementById("tools-caption-pickaxe");
+  const captionAxeEl = document.getElementById("tools-caption-axe");
+  if (iconPickaxeEl) iconPickaxeEl.src = PICKAXE_ICONS[pickaxe.tier] ?? PICKAXE_ICONS[0];
+  if (iconAxeEl) iconAxeEl.src = AXE_ICONS[axe.tier] ?? AXE_ICONS[0];
+  if (captionPickaxeEl) captionPickaxeEl.textContent = pickaxe.name;
+  if (captionAxeEl) captionAxeEl.textContent = axe.name;
+
+  const toolsBasicList = document.getElementById("tools-basic-list");
+  const toolsIconGrid = document.getElementById("tools-icon-grid");
+  if (toolsBasicList) toolsBasicList.style.display = skillsAdvanced ? "none" : "";
+  if (toolsIconGrid) toolsIconGrid.style.display = skillsAdvanced ? "" : "none";
 
   const heldEntries = Object.entries(inventory).filter(([, amount]) => (amount ?? 0) > 0);
   if (heldEntries.length === 0) {

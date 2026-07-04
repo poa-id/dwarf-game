@@ -12,6 +12,7 @@ import { movePanelHighlight, confirmPanelHighlight } from "./game/panelNavigatio
 import { getLastSavedAt } from "./persistence/saveGame";
 import { computeOfflineSummary, renderOfflineSummaryBanner } from "./engine/offlineSummary";
 import { buildSkillsGridHtml } from "./ui/skillsGridPanel";
+import { buildToolsPanelHtml } from "./ui/toolsIconPanel";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -43,7 +44,7 @@ app.innerHTML = `
             ${buildSkillsGridHtml()}
           </div>
           <div class="stats-section">
-            <div id="tools-list"></div>
+            ${buildToolsPanelHtml()}
           </div>
         </div>
 
@@ -138,7 +139,6 @@ initRenderRefs({
     barWoodcraft: document.querySelector<HTMLDivElement>("#bar-woodcraft")!,
     barTinkering: document.querySelector<HTMLDivElement>("#bar-tinkering")!,
     inventoryList: document.querySelector<HTMLDivElement>("#inventory-list")!,
-    toolsList: document.querySelector<HTMLDivElement>("#tools-list")!,
     insightDisplay: document.querySelector<HTMLParagraphElement>("#stat-insight")!,
     restorationDisplay: document.querySelector<HTMLParagraphElement>("#stat-restoration")!,
     insightRateDisplay: document.querySelector<HTMLParagraphElement>("#stat-insight-rate")!,
