@@ -150,20 +150,22 @@ export const SMELTER_POSITION: Position = {
 /** Gemcutting station 6×6 anchor in the Tinkering Room. */
 export const GEMCUTTING_POSITION: Position = { col: 54, row: 36 };
 
-/** Charcoal Kiln in the Garden Room, beside the wood node. */
-export const KILN_POSITION: Position = { col: 15, row: 35 }; // against north wall, 2×2: cols 15-16, rows 35-36
+/**
+ * Charcoal Kiln in the Garden Room. Grown 2×2 -> 3×3 (2026-07-04, per
+ * direction: "the kiln should be bigger than the tree resource node")
+ * - now bigger than the root tangle (also resized down to 2×2 the same
+ * day). Repositioned with a 1-column gap after the (now smaller) root
+ * tangle, matching this room's existing gap-column convention (see
+ * PLANTER_POSITIONS' comment on cols 9/13 being walkable gaps).
+ */
+export const KILN_POSITION: Position = { col: 9, row: 35 }; // 3×3: cols 9-11, rows 35-37
 
 /**
- * Sawmill — Garden Room addon (added 2026-07-03), 2×2, immediately east
- * of the Kiln along the same north-wall row. Placement verified against
- * hubContent.ts's fill(6,35,18,45) room rectangle: cols 17-18 are open
- * floor at rows 35-36 (kiln occupies 15-16, root tangle occupies 6-8),
- * and critically this is NORTH of the room's only through-corridor
- * (the "SW horiz" fill at rows 42-44 that exits the room east toward
- * the Hearth Hall) - placing it there instead would have blocked the
- * room's only exit.
+ * Sawmill — Garden Room addon, 2×2. Repositioned 2026-07-04 (was
+ * cols 17-18) to make room for the Kiln's 2x2 -> 3x3 grow-out; now
+ * sits with a 1-column gap after the Kiln, same convention.
  */
-export const SAWMILL_POSITION: Position = { col: 17, row: 35 };
+export const SAWMILL_POSITION: Position = { col: 13, row: 35 };
 
 /**
  * Narag-Bund's resting spot once befriended — just south-east of the
@@ -174,7 +176,12 @@ export const SAWMILL_POSITION: Position = { col: 17, row: 35 };
 export const COMPANION_POSITION: Position = { col: 40, row: 29 }; // south of hearth (hearth ends row 27)
 
 /** The Mountain Console — ancient stone terminal in the northwest quadrant of the central hall. */
-export const CONSOLE_POSITION: Position = { col: 35, row: 22 };
+// Grown 2×2 -> 3×3 (2026-07-04). Shifted one column left (was col 35)
+// to keep clear of the Hearth's 6×6 footprint, which starts at col 37
+// (see HEARTH_FOOTPRINT above) - the old 2×2 console had exactly one
+// column of clearance from it (ending at col 36); growing in place
+// would have eaten that clearance and overlapped col 37.
+export const CONSOLE_POSITION: Position = { col: 34, row: 22 };
 
 /**
  * Stockpile chest — the ore storage anchor in the east wing once
@@ -230,11 +237,13 @@ export interface WoodNodePlacement {
 }
 
 export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
-  // Garden Room — root tangle on the west wall, 3×3 footprint.
+  // Garden Room — root tangle on the west wall. Shrunk 3×3 -> 2×2
+  // (2026-07-04, per direction: the Kiln should be the bigger of the
+  // two, not the raw resource node it processes).
   {
     id: "garden_roots",
     woodNodeId: "root_tangle",
-    position: { col: 6, row: 35 },  // 3×3: cols 6-8, rows 35-37 (against north wall)
+    position: { col: 6, row: 35 },  // 2×2: cols 6-7, rows 35-36 (against north wall)
   },
 ];
 

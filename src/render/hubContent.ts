@@ -144,16 +144,16 @@ function buildHubContent(): GridCell[] {
         set(vein.position.col + dc, vein.position.row + dr, kind);
   }
 
-  // ── 9. Wood nodes — 3×3 footprint ────────────────────────────────────
+  // ── 9. Wood nodes — 2×2 footprint (shrunk from 3×3, 2026-07-04) ────────
   for (const wood of WOOD_NODE_PLACEMENTS) {
-    for (let dr = 0; dr < 3; dr++)
-      for (let dc = 0; dc < 3; dc++)
+    for (let dr = 0; dr < 2; dr++)
+      for (let dc = 0; dc < 2; dc++)
         set(wood.position.col + dc, wood.position.row + dr, "wood_node");
   }
 
-  // ── 10. Kiln 2×2 ─────────────────────────────────────────────────────
-  for (let dr = 0; dr < 2; dr++)
-    for (let dc = 0; dc < 2; dc++)
+  // ── 10. Kiln 3×3 (grown from 2×2, 2026-07-04) ──────────────────────────
+  for (let dr = 0; dr < 3; dr++)
+    for (let dc = 0; dc < 3; dc++)
       set(KILN_POSITION.col + dc, KILN_POSITION.row + dr, "kiln");
 
   // ── 10b. Garden planters — 6 slots in 3×2 grid (from hubMap PLANTER_POSITIONS)
@@ -170,9 +170,9 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 6; dc++)
       set(GEMCUTTING_POSITION.col + dc, GEMCUTTING_POSITION.row + dr, "gemcutting_unbuilt");
 
-  // ── 12. Mountain Console — 2×2 ──────────────────────────────────────────
-  for (let dr = 0; dr < 2; dr++)
-    for (let dc = 0; dc < 2; dc++)
+  // ── 12. Mountain Console — 3×3 (grown from 2×2, 2026-07-04) ────────────
+  for (let dr = 0; dr < 3; dr++)
+    for (let dc = 0; dc < 3; dc++)
       set(CONSOLE_POSITION.col + dc, CONSOLE_POSITION.row + dr, "mountain_console");
 
   // ── 13. Mine shaft — 3×3, partially into north wall ────────────────────

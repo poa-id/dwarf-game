@@ -97,7 +97,7 @@ export const ROCK_NODES: RockNode[] = [
     materialId: "deepstone_ore",
     requiredLevel: 15,
     baseXp: 45,
-    baseYield: 2,
+    baseYield: 1,
     baseSuccessChance: 0.6,
     totalYieldCapacity: null,
     gemDrop: { materialId: "rough_amethyst", baseChance: 0.003 },

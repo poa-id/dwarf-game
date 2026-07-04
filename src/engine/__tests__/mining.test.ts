@@ -35,6 +35,21 @@ const finiteTestNode: RockNode = {
   totalYieldCapacity: 40,
 };
 
+describe("ROCK_NODES baseYield (2026-07-04 regression - deepstone spike bug)", () => {
+  it("every node has the same baseYield of 1 - no tier should out-yield another per hit", () => {
+    // Reported bug: deepstone was baseYield:2 (double every other
+    // node), which combined with the Deepstone Pickaxe's own 4x tool
+    // multiplier produced wildly high per-strike yields right at the
+    // moment of unlock ("one F click... mines like 12 ores" at fresh
+    // Mining 15). General rule per direction: a newly-unlocked tier
+    // should be reachable at higher skill/require better tools, not
+    // also out-yield easier tiers per hit.
+    for (const node of ROCK_NODES) {
+      expect(node.baseYield).toBe(1);
+    }
+  });
+});
+
 describe("bestAvailablePickaxe", () => {
   it("returns bare hands at forged pickaxe tier 0", () => {
     expect(bestAvailablePickaxe(0).name).toBe("Bare Hands");

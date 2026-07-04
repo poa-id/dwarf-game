@@ -42,9 +42,14 @@ export const nearestMinedOreVein = nearestOreVein;
 export function nearestWoodNode() {
   const { position } = getState().vessel;
   return WOOD_NODE_PLACEMENTS.find((w) => {
-    // 3×3 footprint — player within 1 tile of any of the 9 cells
-    const nearCol = position.col >= w.position.col - 1 && position.col <= w.position.col + 3;
-    const nearRow = position.row >= w.position.row - 1 && position.row <= w.position.row + 3;
+    // Wood node shrunk 3x3 -> 2x2 (2026-07-04, see hubMap.ts's
+    // WOOD_NODE_PLACEMENTS comment) - buffer narrowed from +3 to +2 to
+    // match (a 2x2 footprint occupies anchor..anchor+1, so a symmetric
+    // 1-cell buffer needs +2, not +3 - the old value was just quietly
+    // over-generous rather than broken, but still worth fixing for
+    // consistency with the same fix just applied to isNearKiln).
+    const nearCol = position.col >= w.position.col - 1 && position.col <= w.position.col + 2;
+    const nearRow = position.row >= w.position.row - 1 && position.row <= w.position.row + 2;
     return nearCol && nearRow;
   });
 }
@@ -54,10 +59,10 @@ export const nearestGatheredWoodNode = nearestWoodNode;
 
 export function isNearConsole(): boolean {
   const { position } = getState().vessel;
-  // Console is 2×2 at (35,22)-(36,23)
+  // Console grown to 3×3 at (34,22)-(36,24), 2026-07-04
   return (
-    position.col >= CONSOLE_POSITION.col - 1 && position.col <= CONSOLE_POSITION.col + 2 &&
-    position.row >= CONSOLE_POSITION.row - 1 && position.row <= CONSOLE_POSITION.row + 2
+    position.col >= CONSOLE_POSITION.col - 1 && position.col <= CONSOLE_POSITION.col + 3 &&
+    position.row >= CONSOLE_POSITION.row - 1 && position.row <= CONSOLE_POSITION.row + 3
   );
 }
 
@@ -110,12 +115,16 @@ export function isNearHearth(): boolean {
 
 export function isNearKiln(): boolean {
   const { position } = getState().vessel;
-  // Kiln 2×2 footprint: cols 10-11, rows 38-39
+  // Kiln grown 2x2 -> 3x3 (2026-07-04, see hubMap.ts's KILN_POSITION
+  // comment) - buffer widened from +2 to +3 to match. A 3x3 footprint
+  // occupies anchor..anchor+2, so a symmetric 1-cell buffer on the far
+  // side needs +3, not +2 (which was leftover from when this was 2x2
+  // and correctly meant "anchor+1 occupied, +1 buffer = anchor+2").
   return (
     position.col >= KILN_POSITION.col - 1 &&
-    position.col <= KILN_POSITION.col + 2 &&
+    position.col <= KILN_POSITION.col + 3 &&
     position.row >= KILN_POSITION.row - 1 &&
-    position.row <= KILN_POSITION.row + 2
+    position.row <= KILN_POSITION.row + 3
   );
 }
 

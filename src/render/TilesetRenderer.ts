@@ -15,8 +15,22 @@ const DEFAULT_CONFIG: TilesetRenderConfig = {
   cellSize: 24,
 };
 
-/** How much to dim a "remembered" cell, as a 0-1 alpha multiplier - matches GridRenderer's REMEMBERED_OPACITY exactly, so switching renderers doesn't change how fog-of-war reads. */
-const REMEMBERED_OPACITY = 0.45; // ambient dim — visible but clearly not lit
+/**
+ * How much to dim a "remembered" cell, as a 0-1 alpha multiplier.
+ * Lowered from 0.45 to 0.08 (2026-07-04) per direct feedback + a
+ * reference screenshot: "I want the inside of the mountain to be
+ * black, and the wall visible, without messing with line of sight and
+ * stuff." At 0.45 a remembered area read as a legible dim-gray replay
+ * of what's there - closer to "night vision" than "cave darkness."
+ * 0.08 keeps the faintest ghost of a previously-seen structure's
+ * silhouette (so "remembered" still means something, distinct from
+ * true void) while reading as essentially black at a glance, matching
+ * the reference. NOT 0 - the explicit ask was to change how dark it
+ * looks, not to remove the remembered/fog-of-war distinction itself
+ * (that's the underlying light-radius and exploration bookkeeping in
+ * cellVisibility, untouched here).
+ */
+const REMEMBERED_OPACITY = 0.08;
 
 /**
  * Finds the true top-left anchor of a multi-tile sprite's footprint,
@@ -118,6 +132,40 @@ export class TilesetRenderer implements Renderer {
 
     this.ctx.fillStyle = "#000000";
     this.ctx.fillRect(0, 0, viewportCols * cellSize, viewportRows * cellSize);
+
+    // Floor compositing pass (2026-07-04): draw the base floor tile
+    // under every non-void, non-hidden cell BEFORE the main pass draws
+    // actual content on top. Without this, any transparent/negative-
+    // space pixel in a sprite - especially multi-tile structures like
+    // the Hearth or Sawmill, whose art has an octagonal/diamond
+    // silhouette against a square canvas - revealed the flat black
+    // canvas fill instead of floor, making structures look like they
+    // were "floating on a black square" rather than sitting on the
+    // ground around them (reported directly, with a screenshot). Cells
+    // that are "void" (no floor exists there - the dark halls) or
+    // "hidden" (outside current light/memory) are left alone; only
+    // cells that actually have SOMETHING (a floor, a wall, a structure
+    // sitting on floor) get this base layer, matching the fact that
+    // real floor exists under all of them in the game's own fiction.
+    const floorDef = TILE_MANIFEST["rock_floor"];
+    const floorDrawable = floorDef ? this.cache.getDrawable(floorDef) : null;
+    if (floorDrawable) {
+      const floorW = (floorDrawable as HTMLCanvasElement).width ?? (floorDrawable as HTMLImageElement).naturalWidth;
+      const floorH = (floorDrawable as HTMLCanvasElement).height ?? (floorDrawable as HTMLImageElement).naturalHeight;
+      for (let vRow = 0; vRow < viewportRows; vRow++) {
+        for (let vCol = 0; vCol < viewportCols; vCol++) {
+          const mapCol = originCol + vCol;
+          const mapRow = originRow + vRow;
+          const visibility = getVisibility(mapCol, mapRow);
+          if (visibility === "hidden") continue;
+          const cell = getCell(mapCol, mapRow);
+          if (cell.kind === "void") continue;
+          this.ctx.globalAlpha = visibility === "remembered" ? REMEMBERED_OPACITY : 1;
+          this.ctx.drawImage(floorDrawable, 0, 0, floorW, floorH, vCol * cellSize, vRow * cellSize, cellSize, cellSize);
+        }
+      }
+      this.ctx.globalAlpha = 1;
+    }
 
     // Track viewport cells that have already been painted by a multi-tile
     // sprite anchored at a prior cell - key: `${vCol},${vRow}`.
