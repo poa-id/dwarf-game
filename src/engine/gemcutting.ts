@@ -96,6 +96,31 @@ const CUT_GEM_BY_ROUGH: Record<string, MaterialId> = {
   rough_amethyst: "cut_amethyst",
 };
 
+/**
+ * Tinkering level required to cut each rough gem tier. Added
+ * 2026-07-04 - previously there was NO level gate on cutting at all,
+ * so a fresh Tinkering 1 could cut tier-3 Amethyst the moment they
+ * found one (reported directly: "I can cut tier 3 gems with lvl 5
+ * tinkering"). Mirrors Mining's own tier gap exactly (copper vein 1,
+ * iron vein 8, deepstone vein 15 - see mining.ts) rather than
+ * inventing new numbers, since these gems are already tied 1:1 to
+ * those same veins by rarity (see the comment on MATERIALS in
+ * types.ts: "copper_vein -> quartz, iron_vein -> garnet, deepstone ->
+ * amethyst"). General rule going forward per explicit direction: every
+ * tiered system (mining, woodcutting, herblore, gem cutting, smithing
+ * tools, smelting ingots, ...) should level-gate tiers above the
+ * first, not just the first.
+ */
+const CUT_GEM_REQUIRED_LEVEL: Record<string, number> = {
+  rough_quartz: 1,
+  rough_garnet: 8,
+  rough_amethyst: 15,
+};
+
+export function cutGemRequiredLevel(roughMaterialId: MaterialId): number {
+  return CUT_GEM_REQUIRED_LEVEL[roughMaterialId] ?? 1;
+}
+
 export const CUT_BASE_SUCCESS_CHANCE = 0.6;
 export const CUTTING_BASE_XP = 10;
 
@@ -119,6 +144,13 @@ export function attemptCutGem(
   const cutMaterialId = CUT_GEM_BY_ROUGH[roughMaterialId];
   if (!cutMaterialId) {
     throw new Error(`${roughMaterialId} has no cut-gem counterpart`);
+  }
+
+  const requiredLevel = cutGemRequiredLevel(roughMaterialId);
+  if (tinkeringSkill.level < requiredLevel) {
+    throw new Error(
+      `Tinkering level ${tinkeringSkill.level} is below required ${requiredLevel} to cut ${roughMaterialId}`
+    );
   }
 
   const held = getMaterialAmount(inventory, roughMaterialId);
@@ -167,6 +199,26 @@ export function applyCutGemResult(inventory: ResourceBag, result: CutGemResult):
     updated = addMaterial(updated, result.cutMaterialId, 1);
   }
   return updated;
+}
+
+/**
+ * Whether one more cut of this rough gem is possible right now (level
+ * + at least 1 held). Extracted 2026-07-04 alongside the batch-loop
+ * affordability fixes applied across every other station this same
+ * session - see canAffordSmithRecipe/canAffordCharcoalBurn/
+ * canAffordPurify/canAffordPlankSaw's doc comments for the shared bug
+ * this pattern fixes (checking the previous attempt's success/fail
+ * roll instead of whether another attempt is actually possible).
+ */
+export function canAffordCutGem(
+  roughMaterialId: MaterialId,
+  tinkeringLevel: number,
+  inventory: ResourceBag
+): boolean {
+  return (
+    tinkeringLevel >= cutGemRequiredLevel(roughMaterialId) &&
+    getMaterialAmount(inventory, roughMaterialId) >= 1
+  );
 }
 
 export interface TinkeringPerkTier {

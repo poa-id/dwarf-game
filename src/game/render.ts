@@ -3,7 +3,7 @@ import { TilesetRenderer } from "../render/TilesetRenderer";
 import { hubCellAt } from "../render/hubContent";
 import { isSolidCellKind } from "../render/palette";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "../engine/visibility";
-import { cellKey, MATERIALS } from "../engine/types";
+import { cellKey, MATERIALS, getMaterialAmount } from "../engine/types";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
 import { FORGE_REPAIR_COST } from "../engine/smithing";
 import { bestAvailablePickaxe, ROCK_NODES } from "../engine/mining";
@@ -28,6 +28,7 @@ import {
   isNearCompanion,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade } from "../ui/smithingPanel";
+import { canAffordSmithRecipe } from "../engine/smithing";
 import { renderSmeltingEnginePanel, performBuildEngine, performCollectEngine, performUpgradeEngine } from "../ui/smeltingEnginePanel";
 import {
   renderHearthPanel,
@@ -35,10 +36,13 @@ import {
   performHearthUpgrade,
   performSpendTrueMetalOnYield,
   performRekindle,
+  STOKE_AMOUNT,
 } from "../ui/hearthPanel";
 import { nextHaulMaterial, secondsUntilNextHaul } from "../engine/hearth";
 import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "../ui/kilnPanel";
+import { canAffordCharcoalBurn } from "../engine/kiln";
 import { renderSawmillPanel, performSawmillBuild, performSawPlanks } from "../ui/sawmillPanel";
+import { canAffordPlankSaw } from "../engine/sawmill";
 import {
   renderSmelterPanel,
   performSmelterBuild,
@@ -48,6 +52,7 @@ import {
   performIronSmelterTierUpgrade,
   performSpendTrueMetalOnPerk,
 } from "../ui/smelterPanel";
+import { canAffordPurify } from "../engine/smelter";
 import {
   renderGemcuttingPanel,
   performGemcuttingBuild,
@@ -55,6 +60,7 @@ import {
   performGemcuttingTierUpgrade,
   performSpendCutGemOnPerk,
 } from "../ui/gemcuttingPanel";
+import { canAffordCutGem } from "../engine/gemcutting";
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer } from "../ui/drillPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
@@ -568,11 +574,10 @@ function updateContextualPanel(): void {
         let s = getState();
         let leveledUp = false;
         for (let i = 0; i < times; i++) {
+          if (!canAffordSmithRecipe(recipe, s.vessel.inventory)) break;
           const outcome = performSmith(s, recipe);
           s = outcome.newState;
           if (outcome.leveledUp) leveledUp = true;
-          // Stop if can't afford next
-          if (!outcome.success && i < times - 1) break;
         }
         setState(s);
         if (leveledUp) narrate("level_up");
@@ -607,14 +612,23 @@ function updateContextualPanel(): void {
     renderHearthPanel(
       state,
       refs.contextualPanel,
-      (materialId, target) => {
-        const outcome = performStoke(getState(), materialId, target);
-        setState(outcome.newState);
-        if (outcome.colorStageIncreased) {
+      (materialId, target, times = 1) => {
+        let s = getState();
+        let colorStageIncreased = false;
+        let leveledUp = false;
+        for (let i = 0; i < times; i++) {
+          if (getMaterialAmount(s.vessel.inventory, materialId) < STOKE_AMOUNT) break;
+          const outcome = performStoke(s, materialId, target);
+          s = outcome.newState;
+          if (outcome.colorStageIncreased) colorStageIncreased = true;
+          if (outcome.leveledUp) leveledUp = true;
+        }
+        setState(s);
+        if (colorStageIncreased) {
           const already = getState().narrator.firedOnceTriggers.includes("color_stage_1");
           narrate(already ? "color_stage_later" : "color_stage_1");
         }
-        if (outcome.leveledUp) narrate("level_up");
+        if (leveledUp) narrate("level_up");
         render();
       },
       () => {
@@ -654,10 +668,10 @@ function updateContextualPanel(): void {
         let s = getState();
         let leveledUp = false;
         for (let i = 0; i < times; i++) {
+          if (!canAffordCharcoalBurn(s.vessel.inventory)) break;
           const outcome = performCharcoalBurn(s);
           s = outcome.newState;
           if (outcome.leveledUp) leveledUp = true;
-          if (!outcome.success && i < times - 1) break;
         }
         setState(s);
         if (leveledUp) narrate("level_up");
@@ -704,10 +718,10 @@ function updateContextualPanel(): void {
         let s = getState();
         let leveledUp = false;
         for (let i = 0; i < times; i++) {
+          if (!canAffordPurify(s.vessel.inventory, ingotMaterialId)) break;
           const outcome = performPurify(s, ingotMaterialId);
           s = outcome.newState;
           if (outcome.leveledUp) leveledUp = true;
-          if (!outcome.trueMetalGained && i < times - 1) break; // stop if no output (failed smelt)
         }
         setState(s);
         if (leveledUp) narrate("level_up");
@@ -748,10 +762,10 @@ function updateContextualPanel(): void {
         let s = getState();
         let leveledUp = false;
         for (let i = 0; i < times; i++) {
+          if (!canAffordPlankSaw(s.vessel.inventory)) break;
           const outcome = performSawPlanks(s);
           s = outcome.newState;
           if (outcome.leveledUp) leveledUp = true;
-          if (!outcome.success && i < times - 1) break;
         }
         setState(s);
         if (leveledUp) narrate("level_up");
@@ -773,10 +787,17 @@ function updateContextualPanel(): void {
         setState(outcome.newState);
         render();
       },
-      (roughMaterialId) => {
-        const outcome = performCutGem(getState(), roughMaterialId);
-        setState(outcome.newState);
-        if (outcome.leveledUp) narrate("level_up");
+      (roughMaterialId, times = 1) => {
+        let s = getState();
+        let leveledUp = false;
+        for (let i = 0; i < times; i++) {
+          if (!canAffordCutGem(roughMaterialId, s.vessel.skills.tinkering.level, s.vessel.inventory)) break;
+          const outcome = performCutGem(s, roughMaterialId);
+          s = outcome.newState;
+          if (outcome.leveledUp) leveledUp = true;
+        }
+        setState(s);
+        if (leveledUp) narrate("level_up");
         render();
       },
       () => {

@@ -11,6 +11,7 @@ import {
   applyCutGemResult,
   nextTinkeringPerkTier,
   cutGemsNeededForNextPerkTier,
+  cutGemRequiredLevel,
 } from "../engine/gemcutting";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
@@ -31,11 +32,12 @@ export function renderGemcuttingPanel(
   state: GameState,
   container: HTMLElement,
   onBuild: () => void,
-  onCut: (roughMaterialId: MaterialId) => void,
+  onCut: (roughMaterialId: MaterialId, times?: number) => void,
   onUpgradeTier: () => void,
   onSpendCutGemOnPerk: () => void
 ): void {
   const { gemcuttingBuilt, gemcuttingTier, insightBanked, cutGemsSpentOnPerk } = state.world;
+  const { tinkering } = state.vessel.skills;
 
   let bodyHtml: string;
 
@@ -71,6 +73,7 @@ export function renderGemcuttingPanel(
 
     const cutRows = roughGemTypes
       .filter((gem) => getMaterialAmount(state.vessel.inventory, gem.id) > 0)
+      .filter((gem) => tinkering.level >= cutGemRequiredLevel(gem.id))
       .map((gem) => {
         const held = getMaterialAmount(state.vessel.inventory, gem.id);
         return `
@@ -79,6 +82,7 @@ export function renderGemcuttingPanel(
             <div class="recipe-status">Have: ${held}</div>
             <div class="recipe-success-rate">${successPercent}% cutting success</div>
           </div>
+          <div class="batch-bar"><button class="batch-btn" data-action="cut" data-rough="${gem.id}" data-times="5">×5</button><button class="batch-btn" data-action="cut" data-rough="${gem.id}" data-times="10">×10</button><button class="batch-btn" data-action="cut" data-rough="${gem.id}" data-times="50">×50</button></div>
         `;
       })
       .join("");
@@ -128,7 +132,7 @@ export function renderGemcuttingPanel(
     ${perkSection}
   `;
 
-  container.querySelectorAll<HTMLDivElement>("[data-action]").forEach((row) => {
+  container.querySelectorAll<HTMLDivElement>(".recipe-row[data-action]").forEach((row) => {
     row.addEventListener("click", () => {
       if (row.classList.contains("recipe-row-disabled")) return;
       const action = row.dataset.action;
@@ -136,6 +140,15 @@ export function renderGemcuttingPanel(
       else if (action === "cut") onCut((row.dataset.rough as MaterialId) ?? "rough_quartz");
       else if (action === "upgrade-gemcutting-tier") onUpgradeTier();
       else if (action === "spend-cut-gem-perk") onSpendCutGemOnPerk();
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".batch-btn[data-action]").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (btn.dataset.action === "cut") {
+        const times = parseInt(btn.dataset.times ?? "1");
+        onCut((btn.dataset.rough as MaterialId) ?? "rough_quartz", times);
+      }
     });
   });
 }

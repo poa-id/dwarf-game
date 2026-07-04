@@ -10,6 +10,7 @@ import {
   canAffordForgeRepair,
   applyForgeRepair,
   FORGE_REPAIR_COST,
+  canAffordSmithRecipe,
 } from "../smithing";
 import type { SkillState, ResourceBag } from "../types";
 
@@ -18,6 +19,34 @@ const copperIngotRecipe = SMITH_RECIPES.find((r) => r.id === "copper_ingot")!;
 const ironIngotRecipe = SMITH_RECIPES.find((r) => r.id === "iron_ingot")!;
 
 const inventoryWith = (overrides: ResourceBag): ResourceBag => ({ ...overrides });
+
+describe("canAffordSmithRecipe (2026-07-04 batch-loop fix)", () => {
+  // Extracted so render.ts's batch loop can check affordability BEFORE
+  // each iteration, fixing a real bug: the loop used to check the
+  // PREVIOUS attempt's success/fail roll instead, which had nothing to
+  // do with whether materials remained, and caused x50 batches to
+  // silently stop after the first failed roll (typically within the
+  // first several attempts at a well-under-100% success rate).
+  it("is false when ore is short, even with plenty of fuel", () => {
+    const inv = inventoryWith({ copper_ore: 1, coal: 10 });
+    expect(canAffordSmithRecipe(copperIngotRecipe, inv)).toBe(false);
+  });
+
+  it("is false when no accepted fuel is held, even with plenty of ore", () => {
+    const inv = inventoryWith({ copper_ore: 10 });
+    expect(canAffordSmithRecipe(copperIngotRecipe, inv)).toBe(false);
+  });
+
+  it("is true when both ore and an accepted fuel are held", () => {
+    const inv = inventoryWith({ copper_ore: 10, coal: 10 });
+    expect(canAffordSmithRecipe(copperIngotRecipe, inv)).toBe(true);
+  });
+
+  it("picks whichever accepted fuel is actually held (charcoal bootstrap case)", () => {
+    const inv = inventoryWith({ copper_ore: 10, charcoal: 10 });
+    expect(canAffordSmithRecipe(copperIngotRecipe, inv)).toBe(true);
+  });
+});
 
 describe("attemptSmith", () => {
   it("throws if smithing level is below requirement", () => {

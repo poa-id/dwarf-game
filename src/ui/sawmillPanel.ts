@@ -67,7 +67,7 @@ export function renderSawmillPanel(
     `;
   }
 
-  container.querySelectorAll<HTMLDivElement>("[data-action]").forEach((row) => {
+  container.querySelectorAll<HTMLDivElement>(".recipe-row[data-action]").forEach((row) => {
     row.addEventListener("click", () => {
       if (row.classList.contains("recipe-row-disabled")) return;
       if (row.dataset.action === "build-sawmill") onBuild();

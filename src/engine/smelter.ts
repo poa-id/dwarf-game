@@ -151,6 +151,24 @@ export const PURIFY_INGOT_COST = 5; // ingots consumed per purification attempt
 export const PURIFY_BASE_XP = 12;
 export const PURIFY_IRON_BASE_XP = 20; // iron purifying grants more XP — harder process
 
+/**
+ * Whether one more purify attempt is affordable right now. Extracted
+ * 2026-07-04 so the batch-loop callers in render.ts can check
+ * affordability BEFORE each iteration (the correct guard for a batch
+ * loop) instead of the bug that shipped before this: checking whether
+ * the PREVIOUS attempt's coin-flip succeeded, which has nothing to do
+ * with whether materials remain and caused ×50 batches to silently
+ * stop after the first unlucky roll (typically within the first ~6-7
+ * attempts at a ~85% success rate) rather than actually running 50.
+ */
+export function canAffordPurify(inventory: ResourceBag, ingotMaterialId: MaterialId): boolean {
+  const coalCost = PURIFY_COAL_COST[ingotMaterialId] ?? 5;
+  return (
+    getMaterialAmount(inventory, ingotMaterialId) >= PURIFY_INGOT_COST &&
+    getMaterialAmount(inventory, "coal") >= coalCost
+  );
+}
+
 export interface PurifyResult {
   ingotMaterialId: MaterialId;
   ingotsSpent: number;

@@ -17,10 +17,14 @@ import {
   cutGemsNeededForNextPerkTier,
   totalGemDropChanceBonus,
   totalCuttingSuccessBonus,
+  cutGemRequiredLevel,
+  canAffordCutGem,
 } from "../gemcutting";
 import type { SkillState, ResourceBag } from "../types";
 
 const tinkeringLvl1: SkillState = { id: "tinkering", level: 1, xp: 0 };
+const tinkeringLvl8: SkillState = { id: "tinkering", level: 8, xp: 0 };
+const tinkeringLvl15: SkillState = { id: "tinkering", level: 15, xp: 0 };
 const inventoryWith = (overrides: ResourceBag): ResourceBag => ({ ...overrides });
 
 describe("Gemcutting build cost", () => {
@@ -103,10 +107,40 @@ describe("attemptCutGem", () => {
 
   it("on success, grants the baseline XP and the correct cut gem", () => {
     const inv = inventoryWith({ rough_garnet: 10 });
-    const result = attemptCutGem("rough_garnet", tinkeringLvl1, inv, 0, 0, 0.01);
+    const result = attemptCutGem("rough_garnet", tinkeringLvl8, inv, 0, 0, 0.01);
     expect(result.success).toBe(true);
     expect(result.xpGained).toBe(CUTTING_BASE_XP);
     expect(result.cutMaterialId).toBe("cut_garnet");
+  });
+
+  describe("tier level requirements (2026-07-04)", () => {
+    it("quartz (tier 1) is cuttable from level 1", () => {
+      expect(cutGemRequiredLevel("rough_quartz")).toBe(1);
+      const inv = inventoryWith({ rough_quartz: 1 });
+      expect(() => attemptCutGem("rough_quartz", tinkeringLvl1, inv, 0, 0, 0.01)).not.toThrow();
+    });
+
+    it("garnet (tier 2) requires level 8, matching Mining's iron vein gate", () => {
+      expect(cutGemRequiredLevel("rough_garnet")).toBe(8);
+      const inv = inventoryWith({ rough_garnet: 1 });
+      expect(() => attemptCutGem("rough_garnet", tinkeringLvl1, inv, 0, 0, 0.01)).toThrow();
+      expect(() => attemptCutGem("rough_garnet", tinkeringLvl8, inv, 0, 0, 0.01)).not.toThrow();
+    });
+
+    it("amethyst (tier 3) requires level 15, matching Mining's deepstone vein gate - the exact bug reported (cutting it at level 5)", () => {
+      expect(cutGemRequiredLevel("rough_amethyst")).toBe(15);
+      const inv = inventoryWith({ rough_amethyst: 1 });
+      const tinkeringLvl5: SkillState = { id: "tinkering", level: 5, xp: 0 };
+      expect(() => attemptCutGem("rough_amethyst", tinkeringLvl5, inv, 0, 0, 0.01)).toThrow();
+      expect(() => attemptCutGem("rough_amethyst", tinkeringLvl15, inv, 0, 0, 0.01)).not.toThrow();
+    });
+
+    it("canAffordCutGem reflects both the level gate and holdings", () => {
+      const inv = inventoryWith({ rough_amethyst: 1 });
+      expect(canAffordCutGem("rough_amethyst", 5, inv)).toBe(false); // level too low
+      expect(canAffordCutGem("rough_amethyst", 15, {})).toBe(false); // none held
+      expect(canAffordCutGem("rough_amethyst", 15, inv)).toBe(true);
+    });
   });
 
   it("the COMBINED station-tier + Tinkering-perk bonus actually affects the success roll", () => {

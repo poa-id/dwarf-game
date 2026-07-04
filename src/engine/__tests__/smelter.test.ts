@@ -12,6 +12,8 @@ import {
   PURIFY_BASE_XP,
   attemptPurify,
   applyPurifyResult,
+  canAffordPurify,
+  PURIFY_COAL_COST,
   XP_PERK_TIERS,
   activeXpPerkTier,
   xpPerkBonus,
@@ -23,6 +25,34 @@ import type { SkillState, ResourceBag } from "../types";
 const smithingLvl1: SkillState = { id: "smithing", level: 1, xp: 0 };
 // Always include plenty of coal so purify tests aren't blocked by the new coal cost
 const inventoryWith = (overrides: ResourceBag): ResourceBag => ({ coal: 100, ...overrides });
+
+describe("canAffordPurify (2026-07-04 batch-loop fix)", () => {
+  // Extracted so render.ts's batch loop checks affordability BEFORE
+  // each iteration. The bug this replaces was even worse for purify
+  // specifically: it checked outcome.trueMetalGained (a rare bonus,
+  // often well under 1% chance) instead of affordability, so a x50
+  // batch would almost always stop after just the FIRST attempt.
+  it("is false with insufficient ingots even with plenty of coal", () => {
+    const inv: ResourceBag = { copper_ingot: PURIFY_INGOT_COST - 1, coal: 100 };
+    expect(canAffordPurify(inv, "copper_ingot")).toBe(false);
+  });
+
+  it("is false with insufficient coal even with plenty of ingots", () => {
+    const inv: ResourceBag = { copper_ingot: 100, coal: PURIFY_COAL_COST["copper_ingot"] - 1 };
+    expect(canAffordPurify(inv, "copper_ingot")).toBe(false);
+  });
+
+  it("is true with enough of both", () => {
+    const inv: ResourceBag = { copper_ingot: PURIFY_INGOT_COST, coal: PURIFY_COAL_COST["copper_ingot"] };
+    expect(canAffordPurify(inv, "copper_ingot")).toBe(true);
+  });
+
+  it("uses the correct per-metal coal cost (iron costs more than copper)", () => {
+    const inv: ResourceBag = { iron_ingot: PURIFY_INGOT_COST, coal: PURIFY_COAL_COST["copper_ingot"] };
+    // Enough coal for copper's cheaper rate, but not iron's pricier one
+    expect(canAffordPurify(inv, "iron_ingot")).toBe(false);
+  });
+});
 
 describe("Smelter build cost", () => {
   it("is iron-free by design - only copper_ingot, copper_ore, and wood", () => {

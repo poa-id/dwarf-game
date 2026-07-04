@@ -120,6 +120,23 @@ export function chooseFuelForRecipe(
 }
 
 /**
+ * Whether one more smith attempt of this recipe is affordable right
+ * now (ore + a chosen fuel). Extracted 2026-07-04 so render.ts's batch
+ * loop can check affordability BEFORE each iteration - the correct
+ * guard for a batch button, unlike the bug that shipped before this
+ * (checking the PREVIOUS attempt's success/fail roll instead, which
+ * caused ×50 batches to silently stop after the first failed attempt
+ * rather than actually running 50 times).
+ */
+export function canAffordSmithRecipe(recipe: SmithRecipe, inventory: ResourceBag): boolean {
+  const fuelChoice = chooseFuelForRecipe(recipe, inventory);
+  return canAffordMaterials(inventory, {
+    [recipe.oreMaterialId]: recipe.oreCost,
+    [fuelChoice]: recipe.fuelCost,
+  });
+}
+
+/**
  * Attempt to smith one item. Pure function, caller supplies `roll` for
  * determinism in tests, and `chosenFuel` for which of the recipe's
  * acceptedFuels to actually burn (use chooseFuelForRecipe to pick one

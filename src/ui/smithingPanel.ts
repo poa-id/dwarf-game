@@ -10,6 +10,7 @@ import {
   nextForgeUpgrade,
   canAffordForgeUpgrade,
   foundrySuccessBonus,
+  canAffordSmithRecipe,
   type SmithRecipe,
   type ToolRecipe,
 } from "../engine/smithing";
@@ -52,11 +53,7 @@ export function renderSmithingPanel(
     // meetsLevel is no longer checked here - the .filter() above
     // already guarantees every recipe reaching this point qualifies.
     // Only affordability (materials held) can still disable a row.
-    const fuelChoice = chooseFuelForRecipe(recipe, state.vessel.inventory);
-    const affordable = canAffordMaterials(state.vessel.inventory, {
-      [recipe.oreMaterialId]: recipe.oreCost,
-      [fuelChoice]: recipe.fuelCost,
-    });
+    const affordable = canAffordSmithRecipe(recipe, state.vessel.inventory);
     const canSmith = affordable;
 
     const oreLabel = MATERIALS[recipe.oreMaterialId]?.name ?? recipe.oreMaterialId;
@@ -101,16 +98,22 @@ export function renderSmithingPanel(
       if (smithing.level < recipe.requiredLevel) return "";
 
       const fuelChoice = chooseFuelForRecipe(recipe, state.vessel.inventory);
+      const woodReq = recipe.woodAltId
+        ? { [recipe.woodAltId]: recipe.woodAltCost ?? 0 }
+        : { wood: recipe.woodCost };
       const affordable = canAffordMaterials(state.vessel.inventory, {
         [recipe.ingotMaterialId]: recipe.ingotCost,
-        wood: recipe.woodCost,
+        ...woodReq,
         [fuelChoice]: recipe.fuelCost,
       });
       const canForge = affordable;
 
       const ingotLabel = MATERIALS[recipe.ingotMaterialId]?.name ?? recipe.ingotMaterialId;
       const fuelOptionsLabel = recipe.acceptedFuels.map((id) => MATERIALS[id]?.name ?? id).join(" or ");
-      const costText = `${recipe.ingotCost} ${ingotLabel}, ${recipe.woodCost} Cave-Root Wood, ${recipe.fuelCost} ${fuelOptionsLabel}`;
+      const woodLabel = recipe.woodAltId
+        ? `${recipe.woodAltCost ?? 0} ${MATERIALS[recipe.woodAltId]?.name ?? recipe.woodAltId}`
+        : `${recipe.woodCost} Cave-Root Wood`;
+      const costText = `${recipe.ingotCost} ${ingotLabel}, ${woodLabel}, ${recipe.fuelCost} ${fuelOptionsLabel}`;
       const successRateText = `${Math.round(recipe.baseSuccessChance * 100)}% chance`;
 
       const statusText = affordable ? costText : `Need: ${costText}`;

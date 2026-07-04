@@ -14,6 +14,7 @@ import {
   canAffordIronSmelterTier,
   attemptPurify,
   applyPurifyResult,
+  canAffordPurify,
   nextXpPerkTier,
   trueMetalNeededForNextPerkTier,
   xpPerkBonus,
@@ -76,10 +77,8 @@ export function renderSmelterPanel(
     const { ironPurifyingUnlocked, ironSmelterTier } = state.world;
 
     // Copper purify row
-    const copperHeld = getMaterialAmount(state.vessel.inventory, "copper_ingot");
     const copperCoalCost = PURIFY_COAL_COST["copper_ingot"] ?? 5;
-    const coalHeld = getMaterialAmount(state.vessel.inventory, "coal");
-    const canPurifyCopper = copperHeld >= PURIFY_INGOT_COST && coalHeld >= copperCoalCost;
+    const canPurifyCopper = canAffordPurify(state.vessel.inventory, "copper_ingot");
     const copperDropChance = (purifyTrueMetalChance(smelterTier) * 100).toFixed(3);
     const copperStatus = canPurifyCopper
       ? `${PURIFY_INGOT_COST} Copper Ingot + ${copperCoalCost} Coal`
@@ -120,7 +119,7 @@ export function renderSmelterPanel(
 
     // Iron purify row (once unlocked)
     const ironCoalCost = PURIFY_COAL_COST["iron_ingot"] ?? 12;
-    const canPurifyIron = ironPurifyingUnlocked && ironHeld >= PURIFY_INGOT_COST && coalHeld >= ironCoalCost;
+    const canPurifyIron = ironPurifyingUnlocked && canAffordPurify(state.vessel.inventory, "iron_ingot");
     const ironDropChance = (purifyIronTrueMetalChance(ironSmelterTier) * 100).toFixed(3);
     const ironStatus = canPurifyIron
       ? `${PURIFY_INGOT_COST} Iron Ingot + ${ironCoalCost} Coal`
@@ -177,7 +176,7 @@ export function renderSmelterPanel(
     ${perkSection}
   `;
 
-  container.querySelectorAll<HTMLDivElement>("[data-action]").forEach((row) => {
+  container.querySelectorAll<HTMLDivElement>(".recipe-row[data-action]").forEach((row) => {
     row.addEventListener("click", () => {
       if (row.classList.contains("recipe-row-disabled")) return;
       const action = row.dataset.action;

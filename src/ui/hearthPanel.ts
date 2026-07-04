@@ -17,7 +17,7 @@ import type { GameState, MaterialId } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
 
-const STOKE_AMOUNT = 1; // fixed burst size for now - see DESIGN.md's x1/x5/x10/MAX open item for the eventual bulk-action upgrade
+export const STOKE_AMOUNT = 1; // fixed burst size for now - see DESIGN.md's x1/x5/x10/MAX open item for the eventual bulk-action upgrade
 
 // Visual reference point for the burn gauge's "full bar" - NOT a real
 // cap on the reserve itself (the reserve is uncapped, see hearth.ts).
@@ -58,7 +58,7 @@ export type StokeTarget = "fire" | "reserve";
 export function renderHearthPanel(
   state: GameState,
   container: HTMLElement,
-  onStoke: (materialId: MaterialId, target: StokeTarget) => void,
+  onStoke: (materialId: MaterialId, target: StokeTarget, times?: number) => void,
   onUpgrade: () => void,
   onSpendTrueMetalOnYield: () => void,
   onRekindle: () => void
@@ -92,10 +92,12 @@ export function renderHearthPanel(
                 <div class="recipe-name">Feed the fire: ${label}</div>
                 <div class="recipe-status">Have: ${held}</div>
               </div>
+              ${canStoke ? `<div class="batch-bar"><button class="batch-btn" data-stoke-material="${materialId}" data-stoke-target="fire" data-times="5">×5</button><button class="batch-btn" data-stoke-material="${materialId}" data-stoke-target="fire" data-times="10">×10</button><button class="batch-btn" data-stoke-material="${materialId}" data-stoke-target="fire" data-times="50">×50</button></div>` : ""}
               <div class="recipe-row ${disabledClass}" data-stoke-material="${materialId}" data-stoke-target="reserve">
                 <div class="recipe-name">Bank in reserve: ${label}</div>
                 <div class="recipe-status">Have: ${held}</div>
               </div>
+              ${canStoke ? `<div class="batch-bar"><button class="batch-btn" data-stoke-material="${materialId}" data-stoke-target="reserve" data-times="5">×5</button><button class="batch-btn" data-stoke-material="${materialId}" data-stoke-target="reserve" data-times="10">×10</button><button class="batch-btn" data-stoke-material="${materialId}" data-stoke-target="reserve" data-times="50">×50</button></div>` : ""}
             `;
           })
           .join("");
@@ -205,7 +207,7 @@ export function renderHearthPanel(
     ${rekindleSection}
   `;
 
-  container.querySelectorAll<HTMLDivElement>("[data-stoke-material]").forEach((row) => {
+  container.querySelectorAll<HTMLDivElement>(".recipe-row[data-stoke-material]").forEach((row) => {
     row.addEventListener("click", () => {
       if (row.classList.contains("recipe-row-disabled")) return;
       const materialId = row.dataset.stokeMaterial as MaterialId;
@@ -216,6 +218,16 @@ export function renderHearthPanel(
       // immediately in the burn gauge above.
       if (target === "fire") triggerStokeFlash();
       onStoke(materialId, target);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".batch-btn[data-stoke-material]").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const materialId = btn.dataset.stokeMaterial as MaterialId;
+      const target = btn.dataset.stokeTarget as StokeTarget;
+      const times = parseInt(btn.dataset.times ?? "1");
+      if (target === "fire") triggerStokeFlash();
+      onStoke(materialId, target, times);
     });
   });
 
