@@ -12,15 +12,20 @@ import type { NarratorTrigger, NarratorState } from "../engine/types";
  * not listed here default to 1.0 (always narrate).
  */
 const NARRATION_CHANCE: Partial<Record<NarratorTrigger, number>> = {
-  // Lowered 0.15 -> 0.05 (2026-06-23, explicit fatigue feedback from
-  // playtesting: routine Mining lines got naggy, and a fired line's
-  // ~5s toast duration could outlast a quick switch to an unrelated
-  // action, reading as "the wrong skill's line fired"). Explicit
-  // direction was to lower the RATE specifically, not the toast
-  // duration - kept toast.ts's timing untouched.
-  mine_strike: 0.05,
-  wood_strike: 0.05, // same conservative rate from the start, rather than introducing a brand new line pool at a chattier rate than the established skill
-  area_revealed: 0.6,
+  // Lowered again 2026-07-05 (explicit direction: "quotes should be
+  // very sparse or rare, have weight and aid the narrative") - 0.05
+  // still meant hearing a line every ~20 strikes during an active
+  // mining/chopping session, which reads as commentary on routine
+  // grinding rather than an occasional, weighty voice. 0.02 is roughly
+  // 1-in-50 - rare enough that a line landing still feels like a real
+  // moment, not a running commentary track.
+  mine_strike: 0.02,
+  wood_strike: 0.02,
+  // Lowered from 0.6 - exploring a genuinely new area is fairly
+  // frequent during active play (every new corridor/room qualifies),
+  // and 60% of those triggering a line was close to "almost always
+  // says something," working against the same "sparse and weighty" goal.
+  area_revealed: 0.2,
 };
 
 function chanceFor(trigger: NarratorTrigger): number {

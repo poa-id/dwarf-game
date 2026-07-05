@@ -48,7 +48,7 @@ describe("Woodcraft narration (added 2026-06-23 - previously silent entirely)", 
     expect(second.line).toBeNull(); // never fires twice
   });
 
-  it("wood_strike is throttled at the same conservative rate as mine_strike (0.05) - not a louder pool just because it's new", () => {
+  it("wood_strike is throttled at the same conservative rate as mine_strike (0.02) - not a louder pool just because it's new", () => {
     const state = createInitialNarratorState();
     const losesThrottle = triggerNarration("wood_strike", state, 0.5, 0.9);
     expect(losesThrottle.line).toBeNull();
@@ -132,8 +132,8 @@ describe("triggerNarration - repeatable triggers", () => {
 describe("triggerNarration - throttling", () => {
   it("a throttled trigger stays silent when throttleRoll loses (>= chance)", () => {
     const state = createInitialNarratorState();
-    // mine_strike's chance is 0.05 (lowered from 0.15 on 2026-06-23,
-    // playtesting fatigue feedback) - a roll of 0.9 should lose either way
+    // mine_strike's chance is 0.02 as of 2026-07-05 (lowered from 0.05,
+    // itself lowered from 0.15 on 2026-06-23) - a roll of 0.9 loses at any of those rates
     const result = triggerNarration("mine_strike", state, 0.5, 0.9);
     expect(result.line).toBeNull();
     expect(result.state).toEqual(state); // state genuinely unchanged, not just line=null
