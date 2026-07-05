@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-458/458 tests passing (unaffected by today's input-scheme cleanup - pure UI wiring). TSC clean. Build clean.
+461/461 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -166,6 +166,8 @@
 ---
 
 ## Recently Resolved (changelog)
+
+- **Smelting ingots silently stopped working entirely once a Smelting Engine was unlocked** (2026-07-05) — reported directly: "I have the materials and I can't smelt, clicking nor pressing enter." Root cause: `renderSmeltingEnginePanel` used `container.innerHTML += x` to append its own content into the same contextual-panel container the Smithing panel had just rendered into (both render into the Forge's context - see render.ts). `container.innerHTML += x` is equivalent to `container.innerHTML = container.innerHTML + x`: it destroys **every** existing DOM node in the container and rebuilds fresh ones from the re-serialized HTML string. The Smithing rows still looked completely normal afterward (markup is identical), but the freshly-created nodes had no event listeners at all - listeners are runtime JS bindings, not something that survives an innerHTML round-trip. This silently broke clicking AND Enter (which just calls `.click()` on the highlighted node) on every row the Smithing panel rendered, but only once `isEngineUnlocked()` had something to show (requires `smelterBuilt`) - before that the function returns early with zero DOM writes, so the bug was invisible earlier in a playthrough. Fixed by switching all three `+=` calls to `insertAdjacentHTML("beforeend", ...)`, which appends without touching existing nodes. Searched the rest of the codebase for the same `innerHTML +=` pattern - this was the only occurrence. New test file `smeltingEnginePanel.test.ts` (3 tests) directly reproduces the scenario (a pre-existing row with a listener, then this function runs on the same container) rather than just testing the fix's own output in isolation.
 
 - **No vertical scroll, ever + reset button tucked away** (2026-07-05) — explicit direction: "we can't have vertical scroll for that single button." Added `overflow: hidden` on both `html` and `body` (body alone doesn't fully suppress page-level scroll - the root scroller is determined by `html`) as a hard backstop, verified via Playwright measurements across viewport heights from 1080px down to 680px: zero scroll at every size now, vs. the old layout genuinely overflowing below ~770px. Reset button pulled out of the document flow entirely (`position: fixed`, bottom-right corner, low opacity until hover) so it can never contribute to page height regardless of what's above it - also just generally more appropriate for a destructive action to not be layout-prominent. Trimmed shell padding/gap and capped the narrator container's height (2.5em max, was an unbounded min-height) to shrink the real content height too, not just rely on the clip.
 - **Narrator quotes made rarer and weightier** (2026-07-05) — explicit direction: "quotes should be very sparse or rare, have weight and aid the narrative." `mine_strike`/`wood_strike` throttle lowered 0.05 -> 0.02 (roughly 1-in-50 strikes, down from 1-in-20), `area_revealed` lowered 0.6 -> 0.2. Genuinely rare/milestone triggers (level_up, gem_found, torch_repaired, color stages, companion/console/forge/merchant one-shots) were left untouched - they're already sparse by nature (tied to real progress, not routine action spam), which is exactly the "weight" being preserved here.

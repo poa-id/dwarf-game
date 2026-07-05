@@ -41,8 +41,24 @@ export function renderSmeltingEnginePanel(
   const unlockedDefs = SMELTING_ENGINE_DEFINITIONS.filter(d => isEngineUnlocked(d, state));
   if (unlockedDefs.length === 0) return;
 
-  container.innerHTML += `<div style="border-top:1px solid #2a2a2a;margin:8px 0 4px;"></div>
-  <div class="reserve-status" style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Smelting Engines</div>`;
+  // insertAdjacentHTML, NOT container.innerHTML += (2026-07-05 bugfix -
+  // reported as "smelting ingots isn't working, clicking nor pressing
+  // Enter does anything"). `container.innerHTML += x` is equivalent to
+  // `container.innerHTML = container.innerHTML + x`: it destroys EVERY
+  // existing DOM node in the container - including the Smithing
+  // panel's recipe rows rendered just before this function runs in the
+  // same forge context (see render.ts) - and rebuilds them fresh from
+  // the re-serialized HTML string. The markup looks identical, so the
+  // rows still LOOK right, but the freshly-created nodes have no
+  // event listeners at all (listeners are runtime JS bindings, not
+  // something that round-trips through innerHTML serialization). This
+  // silently broke clicking (and Enter, which just calls .click() on
+  // the highlighted node) on every row rendered before this section,
+  // but only once a Smelting Engine was actually unlocked - the
+  // isEngineUnlocked() check above returns nothing to render until
+  // then, so the bug was invisible earlier in a playthrough.
+  container.insertAdjacentHTML("beforeend", `<div style="border-top:1px solid #2a2a2a;margin:8px 0 4px;"></div>
+  <div class="reserve-status" style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Smelting Engines</div>`);
 
   for (const def of unlockedDefs) {
     const engineState = state.world.smeltingEngines[def.id];
@@ -51,11 +67,11 @@ export function renderSmeltingEnginePanel(
 
     if (!built) {
       const affordable = canAffordCost(inv, def.buildCost);
-      container.innerHTML += `
+      container.insertAdjacentHTML("beforeend", `
         <div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-engine-build="${def.id}">
           <div class="recipe-name">Build ${def.name}</div>
           <div class="recipe-status">${costText(def.buildCost)}</div>
-        </div>`;
+        </div>`);
     } else {
       const tier = engineState.tier;
       const tierDef = engineTierDef(def, tier);
@@ -64,7 +80,7 @@ export function renderSmeltingEnginePanel(
       const canCollect = engineState.ingotBuffer > 0;
       const spm = (tierDef.ingotsPerCycle / tierDef.cycleMs) * 60_000;
 
-      container.innerHTML += `
+      container.insertAdjacentHTML("beforeend", `
         <div class="reserve-status"><strong>${def.name}</strong> T${tier} · ${tierDef.name}</div>
         <div class="reserve-status">${ingotName} buffer: ${engineState.ingotBuffer}/${engineState.ingotBufferMax} · ${spm.toFixed(1)}/min</div>
         ${canCollect ? `<div class="recipe-row" data-engine-collect="${def.id}">
@@ -78,7 +94,7 @@ export function renderSmeltingEnginePanel(
             <div class="recipe-status">${costText(nextTier.upgradeCost)} — ${(tierDef.ingotsPerCycle / tierDef.cycleMs * 60_000).toFixed(1)}→${(nextTier.ingotsPerCycle / nextTier.cycleMs * 60_000).toFixed(1)}/min</div>
           </div>`;
         })() : ""}
-      `;
+      `);
     }
   }
 
