@@ -12,6 +12,7 @@ import {
   FORGE_BUILDING_FOOTPRINT,
   HEARTH_FOOTPRINT,
   GEMCUTTING_POSITION,
+  TRADE_POST_POSITION,
   MAP_CENTER,
   COMPANION_POSITION,
   CONSOLE_POSITION,
@@ -304,9 +305,9 @@ export function hubCellAt(
   if (
     sawmillBuilt &&
     col >= SAWMILL_POSITION.col &&
-    col < SAWMILL_POSITION.col + 2 &&
+    col < SAWMILL_POSITION.col + 3 &&
     row >= SAWMILL_POSITION.row &&
-    row < SAWMILL_POSITION.row + 2
+    row < SAWMILL_POSITION.row + 3
   ) {
     return { kind: "sawmill" };
   }
@@ -350,6 +351,12 @@ export function hubCellAt(
   const isOpen = (stage: string) => stage === "cleared" || stage === "restored" || stage === "masterwork";
   const inSouthRoom = col >= 35 && col <= 45 && row >= 38 && row <= 45;
   if (inSouthRoom && isOpen(tradeHallStage)) {
+    if (
+      col >= TRADE_POST_POSITION.col && col < TRADE_POST_POSITION.col + 5 &&
+      row >= TRADE_POST_POSITION.row && row < TRADE_POST_POSITION.row + 5
+    ) {
+      return { kind: "trade_post" };
+    }
     const staticCell = getHubGrid()[row * HUB_WIDTH + col];
     if (staticCell.kind === "rubble") return { kind: "rock_floor" };
     return staticCell;

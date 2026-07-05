@@ -107,7 +107,11 @@ export function isNearForge(): boolean {
 export function isNearHearth(): boolean {
   const { position } = getState().vessel;
   const { originCol, originRow, width, height } = HEARTH_FOOTPRINT;
-  // Check proximity to the full 4×4 footprint perimeter
+  // Check proximity to the full 6×6 footprint perimeter (width/height
+  // read dynamically from HEARTH_FOOTPRINT, so this stays correct
+  // regardless of size - unlike the stale hardcoded-number bugs found
+  // in isNearKiln/isNearSawmill/isNearGemcutting, this one was only
+  // ever wrong in its comment, not its math)
   const nearCol = position.col >= originCol - 1 && position.col <= originCol + width;
   const nearRow = position.row >= originRow - 1 && position.row <= originRow + height;
   return nearCol && nearRow;
@@ -137,19 +141,23 @@ export function isNearSmelter(): boolean {
 
 export function isNearSawmill(): boolean {
   const { position } = getState().vessel;
-  // Sawmill 2×2 footprint, same proximity shape as the Kiln
+  // Sawmill grown 2x2 -> 3x3 (2026-07-05) - buffer widened from +2 to
+  // +3 to match, same fix as isNearKiln's earlier grow-out.
   return (
     position.col >= SAWMILL_POSITION.col - 1 &&
-    position.col <= SAWMILL_POSITION.col + 2 &&
+    position.col <= SAWMILL_POSITION.col + 3 &&
     position.row >= SAWMILL_POSITION.row - 1 &&
-    position.row <= SAWMILL_POSITION.row + 2
+    position.row <= SAWMILL_POSITION.row + 3
   );
 }
 
 export function isNearGemcutting(): boolean {
   const { position } = getState().vessel;
-  // 4×4 footprint
-  const nearCol = position.col >= GEMCUTTING_POSITION.col - 1 && position.col <= GEMCUTTING_POSITION.col + 4;
-  const nearRow = position.row >= GEMCUTTING_POSITION.row - 1 && position.row <= GEMCUTTING_POSITION.row + 4;
+  // 6×6 footprint - was stale here (said "4×4"/+4, actually 6x6 - see
+  // hubContent.ts's fill loop), meaning the far edge had zero
+  // interaction buffer and part of the near edge was short too. Same
+  // class of bug as isNearKiln/isNearSawmill's earlier fixes.
+  const nearCol = position.col >= GEMCUTTING_POSITION.col - 1 && position.col <= GEMCUTTING_POSITION.col + 6;
+  const nearRow = position.row >= GEMCUTTING_POSITION.row - 1 && position.row <= GEMCUTTING_POSITION.row + 6;
   return nearCol && nearRow;
 }

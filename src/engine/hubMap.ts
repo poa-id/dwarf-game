@@ -162,16 +162,16 @@ export const SMELTER_POSITION: Position = {
  * Gemcutting station 6×6 anchor in the Tinkering Room. Repositioned
  * 2026-07-04 per direction ("move it...so it's horizontally
  * centered"). Room is cols 52-63 (12 wide), rows 36-46 (11 tall).
- * Horizontal: col55 centers a 6-wide structure exactly (3 cols margin
- * each side) - this matches the requested "+1 column" from the old
- * col54 precisely. Vertical: the direction given was "two rows
- * upwards," but the OLD row (36) was already flush with the room's own
- * top wall (zero margin above) - moving up 2 more would leave the room
- * entirely. Used vertical centering instead (row38: 2 rows margin
- * above, 3 below) as the closest sensible interpretation - flagged
- * directly since this is a judgment call, not the literal instruction.
+ * Shifted +1 column again on 2026-07-05 (col55 -> col56) to open a
+ * 1-column gap for the Sawmill, grown to 3×3 and moved to sit directly
+ * beside Gemcutting that same day (see SAWMILL_POSITION) - the two
+ * stations now occupy cols 52-61 as a paired group (3+1 gap+6),
+ * leaving 2 cols margin on the room's east edge (was 3/3 symmetric
+ * before the Sawmill moved in; not exactly centered anymore now that
+ * there are two structures to fit, but reads as one coherent group
+ * rather than the previous isolated-in-a-corner layout).
  */
-export const GEMCUTTING_POSITION: Position = { col: 55, row: 38 };
+export const GEMCUTTING_POSITION: Position = { col: 56, row: 38 };
 
 /**
  * Charcoal Kiln in the Garden Room. Grown 2×2 -> 3×3 (2026-07-04, per
@@ -186,20 +186,16 @@ export const GEMCUTTING_POSITION: Position = { col: 55, row: 38 };
 export const KILN_POSITION: Position = { col: 14, row: 35 }; // 3×3: cols 14-16, rows 35-37
 
 /**
- * Sawmill — relocated to the Tinkering Room (2026-07-04, direction:
- * "sawmill could be placed in gemcutting room if it doesn't have a
- * place yet" - it did have one, in the Garden Room, but the Kiln's
- * rightward move to make room for itself would have collided with it
- * there, and the Tinkering Room has plenty of unused floor next to
- * Gemcutting). Also: the Sawmill was very likely invisible before this
- * same session's sprite-opacity fix (sawmill.png was ~12% full-opacity
- * pixels, essentially a ghost) - "I don't see them on the map" was
- * probably that bug, not a placement problem, but relocating away from
- * the Kiln collision is needed regardless. 2×2, top-left corner of the
- * room, clear of the repositioned Gemcutting station (see
+ * Sawmill — Tinkering Room, grown 2×2 -> 3×3 (2026-07-05, direct
+ * feedback: "It should be a 3x3 sprite, and that room is really
+ * weird"). Repositioned to sit directly beside Gemcutting (1-col gap
+ * at col55) instead of isolated in the room's far corner, which read
+ * as disconnected/weird - matches the established "paired stations
+ * with a walkable gap" convention used elsewhere (Kiln beside the
+ * wood root). Gemcutting shifted +1 column to make room (see
  * GEMCUTTING_POSITION).
  */
-export const SAWMILL_POSITION: Position = { col: 52, row: 36 };
+export const SAWMILL_POSITION: Position = { col: 52, row: 38 };
 
 /**
  * Narag-Bund's resting spot once befriended — just south-east of the
@@ -225,6 +221,20 @@ export const CONSOLE_POSITION: Position = { col: 34, row: 22 };
  * room (cols 52-63). 6×7 footprint: fills rows 21-27, cols 56-61.
  */
 export const STOCKPILE_CHEST_POSITION: Position = { col: 56, row: 21 };
+
+/**
+ * Trade Post — the merchant's stall/structure in the Trade Hall
+ * (sealed_south: cols 35-45, rows 38-45). Added 2026-07-05 - the
+ * trade_post sprite and its full palette/tileset registration
+ * (SOLID_CELL_KINDS, colors, glyph) already existed, but NOTHING ever
+ * actually placed it on the map. The room was fully functional (the
+ * merchant panel works from anywhere in the room, gated on
+ * tradeHallStage alone) but visually empty once cleared - reported
+ * directly: "I already unlocked it [and] its empty." 5×5, centered in
+ * the 11×8 room (1 col margin left/right isn't possible with odd
+ * leftover space - 3 left/3 right; 1 row margin top, 2 bottom).
+ */
+export const TRADE_POST_POSITION: Position = { col: 38, row: 39 };
 
 // ── Ore vein placements ───────────────────────────────────────────────────────
 
