@@ -121,10 +121,13 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 6; dc++)
       set(hc + dc, hr + dr, "hearth");
 
-  // ── 6. Forge 6×6 (forge_broken until repaired) ───────────────────────
-  const { originCol: fc, originRow: fr } = FORGE_BUILDING_FOOTPRINT;
-  for (let dr = 0; dr < 6; dr++)
-    for (let dc = 0; dc < 6; dc++)
+  // ── 6. Forge (forge_broken until repaired) - reads its own width/height
+  // from FORGE_BUILDING_FOOTPRINT rather than hardcoding 6, unlike before
+  // (2026-07-04) - grown to 7x7 needed this to actually take effect here,
+  // not just in the footprint constant itself.
+  const { originCol: fc, originRow: fr, width: fw, height: fh } = FORGE_BUILDING_FOOTPRINT;
+  for (let dr = 0; dr < fh; dr++)
+    for (let dc = 0; dc < fw; dc++)
       set(fc + dc, fr + dr, "forge_broken");
 
   // Corridor torches removed — they blocked navigation.
@@ -180,6 +183,42 @@ function buildHubContent(): GridCell[] {
   for (let dr = 0; dr < 3; dr++)
     for (let dc = 0; dc < 3; dc++)
       set(MINE_SHAFT_POSITION.col + dc, MINE_SHAFT_POSITION.row + dr, "mineshaft_broken");
+
+  // ── 14. Void beyond the wall border (2026-07-04) ───────────────────────
+  // The grid defaults every cell to rock_wall, and only carved
+  // rooms/corridors get anything else - meaning ALL that uncarved rock,
+  // however far light or memory reaches, was rendering as an endless
+  // field of wall texture rather than "one wall, then pitch black."
+  // Reported directly: "I just want what's inside the walls and not in
+  // a corridor or room to be pitch black, and only one layer of walls
+  // to be visible." Fix: any rock_wall cell with NO carved (non-wall,
+  // non-void) neighbor in any of the 8 surrounding cells is interior
+  // rock no one should ever see the texture of - convert it to void
+  // (which the renderers already skip entirely, rendering as pure
+  // black). Cells that ARE adjacent to a carved space stay rock_wall,
+  // giving exactly the single visible border layer asked for. Run as
+  // a post-process over the whole finished grid rather than tracked
+  // during carving, since many rooms/corridors carve independently and
+  // a wall cell's adjacency to ANY of them can't be known until
+  // everything above has already run.
+  const original = grid.slice();
+  for (let row = 0; row < HUB_HEIGHT; row++) {
+    for (let col = 0; col < HUB_WIDTH; col++) {
+      const idx = row * HUB_WIDTH + col;
+      if (original[idx].kind !== "rock_wall") continue;
+      let hasCarvedNeighbor = false;
+      for (let dr = -1; dr <= 1 && !hasCarvedNeighbor; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nc = col + dc, nr = row + dr;
+          if (nc < 0 || nc >= HUB_WIDTH || nr < 0 || nr >= HUB_HEIGHT) continue;
+          const neighborKind = original[nr * HUB_WIDTH + nc].kind;
+          if (neighborKind !== "rock_wall") { hasCarvedNeighbor = true; break; }
+        }
+      }
+      if (!hasCarvedNeighbor) grid[idx] = { kind: "void" };
+    }
+  }
 
   return grid;
 }

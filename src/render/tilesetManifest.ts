@@ -89,8 +89,8 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   // Real 4x4 sprites (added 2026-06-30). tileSpan tells TilesetRenderer
   // to draw at 4x the normal cell size, anchored at the top-left cell.
   hearth: { assetUrl: hearth4x4Url, tileSpan: { cols: 6, rows: 6 } },
-  forge: { assetUrl: forge4x4Url, tileSpan: { cols: 6, rows: 6 } },
-  forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 6, rows: 6 } },
+  forge: { assetUrl: forge4x4Url, tileSpan: { cols: 7, rows: 7 } },
+  forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 7, rows: 7 } },
   kiln: { assetUrl: kilnUrl, tileSpan: { cols: 3, rows: 3 } },
   sawmill: { assetUrl: sawmillUrl, tileSpan: { cols: 2, rows: 2 } },
   // Smelter add-on: 2x2 sprite sitting below the Forge.

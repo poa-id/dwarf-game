@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-435/435 tests passing. TSC clean. Build clean.
+458/458 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -29,10 +29,10 @@
 - Central hall (hearth 6×6, mountain console 2×2, Narag-Bund south of hearth)
 - Mine room (cols 6-18, rows 20-30): iron N, deepstone mid, copper SW, coal SE (all 3×3)
 - Mine shaft (3×3 north wall, depth system)
-- Garden room (cols 6-18, rows 35-45): 6 planters (3×2 grid), wood root, kiln, sawmill
-- Forge room (cols 52-63, rows 9-19): forge 6×6, smelter below
-- Stockpile room (cols 49-63, rows 21-30): 6×7 chest
-- Tinkering room (cols 52-63, rows 36-46): gemcutting 6×6
+- Garden room (cols 6-18, rows 35-45): 6 planters (3×2 grid, shifted down 1 row 2026-07-04), wood root, kiln (grown 3×3, moved +5 cols 2026-07-04)
+- Forge room (cols 52-63, rows 9-19): forge 7×7 (grown from 6×6, 2026-07-04), smelter below
+- Stockpile room (cols 49-63, rows 21-30): 6×7 chest (moved +4 cols 2026-07-04)
+- Tinkering room (cols 52-63, rows 36-46): gemcutting 6×6 (recentered 2026-07-04), sawmill 2×2 (relocated here from the Garden Room, 2026-07-04)
 - Sealed rooms: Trade Hall (S), Deep Foundry (NW), Archive (N) — full panel arcs
 
 ### Automation (idle layer)
@@ -41,7 +41,7 @@
 - Narag-Bund: hauls fuel to reserve every 10s; hauls coal to drills at Hearth tier 2
 - Mountain Console: production dashboard (ore/min, drill status, hearth metrics, restoration)
 
-### Sawmill (Garden Room, 2×2, east of the Kiln)
+### Sawmill (Tinkering Room, 2×2, near the Gemcutting station)
 - Woodcraft-governed wood → wood_planks conversion (woodcraft.ts's own doc comment
   anticipated this: "processing raw wood into planks/lumber" was always meant to
   exist, just wasn't built until now)
@@ -170,6 +170,13 @@
 ---
 
 ## Recently Resolved (changelog)
+
+- **Widespread "ghostly" sprite transparency, 31 files** (2026-07-04) — reported directly: "Console, and many other sprites look ghostly like they have transparency on, while the hearth and forge etc look very crisp." Audited every sliced tileset asset's alpha channel and found this was real and widespread: `mountain_console.png` was only 1.9% fully-opaque pixels (mean alpha 182/255), `sawmill.png` 11.9%, most planter stages under 12%, `trade_post.png` 19.6% (**this is almost certainly why the Trading Post seemed to not exist** - it was rendering at near-total transparency), vs. `hearth_4x4`/`forge_4x4`/`gemcutting_4x4`/`stockpile_chest` at 96%+ opaque. Fixed with an alpha-only binarization (threshold 40: alpha>=40 -> 255, else 0) across all 31 affected files - deliberately NOT touching RGB color values this time, unlike the earlier reverted "de-fringe" attempt that changed color and looked bad. Silhouette shape preserved (~98% of original visible pixels retained per spot-check on mountain_console.png).
+- **Wall texture rendering endlessly instead of "one wall, then black"** (2026-07-04) — reported directly with a reference screenshot showing a lit corridor bordered by pure black, wanting that look everywhere: "what's inside the walls and not in a corridor or room to be pitch black, and only one layer of walls to be visible." Root cause: the static grid defaults EVERY cell to `rock_wall`, and only carved rooms/corridors get anything else - so all that uncarved rock, however far light or memory reached, rendered as an endless field of wall texture, not "one wall then void." Added a post-process pass in `buildHubContent()`: any `rock_wall` cell with no carved (non-wall) neighbor among its 8 surrounding cells becomes `void` (which renders as nothing - pure black), leaving exactly one visible wall layer bordering every room/corridor. Added `void` to `SOLID_CELL_KINDS` (it wasn't there before, since void previously only ever appeared *outside* the map's grid bounds where movement was already prevented separately - now that it appears *inside* the bounds too, as former deep-rock cells, it needs its own solidity or the mountain's interior would become walkable).
+- **Gemcutting station walkthrough** (2026-07-04) — `gemcutting`/`gemcutting_unbuilt` were missing from `SOLID_CELL_KINDS` entirely. Added both, plus a new regression test (`palette.test.ts`, 23 tests) explicitly listing every structure kind that must be solid, so a future addition missing this doesn't ship silently walkthrough again.
+- **Room repositioning per direction** (2026-07-04): Gemcutting moved to horizontally center in the Tinkering Room (col55 - the room is 12 wide, matches the requested "+1 column" exactly); vertical position is a judgment call (row38, i.e. centered) since the literal "2 rows up" instruction wasn't geometrically possible from the old flush-with-top-wall position - flagged directly for confirmation. Garden planters shifted down 1 row (was blocked by the Kiln's old position). Kiln moved +5 columns to align directly above the planter column it now sits over, resolving the path-blocking. Sawmill relocated from the Garden Room to the Tinkering Room (direction: "sawmill could be placed in gemcutting room if it doesn't have a place yet" - the Kiln's move would have collided with its old spot anyway). Stockpile chest moved +4 columns. Forge (and Smelter, which is positioned relative to it) grown 6×6 -> 7×7, the preferred of two offered options, which inherently keeps it flush with the Forge Room's north wall and gets it much closer to horizontally centered (was 2 cols left margin / 4 right - genuinely off-center before this). Found two more hardcoded-`6` spots that needed updating alongside the footprint constant itself (hubContent.ts's fill loop, tilesetManifest.ts's `forge`/`forge_broken` tileSpan) - the footprint constant alone wouldn't have actually changed anything on screen.
+- **Sawmill likely explains its own "I don't see it" report** — sawmill.png was one of the 31 ghostly sprites (11.9% opaque) fixed above; combined with the collision-driven relocation, it should now actually be visible.
+- **Ancient Grove entrance confirmed NOT yet built** — asked about directly ("You talked about the sawmill and the grove entrance, but I don't see them on the map"). Unlike the Sawmill, this one genuinely isn't implemented yet - it's item 5 of 5 in the confirmed sprite-build sequence (see the numbered list above), not a bug.
 
 - **Batch button (×5/×10/×50) resource-multiplier bug, all stations** (2026-07-04) — reported directly: "×50 doesn't actually equal 50 clicks." Root cause found across Kiln, Smithing, Smelter, and Sawmill's batch loops in render.ts: each one checked whether the PREVIOUS attempt's random roll *succeeded* before continuing the loop, not whether another attempt was actually *affordable*. Since most actions have a real failure chance (~85% success is typical), a ×50 batch would silently stop after the first unlucky roll - typically within 6-7 attempts, not 50. Smelter's purify loop had an even worse version: it checked for the rare (~0.1-3%) True-metal BONUS drop, so it usually stopped after just ONE attempt. Fixed by checking affordability (materials held, via a new exported `canAffordX` helper per station) *before* each iteration instead. Also added the missing ×5/×10/×50 buttons to Gemcutting and the Hearth's stoke actions, which had none at all.
 - **Double-fire bug on every batch button** (2026-07-04, found while fixing the above) — the row-click handler's selector (`[data-action]`) was broad enough to also match the batch buttons themselves (which reuse `data-action` for their own click handling), so clicking ×50 fired BOTH the row's default×1 handler AND the batch handler's ×50 - actually executing 51 attempts, or 6 for a ×5 click. Fixed by scoping the row handler to `.recipe-row[data-action]` across every affected panel (Kiln, Sawmill, Smelter, Gemcutting, Hearth).

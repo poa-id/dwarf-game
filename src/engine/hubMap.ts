@@ -110,12 +110,23 @@ export function zoneById(id: string): ZoneDefinition | undefined {
 
 // ── Structure footprints ─────────────────────────────────────────────────────
 
-/** Forge 6×6 building, anchored at top-left of the Forge Room. */
+/**
+ * Forge building, anchored at top-left of the Forge Room. Grown 6×6 ->
+ * 7×7 (2026-07-04, per direction: "increase the size to 7x7 and it
+ * will stick to the northern wall, and be centered" - the preferred
+ * of two options offered, the other being a plain 1-row shift). Room
+ * is cols 52-63 (12 wide); anchor col54 already gives the closest a
+ * 7-wide structure can get to centered in a 12-wide room (2 cols
+ * margin left, 3 right - can't be perfectly symmetric with an odd
+ * leftover of 5). Row unchanged (9 = the room's own top row) - already
+ * flush with the north wall before this change, growing height doesn't
+ * need a row adjustment to stay that way.
+ */
 export const FORGE_BUILDING_FOOTPRINT = {
   originCol: 54,
   originRow: 9,
-  width: 6,
-  height: 6,
+  width: 7,
+  height: 7,
 };
 
 /**
@@ -147,25 +158,48 @@ export const SMELTER_POSITION: Position = {
   row: FORGE_BUILDING_FOOTPRINT.originRow + FORGE_BUILDING_FOOTPRINT.height,
 };
 
-/** Gemcutting station 6×6 anchor in the Tinkering Room. */
-export const GEMCUTTING_POSITION: Position = { col: 54, row: 36 };
+/**
+ * Gemcutting station 6×6 anchor in the Tinkering Room. Repositioned
+ * 2026-07-04 per direction ("move it...so it's horizontally
+ * centered"). Room is cols 52-63 (12 wide), rows 36-46 (11 tall).
+ * Horizontal: col55 centers a 6-wide structure exactly (3 cols margin
+ * each side) - this matches the requested "+1 column" from the old
+ * col54 precisely. Vertical: the direction given was "two rows
+ * upwards," but the OLD row (36) was already flush with the room's own
+ * top wall (zero margin above) - moving up 2 more would leave the room
+ * entirely. Used vertical centering instead (row38: 2 rows margin
+ * above, 3 below) as the closest sensible interpretation - flagged
+ * directly since this is a judgment call, not the literal instruction.
+ */
+export const GEMCUTTING_POSITION: Position = { col: 55, row: 38 };
 
 /**
  * Charcoal Kiln in the Garden Room. Grown 2×2 -> 3×3 (2026-07-04, per
  * direction: "the kiln should be bigger than the tree resource node")
  * - now bigger than the root tangle (also resized down to 2×2 the same
- * day). Repositioned with a 1-column gap after the (now smaller) root
- * tangle, matching this room's existing gap-column convention (see
- * PLANTER_POSITIONS' comment on cols 9/13 being walkable gaps).
+ * day). Moved +5 columns (2026-07-04, direction: "the kiln is blocking
+ * the path" + "align vertically with the...planters") from col9 to
+ * col14 - lands exactly above the col-14 planter column (slots 2/5),
+ * forming a clean north-south line (kiln, gap row 38, planter, gap
+ * row 42, planter) instead of sitting in the room's main walking lane.
  */
-export const KILN_POSITION: Position = { col: 9, row: 35 }; // 3×3: cols 9-11, rows 35-37
+export const KILN_POSITION: Position = { col: 14, row: 35 }; // 3×3: cols 14-16, rows 35-37
 
 /**
- * Sawmill — Garden Room addon, 2×2. Repositioned 2026-07-04 (was
- * cols 17-18) to make room for the Kiln's 2x2 -> 3x3 grow-out; now
- * sits with a 1-column gap after the Kiln, same convention.
+ * Sawmill — relocated to the Tinkering Room (2026-07-04, direction:
+ * "sawmill could be placed in gemcutting room if it doesn't have a
+ * place yet" - it did have one, in the Garden Room, but the Kiln's
+ * rightward move to make room for itself would have collided with it
+ * there, and the Tinkering Room has plenty of unused floor next to
+ * Gemcutting). Also: the Sawmill was very likely invisible before this
+ * same session's sprite-opacity fix (sawmill.png was ~12% full-opacity
+ * pixels, essentially a ghost) - "I don't see them on the map" was
+ * probably that bug, not a placement problem, but relocating away from
+ * the Kiln collision is needed regardless. 2×2, top-left corner of the
+ * room, clear of the repositioned Gemcutting station (see
+ * GEMCUTTING_POSITION).
  */
-export const SAWMILL_POSITION: Position = { col: 13, row: 35 };
+export const SAWMILL_POSITION: Position = { col: 52, row: 36 };
 
 /**
  * Narag-Bund's resting spot once befriended — just south-east of the
@@ -185,9 +219,12 @@ export const CONSOLE_POSITION: Position = { col: 34, row: 22 };
 
 /**
  * Stockpile chest — the ore storage anchor in the east wing once
- * the stockpile_room is cleared. Centered in the east room (cols 52-63, rows 21-30).
- * 6×7 footprint: anchor so it fills rows 21-27, cols 52-57. */
-export const STOCKPILE_CHEST_POSITION: Position = { col: 52, row: 21 };
+ * the stockpile_room is cleared. Moved +4 columns (2026-07-04, direct
+ * instruction) - was flush with the room's west edge (col52, zero
+ * margin), now sits with 4 cols margin left, 2 right in the 12-wide
+ * room (cols 52-63). 6×7 footprint: fills rows 21-27, cols 56-61.
+ */
+export const STOCKPILE_CHEST_POSITION: Position = { col: 56, row: 21 };
 
 // ── Ore vein placements ───────────────────────────────────────────────────────
 
@@ -265,10 +302,14 @@ export function lightSourceById(id: string): LightSourceDefinition | undefined {
  * The corridor passes through gap cols 9 and 13 at rows 42-44.
  * Tree root (6,35) and kiln (15,35) are against the north wall (rows 35-37). */
 export const PLANTER_POSITIONS: Position[] = [
-  { col: 6,  row: 38 }, // slot 0 — north-west (rows 38-40), always unlocked
-  { col: 10, row: 38 }, // slot 1 — north-centre (rows 38-40)
-  { col: 14, row: 38 }, // slot 2 — north-east (rows 38-40)
-  { col: 6,  row: 42 }, // slot 3 — south-west (rows 42-44, in corridor zone)
-  { col: 10, row: 42 }, // slot 4 — south-centre (rows 42-44)
-  { col: 14, row: 42 }, // slot 5 — south-east (rows 42-44)
+  // Shifted down 1 row (2026-07-04, direction: "the kiln is blocking
+  // the path" at the old layout) - rows 38/42 -> 39/43. Columns
+  // unchanged. Still fits the room (bounds rows 35-45): bottom row now
+  // occupies 43-45, flush with the room's own south edge.
+  { col: 6,  row: 39 }, // slot 0 — north-west (rows 39-41), always unlocked
+  { col: 10, row: 39 }, // slot 1 — north-centre (rows 39-41)
+  { col: 14, row: 39 }, // slot 2 — north-east (rows 39-41)
+  { col: 6,  row: 43 }, // slot 3 — south-west (rows 43-45, in corridor zone)
+  { col: 10, row: 43 }, // slot 4 — south-centre (rows 43-45)
+  { col: 14, row: 43 }, // slot 5 — south-east (rows 43-45)
 ];

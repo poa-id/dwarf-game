@@ -64,6 +64,7 @@ export type CellKind =
  */
 export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "rock_wall",
+  "void", // deep rock beyond the visible wall border (2026-07-04) - impassable, same as rock_wall
   "rubble",
   "mountain_console",
   "stockpile_chest",
@@ -77,6 +78,8 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "kiln",
   "smelter",
   "sawmill",
+  "gemcutting",
+  "gemcutting_unbuilt",
   "ore_copper",
   "ore_iron",
   "ore_deep",

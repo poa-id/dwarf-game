@@ -149,7 +149,10 @@ export function isNearStockpile(position: { col: number; row: number }, stockpil
       position.row >= 23 && position.row <= 27
     );
   }
-  // Cleared+: near the chest at (57, 25)
+  // Cleared+: anywhere in the stockpile room (the whole-room bounds
+  // below are intentionally room-wide, not a tight radius around the
+  // chest - robust to STOCKPILE_CHEST_POSITION moving, as it did
+  // 2026-07-04)
   return (
     position.col >= 52 && position.col <= 63 &&
     position.row >= 21 && position.row <= 30
