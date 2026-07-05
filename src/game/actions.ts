@@ -1,15 +1,13 @@
 import { getState, setState, narrate } from "./gameState";
-import { nearestOreVein, nearestWoodNode, isNearForge, isForgeRepaired, nearestUnrepairedTorch } from "./proximity";
-import { MATERIALS, getMaterialAmount, deductMaterials } from "../engine/types";
+import { nearestOreVein, nearestWoodNode, nearestUnrepairedTorch } from "./proximity";
+import { getMaterialAmount, deductMaterials } from "../engine/types";
 import { ROCK_NODES, createFreshDepletionState, isExhausted as isOreExhausted, attemptMineStrike, applyMineResult } from "../engine/mining";
 import { WOOD_NODES, isExhausted as isWoodExhausted, attemptWoodGather, applyWoodGatherResult } from "../engine/woodcraft";
-import { canAffordForgeRepair, applyForgeRepair, FORGE_REPAIR_COST } from "../engine/smithing";
 import { repairTorch } from "../engine/torches";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
-import { showNarratorToast } from "../narration/toast";
 
 import { addMaterial } from "../engine/types";
 
@@ -188,30 +186,12 @@ export function handleWoodGather(): void {
   if (newWoodcraftSkill.level > woodcraftSkill.level) narrate("level_up");
 }
 
-export function handleForgeRepair(narratorContainer: HTMLElement, actionHint: HTMLElement): void {
-  if (!isNearForge() || isForgeRepaired()) return;
-
-  const state = getState();
-  if (!canAffordForgeRepair(state.vessel.inventory)) {
-    const costText = Object.entries(FORGE_REPAIR_COST)
-      .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
-      .join(", ");
-    actionHint.textContent = `Not enough materials to repair the forge (need ${costText}).`;
-    return;
-  }
-
-  const newInventory = applyForgeRepair(state.vessel.inventory);
-  setState({
-    ...state,
-    world: { ...state.world, forgeTier: 1 },
-    vessel: { ...state.vessel, inventory: newInventory },
-  });
-
-  showNarratorToast(
-    narratorContainer,
-    "The forge catches. Cold iron remembers, even after all this time, what it's for."
-  );
-}
+// Forge repair moved to the contextual menu (2026-07-05) - see
+// performForgeRepair/renderForgeRepairPanel in ui/smithingPanel.ts.
+// This used to be a standalone "press R" hotkey with no menu presence
+// at all; direction was explicit: repair actions belong in the
+// context menu (Enter-confirmed), not a bespoke key, and F is reserved
+// for gathering actions only.
 
 export function handleTorchRepair(actionHint: HTMLElement): void {
   const torch = nearestUnrepairedTorch();

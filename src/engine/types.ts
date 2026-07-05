@@ -547,6 +547,7 @@ export type NarratorTrigger =
   | "stranger_arrival"
   | "companion_befriended" // Narag-Bund - the first and only thing in this world that chooses to stay
   | "console_awakened" // The Mountain Console wakes — the mountain remembers itself
+  | "forge_repaired" // The forge is repaired for the first time (was a direct showNarratorToast call before 2026-07-05, moved into the standard narrate() trigger system when forge repair moved from a bespoke hotkey into the contextual menu)
   | "merchant_arrived" // First merchant arrives at the Trade Hall
   | "merchant_trade";  // A trade completed at the Trade Hall
 

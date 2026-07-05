@@ -11,6 +11,9 @@ import {
   canAffordForgeUpgrade,
   foundrySuccessBonus,
   canAffordSmithRecipe,
+  FORGE_REPAIR_COST,
+  canAffordForgeRepair,
+  applyForgeRepair,
   type SmithRecipe,
   type ToolRecipe,
 } from "../engine/smithing";
@@ -19,6 +22,53 @@ import type { GameState, ToolSlot } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { yieldPerkBonus } from "../engine/hearth";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
+
+/**
+ * Renders the forge-repair row shown when the Forge hasn't been
+ * repaired yet (forgeTier 0). Previously this was a standalone "press
+ * R" global hotkey with NO contextual-panel presence at all - direct
+ * feedback: "the repair forge action should not be press R, it should
+ * be in the contextual menu," alongside a broader clarification of the
+ * input scheme: Enter confirms the highlighted contextual-panel row,
+ * arrow keys navigate it, and F is reserved for gathering actions only
+ * (mining, wood-cutting) - nothing else should have its own bespoke key.
+ * Same build-gate shape as the Sawmill/Smelter's "not built yet" row.
+ */
+export function renderForgeRepairPanel(
+  state: GameState,
+  container: HTMLElement,
+  onRepair: () => void
+): void {
+  const affordable = canAffordForgeRepair(state.vessel.inventory);
+  const costText = Object.entries(FORGE_REPAIR_COST)
+    .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
+    .join(", ");
+
+  container.innerHTML = `
+    <h2>the forge</h2>
+    <div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-action="repair-forge">
+      <div class="recipe-name">Repair the Forge</div>
+      <div class="recipe-status">${affordable ? costText : `Need: ${costText}`}</div>
+    </div>
+  `;
+
+  container.querySelectorAll<HTMLDivElement>(".recipe-row[data-action]").forEach((row) => {
+    row.addEventListener("click", () => {
+      if (row.classList.contains("recipe-row-disabled")) return;
+      if (row.dataset.action === "repair-forge") onRepair();
+    });
+  });
+}
+
+export function performForgeRepair(state: GameState): GameState {
+  if (state.world.forgeTier >= 1) return state;
+  if (!canAffordForgeRepair(state.vessel.inventory)) return state;
+  return {
+    ...state,
+    world: { ...state.world, forgeTier: 1 },
+    vessel: { ...state.vessel, inventory: applyForgeRepair(state.vessel.inventory) },
+  };
+}
 
 /**
  * Renders the Smithing recipe list into a container. Pure rendering -

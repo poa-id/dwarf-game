@@ -5,7 +5,7 @@ import { initGameState, getState } from "./game/gameState";
 import { initRenderRefs, render } from "./game/render";
 import { startGameLoop } from "./game/loop";
 import { handlePlayerMove, KEY_TO_DIRECTION } from "./game/movement";
-import { handleMineStrike, handleWoodGather, handleForgeRepair, handleTorchRepair, handlePlaceTorch, handleLightPlacedTorch } from "./game/actions";
+import { handleMineStrike, handleWoodGather, handleTorchRepair, handlePlaceTorch, handleLightPlacedTorch } from "./game/actions";
 import { hubCellAt } from "./render/hubContent";
 import { nearestOreVein, nearestWoodNode } from "./game/proximity";
 import { movePanelHighlight, confirmPanelHighlight } from "./game/panelNavigation";
@@ -170,7 +170,7 @@ window.addEventListener("keydown", (e) => {
   // (e.g. rapidly burning through wood at the Kiln) on every repeat
   // keydown event, and holding an arrow key would skip rows faster
   // than intended.
-  if (e.repeat && (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || "fFeErR".includes(e.key))) {
+  if (e.repeat && (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || "fFeE".includes(e.key))) {
     return;
   }
 
@@ -180,12 +180,6 @@ window.addEventListener("keydown", (e) => {
     } else if (nearestWoodNode()) {
       handleWoodGather();
     }
-    render();
-    return;
-  }
-
-  if (e.key === "r" || e.key === "R") {
-    handleForgeRepair(narratorContainer, actionHint);
     render();
     return;
   }

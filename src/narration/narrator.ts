@@ -72,6 +72,7 @@ const ONE_TIME_TRIGGERS: NarratorTrigger[] = [
   "color_stage_1",
   "companion_befriended",
   "console_awakened",
+  "forge_repaired",
   "merchant_arrived",
 ];
 

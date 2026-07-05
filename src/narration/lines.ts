@@ -72,6 +72,10 @@ export const NARRATOR_LINES: Record<NarratorTrigger, string[]> = {
     "The runes answer. Somewhere deep in the stone, something older than any dwarf who ever swung a pick takes notice. The mountain begins to remember itself.",
   ],
 
+  forge_repaired: [
+    "The forge catches. Cold iron remembers, even after all this time, what it's for.",
+  ],
+
   merchant_arrived: [
     "Boots on the bridge. Heavier than any single dwarf. Someone found the road.",
   ],

@@ -5,7 +5,6 @@ import { isSolidCellKind } from "../render/palette";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "../engine/visibility";
 import { cellKey, MATERIALS, getMaterialAmount } from "../engine/types";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
-import { FORGE_REPAIR_COST } from "../engine/smithing";
 import { bestAvailablePickaxe, ROCK_NODES } from "../engine/mining";
 import { PICKAXE_ICONS, AXE_ICONS } from "../render/toolIconManifest";
 import { bestAvailableAxe } from "../engine/woodcraft";
@@ -27,7 +26,7 @@ import {
   isNearGarden,
   isNearCompanion,
 } from "./proximity";
-import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade } from "../ui/smithingPanel";
+import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade, renderForgeRepairPanel, performForgeRepair } from "../ui/smithingPanel";
 import { canAffordSmithRecipe } from "../engine/smithing";
 import { renderSmeltingEnginePanel, performBuildEngine, performCollectEngine, performUpgradeEngine } from "../ui/smeltingEnginePanel";
 import {
@@ -311,7 +310,7 @@ export function updateActionHint(): void {
   if (isNearConsole()) {
     refs.actionHint.textContent = world.consoleAwakened
       ? "The mountain watches."
-      : "Press F — awaken the console.";
+      : "The console waits — select 'Awaken' from the menu.";
     return;
   }
 
@@ -320,12 +319,12 @@ export function updateActionHint(): void {
     const reserve = (Object.values(world.fuelReserve) as (number | undefined)[]).reduce((s: number, v) => s + (v ?? 0), 0);
     refs.actionHint.textContent = world.hearthTier >= 1
       ? `Hearth — fuel ${fuel} · reserve ${reserve}`
-      : `Hearth — ${fuel} fuel · press F to stoke`;
+      : `Hearth — ${fuel} fuel · press Enter to stoke`;
     return;
   }
 
   if (isNearKiln()) {
-    refs.actionHint.textContent = "Kiln — press F to burn charcoal";
+    refs.actionHint.textContent = "Kiln — press Enter to burn charcoal";
     return;
   }
 
@@ -340,20 +339,17 @@ export function updateActionHint(): void {
   }
 
   if (isNearForge() && !isForgeRepaired()) {
-    const costText = Object.entries(FORGE_REPAIR_COST)
-      .map(([res, amt]) => `${amt} ${MATERIALS[res]?.name ?? res}`)
-      .join(", ");
-    refs.actionHint.textContent = `Press R to repair the forge (${costText})`;
+    refs.actionHint.textContent = "The forge lies cold — select 'Repair the Forge' from the menu.";
     return;
   }
 
   if (isNearForge() && isForgeRepaired()) {
-    refs.actionHint.textContent = `Forge — tier ${world.forgeTier} · press F to smith`;
+    refs.actionHint.textContent = `Forge — tier ${world.forgeTier} · press Enter to smith`;
     return;
   }
 
   if (isNearSmelter() && world.smelterBuilt) {
-    refs.actionHint.textContent = `Smelter — tier ${world.smelterTier} · press F to purify`;
+    refs.actionHint.textContent = `Smelter — tier ${world.smelterTier} · press Enter to purify`;
     return;
   }
 
@@ -363,14 +359,14 @@ export function updateActionHint(): void {
   }
 
   if (isNearGemcutting() && world.gemcuttingBuilt) {
-    refs.actionHint.textContent = "Gemcutting station — press F to cut gems";
+    refs.actionHint.textContent = "Gemcutting station — press Enter to cut gems";
     return;
   }
 
   const stockpileStage = world.roomStates["stockpile_room"] ?? "ruined";
   if (isNearStockpile(position, stockpileStage)) {
     if (stockpileStage === "ruined") {
-      refs.actionHint.textContent = "Collapsed east wing — press F to clear the rubble";
+      refs.actionHint.textContent = "Collapsed east wing — press Enter to clear the rubble";
     } else {
       const total = Object.values(world.stockpileOre).reduce((s, v) => s + (v ?? 0), 0);
       refs.actionHint.textContent = `Stockpile (${stockpileStage}) — ${total} ore stored`;
@@ -560,6 +556,22 @@ function updateContextualPanel(): void {
         render();
       }
     );
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
+  if (isNearForge() && !isForgeRepaired()) {
+    if (lastActivePanelKind !== "forge") resetPanelHighlight();
+    lastActivePanelKind = "forge";
+    renderForgeRepairPanel(state, refs.contextualPanel, () => {
+      const before = getState();
+      const after = performForgeRepair(before);
+      if (after.world.forgeTier > before.world.forgeTier) {
+        narrate("forge_repaired");
+      }
+      setState(after);
+      render();
+    });
     reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
