@@ -18,6 +18,7 @@ import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smelt
 import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
 import { stockpileCapacityPerMaterial, type RoomStage } from "../engine/rooms";
 import { companionHaulTierDef } from "../engine/companion";
+import { totalGemDropChanceBonus } from "../engine/gemcutting";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -207,11 +208,28 @@ function gameTick(): void {
        stockpileStage === "masterwork");
     let drillChanged = false;
     const speedMultiplier = drillSpeedMultiplier(state.world.mineshaftDepth);
+    const gemDropChanceBonus = totalGemDropChanceBonus(state.world.gemcuttingTier, state.world.cutGemsSpentOnPerk);
+    let newInventoryForGems = { ...state.vessel.inventory };
+    let gemsChanged = false;
 
     for (const [veinId, drillState] of drillEntries) {
       const def = drillDefinitionByVeinId(veinId);
       if (!def) continue;
-      const result = tickDrill(drillState, def, now, speedMultiplier);
+      const result = tickDrill(drillState, def, now, speedMultiplier, gemDropChanceBonus);
+      // Gem drops (2026-07-06) - deposited straight to inventory, same
+      // as a manual strike's bonus gem would be. See drill.ts's
+      // DrillTickResult.gemsGained doc comment: automation shouldn't
+      // silently skip a real part of the loot economy manual mining
+      // always had.
+      for (const [gemId, amount] of Object.entries(result.gemsGained)) {
+        if (amount > 0) {
+          newInventoryForGems = {
+            ...newInventoryForGems,
+            [gemId]: ((newInventoryForGems[gemId] as number | undefined) ?? 0) + amount,
+          };
+          gemsChanged = true;
+        }
+      }
       if (result.ranCycle || result.drill.lastCycleAt !== drillState.lastCycleAt) {
         let finalDrill = result.drill;
         // If stockpile is active and ore was produced, drain ore buffer
@@ -242,10 +260,11 @@ function gameTick(): void {
         drillChanged = true;
       }
     }
-    if (drillChanged) {
+    if (drillChanged || gemsChanged) {
       setState({
         ...state,
         world: { ...state.world, drills: newDrills, stockpileOre: newStockpile },
+        vessel: { ...state.vessel, inventory: newInventoryForGems },
       });
       state = getState();
       changed = true;

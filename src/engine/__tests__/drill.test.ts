@@ -214,6 +214,47 @@ describe("tickDrill", () => {
   });
 });
 
+describe("tickDrill gem drops (2026-07-06 regression - automation used to never roll for them at all)", () => {
+  it("rolls a bonus gem on a copper drill's cycle when the roll succeeds", () => {
+    const started: DrillState = { ...createFreshDrillState(), lastCycleAt: 1, coalBuffer: 10, oreBuffer: 0, oreBufferMax: 100 };
+    const tier1 = drillTierDefinition(copperDrillDef, 1);
+    // roll of 0 always beats any positive chance threshold
+    const result = tickDrill(started, copperDrillDef, 1 + tier1.cycleMs, 1, 0, () => 0);
+    expect(result.gemsGained.rough_quartz).toBe(1);
+  });
+
+  it("does not roll a gem when the roll fails", () => {
+    const started: DrillState = { ...createFreshDrillState(), lastCycleAt: 1, coalBuffer: 10, oreBuffer: 0, oreBufferMax: 100 };
+    const tier1 = drillTierDefinition(copperDrillDef, 1);
+    // roll of 0.999 always beats a small chance threshold (fails to drop)
+    const result = tickDrill(started, copperDrillDef, 1 + tier1.cycleMs, 1, 0, () => 0.999);
+    expect(result.gemsGained.rough_quartz ?? 0).toBe(0);
+  });
+
+  it("rolls once per cycle when multiple cycles run in one tick, not once per tick", () => {
+    const started: DrillState = { ...createFreshDrillState(), lastCycleAt: 1, coalBuffer: 100, oreBuffer: 0, oreBufferMax: 100 };
+    const tier1 = drillTierDefinition(copperDrillDef, 1);
+    const result = tickDrill(started, copperDrillDef, 1 + tier1.cycleMs * 5, 1, 0, () => 0);
+    expect(result.gemsGained.rough_quartz).toBe(5);
+  });
+
+  it("respects gemDropChanceBonus, same as a manual strike would", () => {
+    const started: DrillState = { ...createFreshDrillState(), lastCycleAt: 1, coalBuffer: 10, oreBuffer: 0, oreBufferMax: 100 };
+    const tier1 = drillTierDefinition(copperDrillDef, 1);
+    // A roll that fails the BASE chance (0.02) but passes with a big bonus
+    const result = tickDrill(started, copperDrillDef, 1 + tier1.cycleMs, 1, 0.5, () => 0.3);
+    expect(result.gemsGained.rough_quartz).toBe(1);
+  });
+
+  it("coal drills never roll for gems - coal seams have no gemDrop config, same as manual coal mining", () => {
+    const coalDrillDef = drillDefinitionByVeinId("mine_coal")!;
+    const started: DrillState = { ...createFreshDrillState(), lastCycleAt: 1, coalBuffer: 0, oreBuffer: 0, oreBufferMax: 100 };
+    const tier1 = drillTierDefinition(coalDrillDef, 1);
+    const result = tickDrill(started, coalDrillDef, 1 + tier1.cycleMs, 1, 0, () => 0);
+    expect(Object.keys(result.gemsGained).length).toBe(0);
+  });
+});
+
 describe("refuelDrill", () => {
   it("fills the coal buffer from inventory up to capacity, no more", () => {
     const drill = createFreshDrillState(); // coalBufferMax defaults to 20

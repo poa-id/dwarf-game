@@ -1,5 +1,7 @@
 import type { ResourceBag, MaterialId } from "./types";
 import { getMaterialAmount, deductMaterials, addMaterial, canAffordMaterials } from "./types";
+import { ORE_VEINS } from "./hubMap";
+import { ROCK_NODES } from "./mining";
 
 /**
  * Automated mining drills - the first idle mechanic beyond Narag-Bund's
@@ -270,6 +272,18 @@ export interface DrillTickResult {
   ranCycle: boolean;
   /** Why the drill stopped (or null if it ran fine) */
   stoppedReason: "no_coal" | "ore_buffer_full" | null;
+  /**
+   * Bonus gems produced this tick, keyed by rough-gem material ID
+   * (2026-07-06 - previously automated drilling never rolled for gem
+   * drops at all, silently skipping a real part of the loot economy
+   * manual mining always had. Reported directly: "automation should
+   * not eliminate % chance drops like gems etc, it is for all intents
+   * and purposes mining or gathering happening, just not by the
+   * player." One roll per cycle that actually ran, same chance/rate as
+   * a manual strike on the same vein - not a separate, weaker rate for
+   * automation.
+   */
+  gemsGained: Record<string, number>;
 }
 
 /**
@@ -277,14 +291,29 @@ export interface DrillTickResult {
  * cycles if enough time has passed (offline catch-up, same pattern as
  * the Hearth's tickHearth). Pure function - returns new state.
  */
+/**
+ * Resolves the gem-drop config (if any) for a drill's underlying vein,
+ * by way of ORE_VEINS -> ROCK_NODES (the same rock node manual mining
+ * strikes against). Coal seams have no gemDrop config, same as manual
+ * coal mining - nothing to roll for there.
+ */
+function gemDropConfigForVein(veinId: string) {
+  const vein = ORE_VEINS.find((v) => v.id === veinId);
+  if (!vein) return null;
+  const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
+  return rockNode?.gemDrop ?? null;
+}
+
 export function tickDrill(
   drill: DrillState,
   def: DrillDefinition,
   now: number,
-  speedMultiplier: number = 1
+  speedMultiplier: number = 1,
+  gemDropChanceBonus: number = 0,
+  rollFn: () => number = Math.random
 ): DrillTickResult {
   if (drill.tier === 0) {
-    return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason: null };
+    return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason: null, gemsGained: {} };
   }
 
   const tierDef = drillTierDefinition(def, drill.tier);
@@ -302,12 +331,13 @@ export function tickDrill(
       coalConsumed: 0,
       ranCycle: false,
       stoppedReason: null,
+      gemsGained: {},
     };
   }
 
   const cyclesElapsed = Math.floor(elapsedMs / effectiveCycleMs);
   if (cyclesElapsed === 0) {
-    return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason: null };
+    return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason: null, gemsGained: {} };
   }
 
   // Run as many cycles as we can until coal or ore buffer stops us
@@ -315,6 +345,8 @@ export function tickDrill(
   let oreLeft = drill.oreBuffer;
   let cyclesRun = 0;
   let stoppedReason: "no_coal" | "ore_buffer_full" | null = null;
+  const gemDrop = gemDropConfigForVein(def.veinId);
+  const gemsGained: Record<string, number> = {};
 
   for (let i = 0; i < cyclesElapsed; i++) {
     if (coalLeft < def.coalPerCycle) { stoppedReason = "no_coal"; break; }
@@ -322,10 +354,20 @@ export function tickDrill(
     coalLeft -= def.coalPerCycle;
     oreLeft += tierDef.orePerCycle;
     cyclesRun++;
+
+    // One gem-drop roll per cycle that actually ran, same chance as a
+    // manual strike on this vein (see attemptMineStrike in gathering.ts)
+    // - automation shouldn't be a strictly worse way to mine.
+    if (gemDrop) {
+      const totalChance = Math.min(1, gemDrop.baseChance + gemDropChanceBonus);
+      if (rollFn() < totalChance) {
+        gemsGained[gemDrop.materialId] = (gemsGained[gemDrop.materialId] ?? 0) + 1;
+      }
+    }
   }
 
   if (cyclesRun === 0) {
-    return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason };
+    return { drill, oreProduced: 0, coalConsumed: 0, ranCycle: false, stoppedReason, gemsGained: {} };
   }
 
   const newDrill: DrillState = {
@@ -341,6 +383,7 @@ export function tickDrill(
     coalConsumed: drill.coalBuffer - coalLeft,
     ranCycle: true,
     stoppedReason,
+    gemsGained,
   };
 }
 
