@@ -191,6 +191,33 @@ export class TilesetRenderer implements Renderer {
 
         this.ctx.globalAlpha = visibility === "remembered" ? REMEMBERED_OPACITY : 1;
 
+        // The player character is a special case, not a structure:
+        // it's always exactly one logical cell (movement/collision is
+        // per-tile), but per direct feedback ("make the dwarf 2x2, it
+        // looks blurry and super small") the SPRITE should render
+        // larger than that single tile - centered ON it, spilling out
+        // symmetrically in all directions, rather than anchored at the
+        // tile's top-left corner the way a multi-cell structure would
+        // be (which would visually shift the character down-right of
+        // where they actually stand). This is why it's handled here
+        // directly instead of via def.tileSpan + the generic anchor
+        // logic below - that system assumes a FIXED multi-cell
+        // footprint shared by every cell in it (see
+        // findSpriteAnchorOffset's own doc comment), which doesn't fit
+        // a single moving point that should just render bigger than
+        // its own tile.
+        if (cell.kind === "dwarf") {
+          const scale = 2;
+          const drawSize = cellSize * scale;
+          const offset = (cellSize * (scale - 1)) / 2;
+          const x = vCol * cellSize - offset;
+          const y = vRow * cellSize - offset;
+          const srcW = (drawable as HTMLCanvasElement).width ?? (drawable as HTMLImageElement).naturalWidth;
+          const srcH = (drawable as HTMLCanvasElement).height ?? (drawable as HTMLImageElement).naturalHeight;
+          this.ctx.drawImage(drawable, 0, 0, srcW, srcH, x, y, drawSize, drawSize);
+          continue;
+        }
+
         const span = def.tileSpan ?? { cols: 1, rows: 1 };
 
         // For multi-tile sprites, find the TRUE top-left anchor rather
