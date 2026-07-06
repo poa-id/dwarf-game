@@ -180,12 +180,14 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
   },
   // Coal drill - gated behind Mine Shaft depth 1 (see SHAFT_DEPTHS in
   // mineshaftPanel.ts: "Coal drill buildable" is promised as part of
-  // that unlock). Same fuel-per-cycle pattern as the others - a coal
-  // drill still burns coal to run, same as any other machine in the
-  // mountain; it just happens to extract the substance it burns. That's
-  // a deliberate bit of coherence (mirrors real mining-rig fuel use)
-  // rather than an oversight - the drill still needs a hand-mined coal
-  // bootstrap before it can sustain itself.
+  // that unlock). coalPerCycle: 0 (2026-07-06, reversing an earlier
+  // deliberate choice per direct feedback: "its ridiculous that the
+  // coal rig consumes coal, it should output constantly... start
+  // chugging and making coal at a steady pace") - a coal drill needing
+  // coal fuel to mine MORE coal was a self-consuming bootstrap loop
+  // that read as absurd in practice, not "coherent machine fuel use."
+  // Runs purely on cycle timing now, same as every other drill's ORE
+  // side already does - only the fuel side is different for this one.
   {
     id: "coal_drill",
     name: "Coal Drill",
@@ -196,7 +198,7 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
       copper_ingot: 10,
       wood: 10,
     },
-    coalPerCycle: 1,
+    coalPerCycle: 0,
     requiresShaftDepth: 1,
     tiers: [
       { tier: 1, name: "Basic Drill",        cycleMs: 30_000, orePerCycle: 1, upgradeCost: {} },

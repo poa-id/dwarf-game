@@ -1,5 +1,5 @@
 import type { HearthState, ResourceBag, MaterialId } from "./types";
-import { DRILL_COAL_BUFFER_MAX } from "./drill";
+import { DRILL_COAL_BUFFER_MAX, drillDefinitionByVeinId } from "./drill";
 import { getMaterialAmount, deductMaterials, addMaterial, materialDef } from "./types";
 import { colorStageForLifetimeFuel, capColorStageBeforeFirstRekindle } from "./colorStages";
 
@@ -547,7 +547,8 @@ export function advanceDrillHauling(
   }
 
   const drillEntries = Object.entries(drills)
-    .filter(([, d]) => d.tier > 0 && d.coalBuffer < DRILL_COAL_BUFFER_MAX / 2)
+    .filter(([veinId, d]) => d.tier > 0 && d.coalBuffer < DRILL_COAL_BUFFER_MAX / 2 &&
+      (drillDefinitionByVeinId(veinId)?.coalPerCycle ?? 1) > 0)
     .sort(([, a], [, b]) => a.coalBuffer - b.coalBuffer);
 
   if (drillEntries.length === 0) {

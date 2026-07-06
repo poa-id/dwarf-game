@@ -48,6 +48,58 @@ describe("DRILL_DEFINITIONS", () => {
   });
 });
 
+describe("Coal Drill needs no fuel (2026-07-06 regression - was self-consuming its own output)", () => {
+  it("coal_drill's coalPerCycle is 0 - reported directly as ridiculous that mining coal required coal", () => {
+    expect(coalDrillDef.coalPerCycle).toBe(0);
+  });
+
+  it("runs cycles continuously with an empty coal buffer, never blocked by 'no_coal'", () => {
+    const drill: DrillState = {
+      tier: 1,
+      coalBuffer: 0, // completely empty - would have blocked every other drill
+      oreBuffer: 0,
+      lastCycleAt: 1_000,
+      coalBufferMax: 20,
+      oreBufferMax: 20,
+      bufferTier: 0,
+    };
+    const result = tickDrill(drill, coalDrillDef, 1_000 + 30_000);
+    expect(result.ranCycle).toBe(true);
+    expect(result.oreProduced).toBeGreaterThan(0);
+    expect(result.stoppedReason).not.toBe("no_coal");
+  });
+
+  it("still stops once the ORE buffer is full (the only real limit now)", () => {
+    const drill: DrillState = {
+      tier: 1,
+      coalBuffer: 0,
+      oreBuffer: 20,
+      lastCycleAt: 1_000,
+      coalBufferMax: 20,
+      oreBufferMax: 20,
+      bufferTier: 0,
+    };
+    const result = tickDrill(drill, coalDrillDef, 1_000 + 30_000);
+    expect(result.ranCycle).toBe(false);
+    expect(result.stoppedReason).toBe("ore_buffer_full");
+  });
+});
+
+describe("advanceDrillHauling excludes fuel-less drills (2026-07-06 regression)", () => {
+  it("does not target the coal drill for coal hauling - it never consumes it", async () => {
+    const { advanceDrillHauling } = await import("../hearth");
+    const drills = {
+      mine_coal: { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: 20, oreBufferMax: 20, bufferTier: 0 },
+      mine_copper: { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: 20, oreBufferMax: 20, bufferTier: 0 },
+    };
+    const result = advanceDrillHauling({ coal: 10 }, drills, 2);
+    expect(result.hauled).toBe(true);
+    // Coal should have gone to the copper drill, not the coal drill
+    expect(result.drills.mine_coal.coalBuffer).toBe(0);
+    expect(result.drills.mine_copper.coalBuffer).toBeGreaterThan(0);
+  });
+});
+
 describe("drillTierDefinition / nextDrillTier", () => {
   it("returns the matching tier, falling back to tier 1 for an unknown tier", () => {
     expect(drillTierDefinition(copperDrillDef, 2).name).toBe("Sharpened Bits");

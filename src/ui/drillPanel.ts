@@ -68,19 +68,26 @@ export function renderDrillSection(
     const orePct = Math.round((drillState.oreBuffer / DRILL_ORE_BUFFER_MAX) * 100);
     const cyclesSec = tierDef.cycleMs / 1000;
 
-    const isRunning = drillState.coalBuffer >= def.coalPerCycle &&
+    const needsFuel = def.coalPerCycle > 0;
+    const isRunning = (!needsFuel || drillState.coalBuffer >= def.coalPerCycle) &&
                       drillState.oreBuffer < DRILL_ORE_BUFFER_MAX;
     const statusLine = isRunning
       ? `Running — ${tierDef.orePerCycle} ore every ${cyclesSec}s`
-      : drillState.coalBuffer < def.coalPerCycle
+      : needsFuel && drillState.coalBuffer < def.coalPerCycle
         ? "Stopped — out of coal"
         : "Stopped — ore buffer full";
 
-    // Refuel row
+    // Refuel row - only shown for drills that actually consume fuel.
+    // The Coal Drill doesn't (2026-07-06, reversing an earlier design:
+    // "its ridiculous that the coal rig consumes coal" - a fuel-less
+    // drill offering a "Refuel" action that does nothing would just be
+    // confusing, not a harmless extra option.
     const coalHeld = getMaterialAmount(state.vessel.inventory, "coal");
     const coalSpace = DRILL_COAL_BUFFER_MAX - drillState.coalBuffer;
-    const canRefuel = coalHeld > 0 && coalSpace > 0;
-    const refuelRow = canRefuel
+    const canRefuel = needsFuel && coalHeld > 0 && coalSpace > 0;
+    const refuelRow = !needsFuel
+      ? ""
+      : canRefuel
       ? `<div class="recipe-row" data-drill-action="refuel">
            <div class="recipe-name">Refuel</div>
            <div class="recipe-status">Add coal (${drillState.coalBuffer}/${DRILL_COAL_BUFFER_MAX})</div>
@@ -117,7 +124,7 @@ export function renderDrillSection(
     const bufferRow = nextBuffer && canBufferUpgrade
       ? `<div class="recipe-row" data-drill-action="buffer-upgrade">
            <div class="recipe-name">Expand Hoppers: ${nextBuffer.label}</div>
-           <div class="recipe-status">${Object.entries(nextBuffer.cost).map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`).join(", ")} — coal ${nextBuffer.coalBufferMax} · ore ${nextBuffer.oreBufferMax}</div>
+           <div class="recipe-status">${Object.entries(nextBuffer.cost).map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`).join(", ")} — ${needsFuel ? `coal ${nextBuffer.coalBufferMax} · ` : ""}ore ${nextBuffer.oreBufferMax}</div>
          </div>`
       : nextBuffer
         ? `<div class="recipe-row recipe-row-disabled">
@@ -129,7 +136,7 @@ export function renderDrillSection(
     html = `
       <h2>${def.name} — Tier ${drillState.tier}: ${tierDef.name}</h2>
       <p class="reserve-status">${statusLine}</p>
-      <p class="reserve-status">Coal: ${drillState.coalBuffer}/${drillState.coalBufferMax ?? DRILL_COAL_BUFFER_MAX} &nbsp;|&nbsp; Ore: ${drillState.oreBuffer}/${drillState.oreBufferMax ?? DRILL_ORE_BUFFER_MAX}</p>
+      <p class="reserve-status">${needsFuel ? `Coal: ${drillState.coalBuffer}/${drillState.coalBufferMax ?? DRILL_COAL_BUFFER_MAX} &nbsp;|&nbsp; ` : ""}Ore: ${drillState.oreBuffer}/${drillState.oreBufferMax ?? DRILL_ORE_BUFFER_MAX}</p>
       ${refuelRow}
       ${collectRow}
       ${upgradeRow}
