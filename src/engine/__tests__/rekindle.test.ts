@@ -30,6 +30,7 @@ function makeStateWithProgress(): GameState {
       smelterBuilt: true,
       smelterTier: 2,
       sawmillBuilt: false,
+      turbineBuilt: false,
       ironPurifyingUnlocked: false,
       ironSmelterTier: 0,
       drills: {},

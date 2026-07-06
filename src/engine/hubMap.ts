@@ -165,13 +165,16 @@ export const FORGE_CENTER: Position = {
 export const SMELTER_POSITION: Position = { col: 61, row: 10 };
 
 /**
- * Reserved Forge addon slots (2026-07-06) - NOT wired to any rendering
- * or game logic yet ("progress locked for the time being, but reserve
- * the space" - direct instruction). Sprites already in hand
- * (quenching-tank.png, sharpening-station.png, imbuing.png) for
- * whenever these get built. Bottom-right (FORGE_ADDON_SE) is the
- * fourth slot in the 2x2-of-slots layout; the Smelter took the
- * top-right slot (see SMELTER_POSITION above).
+ * Forge addon slots (2026-07-06) - 4 total, 2x2 layout flanking the
+ * Forge, matching the layout sketched directly on a screenshot.
+ * Top-right went to the Smelter (see SMELTER_POSITION above),
+ * top-left to the Turbine (see TURBINE_POSITION below). The remaining
+ * two (SW, SE) are still reserved but NOT wired to any rendering or
+ * game logic ("progress locked for the time being, but reserve the
+ * space" - direct instruction) - sprites already in hand
+ * (quenching-tank.png, sharpening-station.png; imbuing.png is
+ * reserved for a future Armory instead, not one of these 4 slots) for
+ * whenever they get built.
  *
  * West column needed one more column than the Forge Room's own bounds
  * currently provide (only cols 52-53 are free inside the room to the
@@ -180,7 +183,13 @@ export const SMELTER_POSITION: Position = { col: 61, row: 10 };
  * there (fill(49,9,51,22) in hubContent.ts) - no room-bounds change
  * needed, just using floor that's already there.
  */
-export const FORGE_ADDON_NW: Position = { col: 51, row: 10 }; // reserved - not yet built
+/**
+ * Turbine - the first of the 4 Forge addon slots to actually get built
+ * (2026-07-06, direct instruction: "this one goes top left of the
+ * addon slots"). Was FORGE_ADDON_NW (reserved, unbuilt) until this
+ * commit. See turbine.ts for what it does.
+ */
+export const TURBINE_POSITION: Position = { col: 51, row: 10 };
 export const FORGE_ADDON_SW: Position = { col: 51, row: 14 }; // reserved - not yet built
 export const FORGE_ADDON_SE: Position = { col: 61, row: 14 }; // reserved - not yet built
 

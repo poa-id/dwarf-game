@@ -347,6 +347,47 @@ describe("advanceCompanionHauling", () => {
     expect(inv.coal).toBe(10);
     expect(reserve).toEqual({});
   });
+
+  describe("Turbine-boosted hauling (2026-07-06)", () => {
+    it("without the Turbine, uses the base interval/amount (unaffected default)", () => {
+      const inv: ResourceBag = { coal: 1000 };
+      const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS, false);
+      expect(result.fuelReserve.coal).toBe(HAUL_AMOUNT_PER_TRIP);
+    });
+
+    it("with the Turbine, hauls noticeably more in the same elapsed time - the whole point is eliminating manual coal-carrying", () => {
+      const inv: ResourceBag = { coal: 1000 };
+      const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS, true);
+      expect(result.fuelReserve.coal).toBeGreaterThan(HAUL_AMOUNT_PER_TRIP);
+    });
+
+    it("with the Turbine, the SAME wall-clock gap yields more trips too (shorter interval), not just a bigger per-trip amount", () => {
+      const inv: ResourceBag = { coal: 100_000 };
+      const withoutTurbine = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3, false);
+      const withTurbine = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3, true);
+      expect(withTurbine.fuelReserve.coal).toBeGreaterThan(withoutTurbine.fuelReserve.coal as number);
+    });
+  });
+});
+
+describe("advanceDrillHauling with the Turbine (2026-07-06)", () => {
+  it("without the Turbine, caps at the base per-trip amount", async () => {
+    const { advanceDrillHauling } = await import("../hearth");
+    const drills = {
+      mine_copper: { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: 20, oreBufferMax: 20, bufferTier: 0 },
+    };
+    const result = advanceDrillHauling({ coal: 1000 }, drills, 2, false);
+    expect(result.drills.mine_copper.coalBuffer).toBeLessThanOrEqual(5);
+  });
+
+  it("with the Turbine, hauls noticeably more coal per trip to drills that need it", async () => {
+    const { advanceDrillHauling } = await import("../hearth");
+    const drills = {
+      mine_copper: { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: 200, oreBufferMax: 20, bufferTier: 0 },
+    };
+    const result = advanceDrillHauling({ coal: 1000 }, drills, 2, true);
+    expect(result.drills.mine_copper.coalBuffer).toBeGreaterThan(5);
+  });
 });
 
 describe("colorStage capped before the first rekindle (fixed 2026-06-23 - was a real bug)", () => {

@@ -437,6 +437,30 @@ export function isAutoTendingUnlocked(hearthTier: number): boolean {
 export const HAUL_INTERVAL_MS = 10_000;
 export const HAUL_AMOUNT_PER_TRIP = 1;
 
+/**
+ * Narag-Bund's haul speed multiplier once the Turbine is built
+ * (2026-07-06, direct instruction: "Narag Bund at [this] point should
+ * be able to haul materials at a staggering pace, so the player
+ * doesn't have to manually feed coal anywhere" - deferred to judgment
+ * on the exact number). Applied as BOTH a shorter interval AND a
+ * bigger per-trip amount (not just one or the other) - the combined
+ * effect is what actually reads as "staggering" rather than a modest
+ * bump; a single multiplier applied to the same formula either
+ * function was already using. Same "initial guess, real numbers come
+ * from the later balancing pass" caveat as everything else added this
+ * session.
+ */
+export const TURBINE_HAUL_INTERVAL_MULTIPLIER = 1 / 3; // interval shrinks to 1/3 (10s -> ~3.3s)
+export const TURBINE_HAUL_AMOUNT_MULTIPLIER = 10; // 10x the fuel per trip
+
+export function companionHaulIntervalMs(turbineBuilt: boolean): number {
+  return turbineBuilt ? Math.round(HAUL_INTERVAL_MS * TURBINE_HAUL_INTERVAL_MULTIPLIER) : HAUL_INTERVAL_MS;
+}
+
+export function companionHaulAmountPerTrip(turbineBuilt: boolean): number {
+  return turbineBuilt ? HAUL_AMOUNT_PER_TRIP * TURBINE_HAUL_AMOUNT_MULTIPLIER : HAUL_AMOUNT_PER_TRIP;
+}
+
 export interface HaulResult {
   inventory: ResourceBag;
   fuelReserve: ResourceBag;
@@ -486,10 +510,13 @@ export function advanceCompanionHauling(
   inventory: ResourceBag,
   fuelReserve: ResourceBag,
   lastHaulAt: number,
-  now: number
+  now: number,
+  turbineBuilt: boolean = false
 ): HaulResult {
+  const intervalMs = companionHaulIntervalMs(turbineBuilt);
+  const amountPerTrip = companionHaulAmountPerTrip(turbineBuilt);
   const elapsedMs = Math.max(0, now - lastHaulAt);
-  const tripsElapsed = Math.floor(elapsedMs / HAUL_INTERVAL_MS);
+  const tripsElapsed = Math.floor(elapsedMs / intervalMs);
 
   if (tripsElapsed <= 0) {
     return { inventory, fuelReserve, lastHaulAt, hauled: false };
@@ -503,16 +530,16 @@ export function advanceCompanionHauling(
     // Nothing for him to haul this time, but time still passed - advance
     // the clock anyway so we don't owe a huge backlog of trips once the
     // player finally has fuel again.
-    return { inventory, fuelReserve, lastHaulAt: lastHaulAt + tripsElapsed * HAUL_INTERVAL_MS, hauled: false };
+    return { inventory, fuelReserve, lastHaulAt: lastHaulAt + tripsElapsed * intervalMs, hauled: false };
   }
 
   const available = getMaterialAmount(inventory, materialId);
-  const amountToHaul = Math.min(available, tripsElapsed * HAUL_AMOUNT_PER_TRIP);
+  const amountToHaul = Math.min(available, tripsElapsed * amountPerTrip);
 
   return {
     inventory: deductMaterials(inventory, { [materialId]: amountToHaul }),
     fuelReserve: addMaterial(fuelReserve, materialId, amountToHaul),
-    lastHaulAt: lastHaulAt + tripsElapsed * HAUL_INTERVAL_MS,
+    lastHaulAt: lastHaulAt + tripsElapsed * intervalMs,
     hauled: amountToHaul > 0,
   };
 }
@@ -535,7 +562,8 @@ export interface DrillHaulResult {
 export function advanceDrillHauling(
   fuelReserve: ResourceBag,
   drills: Record<string, import("./drill").DrillState>,
-  hearthTier: number
+  hearthTier: number,
+  turbineBuilt: boolean = false
 ): DrillHaulResult {
   if (hearthTier < 2) {
     return { fuelReserve, drills, hauled: false };
@@ -562,7 +590,8 @@ export function advanceDrillHauling(
   for (const [veinId, drillState] of drillEntries) {
     const space = DRILL_COAL_BUFFER_MAX - drillState.coalBuffer;
     const available = getMaterialAmount(newFuelReserve, "coal");
-    const toHaul = Math.min(space, available, 5); // 5 coal/trip — drills consume much faster than the hearth
+    const perTripCap = turbineBuilt ? 5 * TURBINE_HAUL_AMOUNT_MULTIPLIER : 5; // 5 coal/trip base — drills consume much faster than the hearth
+    const toHaul = Math.min(space, available, perTripCap);
     if (toHaul <= 0) break;
 
     newFuelReserve = deductMaterials(newFuelReserve, { coal: toHaul });

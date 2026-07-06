@@ -145,6 +145,10 @@ function backfillMissingFields(state: any): any {
       // pattern as the Smelter/Gemcutting above.
       state.world.sawmillBuilt = false;
     }
+    if (state.world.turbineBuilt === undefined) {
+      // Old saves predate the Turbine entirely - same backfill pattern.
+      state.world.turbineBuilt = false;
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

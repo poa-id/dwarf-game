@@ -8,6 +8,7 @@ import {
   HEARTH_FOOTPRINT,
   SMELTER_POSITION,
   SAWMILL_POSITION,
+  TURBINE_POSITION,
   GEMCUTTING_POSITION,
   CONSOLE_POSITION,
   COMPANION_POSITION,
@@ -155,6 +156,17 @@ export function isNearSawmill(): boolean {
     position.col <= SAWMILL_POSITION.col + 3 &&
     position.row >= SAWMILL_POSITION.row - 1 &&
     position.row <= SAWMILL_POSITION.row + 3
+  );
+}
+
+export function isNearTurbine(): boolean {
+  const { position } = getState().vessel;
+  // Turbine is 3x3 - same buffer shape as every other 3x3 structure.
+  return (
+    position.col >= TURBINE_POSITION.col - 1 &&
+    position.col <= TURBINE_POSITION.col + 3 &&
+    position.row >= TURBINE_POSITION.row - 1 &&
+    position.row <= TURBINE_POSITION.row + 3
   );
 }
 

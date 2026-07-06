@@ -136,15 +136,25 @@ export function tickSmeltingEngine(
   def: SmeltingEngineDef,
   now: number,
   stockpileOre: number,
-  fuelAvailable: number  // coal for copper/iron, hearthsap for deepstone
+  fuelAvailable: number,  // coal for copper/iron, hearthsap for deepstone
+  speedMultiplier: number = 1
 ): EngineTickResult {
   if (engine.tier === 0) return { engine, ingotsProduced: 0, oreConsumed: 0, ranCycle: false };
 
   const tierDef = engineTierDef(def, engine.tier);
+  // Turbine speed multiplier (2026-07-06) shrinks the effective cycle
+  // time (>1 = faster) - deliberately NOT a bonus to ingotsPerCycle.
+  // Speeding up the cycle itself means ore and fuel consumption scale
+  // up right alongside ingot output, which is what actually creates
+  // the intended "ore or fuel becomes the bottleneck" idle-game
+  // dynamic (see turbine.ts's doc comment) - a flat ingots-per-cycle
+  // bonus would produce more ingots for free from the same ore/fuel,
+  // which is the opposite of that.
+  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / speedMultiplier));
   const elapsed = now - engine.lastCycleAt;
-  if (elapsed < tierDef.cycleMs) return { engine, ingotsProduced: 0, oreConsumed: 0, ranCycle: false };
+  if (elapsed < effectiveCycleMs) return { engine, ingotsProduced: 0, oreConsumed: 0, ranCycle: false };
 
-  const cycles = Math.floor(elapsed / tierDef.cycleMs);
+  const cycles = Math.floor(elapsed / effectiveCycleMs);
   let totalIngots = 0;
   let totalOre = 0;
   let newEngine = { ...engine };
@@ -168,7 +178,7 @@ export function tickSmeltingEngine(
     newEngine = {
       ...newEngine,
       ingotBuffer: Math.min(engine.ingotBufferMax, newEngine.ingotBuffer + totalIngots),
-      lastCycleAt: engine.lastCycleAt + cycles * tierDef.cycleMs,
+      lastCycleAt: engine.lastCycleAt + cycles * effectiveCycleMs,
     };
   }
 

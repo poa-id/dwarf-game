@@ -27,6 +27,7 @@ export type CellKind =
   | "kiln"
   | "smelter"
   | "sawmill"
+  | "turbine"
   | "gemcutting"
   | "gemcutting_unbuilt"
   | "rubble"
@@ -78,6 +79,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "kiln",
   "smelter",
   "sawmill",
+  "turbine",
   "gemcutting",
   "gemcutting_unbuilt",
   "ore_copper",
@@ -140,6 +142,7 @@ const STAGE_0: StagePalette = {
     kiln: "#9a9a9a",
     smelter: "#9a9a9a",
     sawmill: "#9a9a9a",
+    turbine: "#9a9a9a",
     gemcutting: "#9a9a9a",
     gemcutting_unbuilt: "#9a9a9a",
     rubble: "#7a7060",
@@ -220,6 +223,7 @@ const STAGE_2: StagePalette = {
     kiln: "#8a5a3a", // warm clay/brick tone - distinct from both the bright live forge and plain stone, reads as "fired earth"
     smelter: "#c4441a", // richer, more saturated red-orange than the kiln - this is intensified, purifying heat, not just a warm structure
     sawmill: "#a47a3a", // warm worked-wood brown - richer/more saturated than raw wood_node, reads as "shaped lumber" not "still growing"
+    turbine: "#8a8a92", // cool steel-gray, distinct from the warm Forge/Smelter tones - a machine about air and speed, not heat
     gemcutting: "#8a6fa8", // pale violet/lavender - distinct from the warm Smelter/Kiln tones, fitting a station about light and clarity rather than heat
     gemcutting_unbuilt: "#4a4050",
     rubble: "#5a5040",
@@ -274,6 +278,7 @@ const STAGE_3: StagePalette = {
     kiln: "#9a6a45",
     smelter: "#d8501e",
     sawmill: "#b8935a",
+    turbine: "#a0a0a8",
     gemcutting: "#a586c8",
     gemcutting_unbuilt: "#5a5060",
     rubble: "#6a6050",
@@ -326,6 +331,7 @@ export const GLYPHS: Record<CellKind, string> = {
   kiln: "k",
   smelter: "S",
   sawmill: "w",
+  turbine: "t",
   gemcutting: "g",
   gemcutting_unbuilt: ".",
   rubble: "x",

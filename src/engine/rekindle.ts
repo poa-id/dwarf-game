@@ -115,6 +115,7 @@ export function createInitialWorld(now: number): WorldState {
     smelterBuilt: false,
     smelterTier: 0,
     sawmillBuilt: false,
+    turbineBuilt: false,
     ironPurifyingUnlocked: false,
     ironSmelterTier: 0,
     trueMetalSpentOnXpPerk: 0,

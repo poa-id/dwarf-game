@@ -15,6 +15,7 @@ import { tickDrill, drillDefinitionByVeinId, drillSpeedMultiplier } from "../eng
 import { getRestorationScore } from "../engine/production";
 import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
+import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -73,7 +74,8 @@ function gameTick(): void {
       state.vessel.inventory,
       state.world.fuelReserve,
       state.world.companion.lastHaulAt,
-      now
+      now,
+      state.world.turbineBuilt
     );
     if (haul.lastHaulAt !== state.world.companion.lastHaulAt) {
       setState({
@@ -94,7 +96,8 @@ function gameTick(): void {
     const drillHaul = advanceDrillHauling(
       state.world.fuelReserve,
       state.world.drills,
-      state.world.hearthTier
+      state.world.hearthTier,
+      state.world.turbineBuilt
     );
     if (drillHaul.hauled) {
       setState({
@@ -139,7 +142,8 @@ function gameTick(): void {
         ? ((newFuelReserve["hearthsap"] as number | undefined) ?? 0)
         : ((newFuelReserve["coal"] as number | undefined) ?? 0);
 
-      const result = tickSmeltingEngine(engineState, def, now, stockpileOre, fuelAvail);
+      const engineSpeedMultiplier = state.world.turbineBuilt ? TURBINE_SMELT_SPEED_MULTIPLIER : 1;
+      const result = tickSmeltingEngine(engineState, def, now, stockpileOre, fuelAvail, engineSpeedMultiplier);
       if (result.ranCycle) {
         newEngines = { ...newEngines, [engineId]: result.engine };
         newStockpile = {

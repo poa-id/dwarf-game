@@ -472,6 +472,7 @@ export interface WorldState {
    * yet (unlike smelterTier) - just a single built/not-built flag for now.
    */
   sawmillBuilt: boolean;
+  turbineBuilt: boolean;
   /** Unlocked via Insight spend (500) once iron ingots are in inventory.
    *  Separate from smelterTier — each metal has its own tier track. */
   ironPurifyingUnlocked: boolean;

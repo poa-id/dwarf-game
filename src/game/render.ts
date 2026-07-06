@@ -20,6 +20,7 @@ import {
   isNearHearth,
   isNearKiln,
   isNearSawmill,
+  isNearTurbine,
   isNearSmelter,
   isNearGemcutting,
   isNearConsole,
@@ -41,6 +42,7 @@ import { nextHaulMaterial, secondsUntilNextHaul } from "../engine/hearth";
 import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "../ui/kilnPanel";
 import { canAffordCharcoalBurn } from "../engine/kiln";
 import { renderSawmillPanel, performSawmillBuild, performSawPlanks } from "../ui/sawmillPanel";
+import { renderTurbinePanel, performTurbineBuild } from "../ui/turbinePanel";
 import { canAffordPlankSaw } from "../engine/sawmill";
 import {
   renderSmelterPanel,
@@ -358,6 +360,13 @@ export function updateActionHint(): void {
     return;
   }
 
+  if (isNearTurbine()) {
+    refs.actionHint.textContent = world.turbineBuilt
+      ? "The Turbine — running"
+      : "The Turbine — select 'Build the Turbine' from the menu";
+    return;
+  }
+
   if (isNearGemcutting() && world.gemcuttingBuilt) {
     refs.actionHint.textContent = "Gemcutting station — press Enter to cut gems";
     return;
@@ -485,7 +494,7 @@ export function updateActionHint(): void {
         w.consoleAwakened, w.roomStates["stockpile_room"] ?? "ruined",
         w.roomStates["trade_hall"] ?? "ruined", w.roomStates["deep_foundry"] ?? "ruined",
         w.roomStates["the_archive"] ?? "ruined", drillTiers, w.placedTorches, w.mineshaftDepth, w.gardenSlots,
-        w.sawmillBuilt);
+        w.sawmillBuilt, w.turbineBuilt);
       return cell.kind === "rock_wall" || cell.kind === "rubble";
     });
     if (adjacentWall) {
@@ -500,7 +509,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
+let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "turbine" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -788,6 +797,17 @@ function updateContextualPanel(): void {
     return;
   }
 
+  if (isNearTurbine()) {
+    if (lastActivePanelKind !== "turbine") resetPanelHighlight();
+    lastActivePanelKind = "turbine";
+    renderTurbinePanel(state, refs.contextualPanel, () => {
+      setState(performTurbineBuild(getState()));
+      render();
+    });
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   if (isNearGemcutting()) {
     if (lastActivePanelKind !== "gemcutting") resetPanelHighlight();
     lastActivePanelKind = "gemcutting";
@@ -987,7 +1007,8 @@ export function render(): void {
         state.world.placedTorches,
         state.world.mineshaftDepth,
         state.world.gardenSlots,
-        state.world.sawmillBuilt
+        state.world.sawmillBuilt,
+        state.world.turbineBuilt
       );
     },
     (col, row) => {
@@ -1010,7 +1031,8 @@ export function render(): void {
         state.world.placedTorches,
         state.world.mineshaftDepth,
         state.world.gardenSlots,
-        state.world.sawmillBuilt
+        state.world.sawmillBuilt,
+        state.world.turbineBuilt
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -1031,7 +1053,8 @@ export function render(): void {
             state.world.placedTorches,
             state.world.mineshaftDepth,
             state.world.gardenSlots,
-            state.world.sawmillBuilt
+            state.world.sawmillBuilt,
+            state.world.turbineBuilt
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

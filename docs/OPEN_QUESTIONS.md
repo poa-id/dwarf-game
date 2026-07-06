@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-463/463 tests passing. TSC clean. Build clean.
+480/480 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -163,11 +163,15 @@
 
 17. **wood_planks has no consumers** — the Sawmill (built 2026-07-03) produces it, but nothing spends it yet. "Building materials" was the original ask; needs a design pass on what actually costs planks (room upgrades? a new construction system? retrofitted onto existing costs?) rather than guessing. Same "new resource, sink comes later" pattern as charcoal/ironwood/gemwood before their consumers existed - not a blocker, just needs a decision eventually.
 
-18. **3 Forge addon stations reserved, not built** (2026-07-06) — Quenching Station, Sharpening Station, and Imbuing Station. Direct instruction: "progress locked for the time being, but reserve the space." Positions reserved in hubMap.ts (`FORGE_ADDON_NW`, `FORGE_ADDON_SW`, `FORGE_ADDON_SE` - all 3x3, flanking the Forge alongside the relocated Smelter, which took the 4th slot `FORGE_ADDON_NE`-equivalent). Sprites received and safely on hand (`quenching-tank.png`, `sharpening-station.png`, `imbuing.png`) but deliberately NOT processed/wired into the tileset yet, since there's no CellKind/mechanic to attach them to until this gets designed - no point creating dead asset files in the repo before that happens. What each station actually DOES (mechanically) is completely open - only the visual/spatial reservation exists right now.
+18. **2 Forge addon slots reserved, not built** (2026-07-06, updated) — Quenching Station and Sharpening Station. Direct instruction: "progress locked for the time being, but reserve the space." Positions reserved in hubMap.ts (`FORGE_ADDON_SW`, `FORGE_ADDON_SE`). Sprites received and safely on hand (`quenching-tank.png`, `sharpening-station.png`) but deliberately NOT processed/wired into the tileset yet, since there's no CellKind/mechanic to attach them to until this gets designed. The top-left slot (`FORGE_ADDON_NW`) is now the built Turbine (see changelog); `imbuing.png` was NOT for the 4th slot after all - it's reserved for a future Armory system instead, per direct correction. What Quenching/Sharpening actually DO (mechanically) is completely open - only the visual/spatial reservation exists right now.
+
+19. **Future Armory system** (2026-07-06) — mentioned in passing, not designed: `imbuing.png` (the purple rune-enchanting altar sprite) is reserved for this, not the Forge addon slots. No location, no mechanic, nothing else known yet - purely a placeholder note so the sprite doesn't get mistaken for Forge-addon material again.
 
 ---
 
 ## Recently Resolved (changelog)
+
+- **The Turbine built** (2026-07-06) — direct design brief: "increase the output of ingots to a much higher level... if you upgrade engines the bottleneck will be either the fuel or the ore or the smelting ratio. Like any idle game." Took the top-left Forge addon slot (the imbuing.png sprite from the prior session was actually meant for a future Armory, not this - corrected). Implemented as a Smelting Engine cycle-speed multiplier (3x) rather than a flat ingots-per-cycle bonus - speeding up the cycle itself scales ore/fuel consumption right along with output, which is what actually creates the intended supply bottleneck (a flat output bonus would just be free ingots from the same ore, the opposite of the ask). Discovered while building this that the underlying shared-reserve infrastructure the brief called for already existed: `stockpileOre` auto-fills from drills once the Stockpile Room is cleared, and `fuelReserve` already feeds both the Hearth and Smelting Engines - the Turbine only needed to add throughput, not invent new storage. Gated behind Mine Shaft depth 2 ("First Deep") per direct instruction ("right before mid game... deeper mineshaft"). Paired with a matching Narag-Bund haul-speed boost (both a shorter interval and a bigger per-trip amount) for the fuel-reserve haul and the drill-coal haul, so the faster smelting doesn't just idle waiting on manual coal-carrying - exact multiplier values are an initial guess pending the broader balancing pass.
 
 - **Smelter relocated + reskinned, 4 Forge addon slots reserved** (2026-07-06) — direct instruction, layout sketched on a screenshot: move the Smelter into a dedicated 3×3 slot beside the Forge (grown from 2×2) with a new sprite, and reserve 3 more 3×3 slots flanking the Forge for future stations (Quenching, Sharpening, Imbuing - sprites received and on hand, not yet wired since "progress locked for the time being"). Smelter now sits in the Forge Room's east addon column (cols 61-63, the room's own free space - no bounds change needed); the west column needed one extra column beyond the room's own free space, solved by reusing the existing NE corridor's floor at col 51 rather than widening the room. Updated smelter's tileSpan, dynamic-override footprint, and `isNearSmelter`'s proximity buffer to match the new 3x3 size (same fix pattern as the Kiln/Sawmill/Gemcutting grow-outs from earlier sessions).
 
