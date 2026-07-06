@@ -49,7 +49,7 @@ export function renderTurbinePanel(state: GameState, container: HTMLElement, onB
     container.innerHTML = `
       <h2>the turbine</h2>
       <p class="reserve-status">Online — Smelting Engines run ${TURBINE_SMELT_SPEED_MULTIPLIER}x faster.</p>
-      <p class="reserve-status">Narag-Bund hauls at a staggering pace now - fuel supply won't be the bottleneck it used to be.</p>
+      <p class="reserve-status">Speeds up the Forge, not Narag-Bund - he has his own hauling upgrades now.</p>
     `;
   }
 

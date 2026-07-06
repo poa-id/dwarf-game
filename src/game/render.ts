@@ -38,11 +38,11 @@ import {
   performRekindle,
   STOKE_AMOUNT,
 } from "../ui/hearthPanel";
-import { nextHaulMaterial, secondsUntilNextHaul } from "../engine/hearth";
 import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "../ui/kilnPanel";
 import { canAffordCharcoalBurn } from "../engine/kiln";
 import { renderSawmillPanel, performSawmillBuild, performSawPlanks } from "../ui/sawmillPanel";
 import { renderTurbinePanel, performTurbineBuild } from "../ui/turbinePanel";
+import { renderCompanionPanel, performCompanionUpgrade } from "../ui/companionPanel";
 import { canAffordPlankSaw } from "../engine/sawmill";
 import {
   renderSmelterPanel,
@@ -530,24 +530,11 @@ function updateContextualPanel(): void {
   if (isNearCompanion()) {
     if (lastActivePanelKind !== "companion") resetPanelHighlight();
     lastActivePanelKind = "companion";
-    refs.contextualPanel.innerHTML = "";
-    const world = state.world;
-    const haulTarget = nextHaulMaterial(state.vessel.inventory);
-    const haulLabel = haulTarget ? (MATERIALS[haulTarget]?.name ?? haulTarget) : null;
-    const secsLeft = Math.ceil(secondsUntilNextHaul(world.companion.lastHaulAt, Date.now()));
-    const haulStatus = haulLabel
-      ? `Hauling ${haulLabel} to the reserve in ~${secsLeft}s`
-      : "Nothing to haul — carry some fuel";
-    const drillStatus = world.hearthTier >= 2
-      ? `Hauling coal to drills (Hearth tier ${world.hearthTier})`
-      : "Will haul coal to drills at Hearth tier 2";
-    refs.contextualPanel.innerHTML = `
-      <h2>Narag-Bund</h2>
-      <p class="reserve-status">Coal-beetle. Black-head. He stays.</p>
-      <p class="reserve-status" style="color:#c87820;">${haulStatus}</p>
-      <p class="reserve-status">${drillStatus}</p>
-      <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">Haul interval: 10s · Next: ~${secsLeft}s</p>
-    `;
+    renderCompanionPanel(state, refs.contextualPanel, () => {
+      setState(performCompanionUpgrade(getState()));
+      render();
+    });
+    reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
 

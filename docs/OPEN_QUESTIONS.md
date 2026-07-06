@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-485/485 tests passing. TSC clean. Build clean.
+496/496 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -167,11 +167,14 @@
 
 19. **Future Armory system** (2026-07-06) — mentioned in passing, not designed: `imbuing.png` (the purple rune-enchanting altar sprite) is reserved for this, not the Forge addon slots. No location, no mechanic, nothing else known yet - purely a placeholder note so the sprite doesn't get mistaken for Forge-addon material again.
 
-20. **Bigger Narag-Bund/logistics redesign, deferred** (2026-07-06) — direct vision, explicitly NOT started yet (only the 3 concrete bugs above were tackled first): "Narag-Bund is the conveyor belt of Factorio... upgrading infinitely will improve his capacity... everything should end in the stockpile where narug redistributes... if coal is the limiting factor, we need some interface to choose the coal allocation in %." This implies several real subsystems, not one: (a) replacing the current single Turbine haul-speed flag with a genuine Narag-Bund upgrade track (many tiers of capacity/speed), (b) a reverse haul direction (stockpile → stations, for whatever they're missing - coal-to-drills already exists in limited form, would need extending), (c) a coal/fuel allocation-priority UI for when total demand exceeds supply, (d) eventually, per the stated end-goal, enough automation that manual crafting inputs are always available at any station, and further out even manual crafting itself becomes optional. Ordering and scope of each piece still needs deciding - flagged here rather than guessed at.
+20. **Bigger Narag-Bund/logistics redesign - piece (a) done, (b)/(c)/(d) still pending** (2026-07-06) — direct vision: "Narag-Bund is the conveyor belt of Factorio... upgrading infinitely will improve his capacity... everything should end in the stockpile where narug redistributes... if coal is the limiting factor, we need some interface to choose the coal allocation in %." Four real subsystems: (a) ~~replacing the single Turbine haul-speed flag with a genuine Narag-Bund upgrade track~~ **done - see changelog, `companion.ts`'s 5-tier ladder**; (b) a reverse haul direction (stockpile → stations, for whatever they're missing - coal-to-drills already exists, would need extending to more consumer types); (c) a coal/fuel allocation-priority UI for when total demand exceeds supply; (d) eventually, per the stated end-goal, enough automation that manual crafting inputs are always available at any station, and further out even manual crafting itself becomes optional. Ordering and scope of (b)/(c)/(d) still need deciding.
 
 ---
 
 ## Recently Resolved (changelog)
+
+- **Narag-Bund's own haul-speed upgrade track** (2026-07-06) — phase 1 of the bigger logistics redesign (gap #20), direct instruction: "Narag-Bund is the conveyor belt of Factorio of ours, he is the hauling beast. So upgrading infinitely will improve his capacity." Replaced the earlier single Turbine-linked boolean (which conflated "the Forge got faster" with "the hauling beast got faster") with a genuine 5-tier ladder in `companion.ts`: tier 1 is his original base rate (unchanged from before this system existed), each tier above costs Insight + materials and meaningfully improves both his fuel-reserve haul interval/amount AND his per-trip cap hauling coal to drills - one upgrade, one beast, both haul mechanics improve together rather than two separate flags. New `companionPanel.ts` UI (extracted from what was inline status-only text in render.ts) adds the actual "Upgrade" row. The Turbine went back to being purely a Smelting Engine speed multiplier, decoupled entirely from hauling now. Tier numbers (5 tiers, escalating cost and effect) are an initial ladder shape, not measured - same balancing-pass caveat as the Turbine's own numbers.
+- Remaining pieces of the bigger redesign (reverse hauling to stations, coal allocation %, eventual no-manual-crafting endgame) still not started - see updated gap #20.
 
 - **Three concrete logistics bugs fixed, found during a balance review** (2026-07-06) — flagged directly while walking through exact numbers together:
   1. *Ingots required manual "Collect" per engine, ore didn't* — inconsistent with the rest of the automation chain. Ingots now flow straight to the player's inventory each tick the same way ore auto-drains to the stockpile. Removed the "Collect" row/action entirely from the Smelting Engine panel; `ingotBuffer`/`ingotBufferMax` remain on `SmeltingEngineState` only for old-save compatibility, nothing writes to them anymore.

@@ -323,6 +323,16 @@ export interface CompanionState {
   befriended: boolean;
   /** Timestamp (ms epoch) of his last haul - needed for real-time interval pacing, same offline-catch-up pattern as the Hearth itself. */
   lastHaulAt: number;
+  /**
+   * Narag-Bund's own haul-speed/capacity tier (2026-07-06) - see
+   * companion.ts's COMPANION_HAUL_TIERS. Starts at 1 the moment he's
+   * befriended (tier 1 = his original base haul rate, not "not
+   * upgraded yet"). Replaces the earlier, cruder approach of tying his
+   * haul speed to whether the Turbine was built - he's his own
+   * upgrade track now ("the conveyor belt of Factorio," per direct
+   * design language), independent of the Forge's own automation.
+   */
+  tier: number;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 import type { HearthState, ResourceBag, MaterialId } from "./types";
 import { DRILL_COAL_BUFFER_MAX, drillDefinitionByVeinId } from "./drill";
+import type { CompanionHaulTier } from "./companion";
+import { companionHaulTierDef } from "./companion";
 import { getMaterialAmount, deductMaterials, addMaterial, materialDef } from "./types";
 import { colorStageForLifetimeFuel, capColorStageBeforeFirstRekindle } from "./colorStages";
 
@@ -438,27 +440,21 @@ export const HAUL_INTERVAL_MS = 10_000;
 export const HAUL_AMOUNT_PER_TRIP = 1;
 
 /**
- * Narag-Bund's haul speed multiplier once the Turbine is built
- * (2026-07-06, direct instruction: "Narag Bund at [this] point should
- * be able to haul materials at a staggering pace, so the player
- * doesn't have to manually feed coal anywhere" - deferred to judgment
- * on the exact number). Applied as BOTH a shorter interval AND a
- * bigger per-trip amount (not just one or the other) - the combined
- * effect is what actually reads as "staggering" rather than a modest
- * bump; a single multiplier applied to the same formula either
- * function was already using. Same "initial guess, real numbers come
- * from the later balancing pass" caveat as everything else added this
- * session.
+ * Narag-Bund's haul interval/amount now come from his OWN upgrade tier
+ * (see companion.ts) rather than a single Turbine-linked boolean flag
+ * (2026-07-06 redesign - "Narag-Bund is the conveyor belt of Factorio
+ * of ours... upgrading infinitely will improve his capacity"). These
+ * two thin wrappers exist so the haul functions below don't need to
+ * import companion.ts directly - keeps hearth.ts's own dependency
+ * surface the same shape as before, just resolving the numbers from
+ * his tier instead of a boolean.
  */
-export const TURBINE_HAUL_INTERVAL_MULTIPLIER = 1 / 3; // interval shrinks to 1/3 (10s -> ~3.3s)
-export const TURBINE_HAUL_AMOUNT_MULTIPLIER = 10; // 10x the fuel per trip
-
-export function companionHaulIntervalMs(turbineBuilt: boolean): number {
-  return turbineBuilt ? Math.round(HAUL_INTERVAL_MS * TURBINE_HAUL_INTERVAL_MULTIPLIER) : HAUL_INTERVAL_MS;
+export function companionHaulIntervalMs(tier: CompanionHaulTier): number {
+  return tier.haulIntervalMs;
 }
 
-export function companionHaulAmountPerTrip(turbineBuilt: boolean): number {
-  return turbineBuilt ? HAUL_AMOUNT_PER_TRIP * TURBINE_HAUL_AMOUNT_MULTIPLIER : HAUL_AMOUNT_PER_TRIP;
+export function companionHaulAmountPerTrip(tier: CompanionHaulTier): number {
+  return tier.haulAmountPerTrip;
 }
 
 export interface HaulResult {
@@ -511,10 +507,10 @@ export function advanceCompanionHauling(
   fuelReserve: ResourceBag,
   lastHaulAt: number,
   now: number,
-  turbineBuilt: boolean = false
+  companionTier: CompanionHaulTier = companionHaulTierDef(1)
 ): HaulResult {
-  const intervalMs = companionHaulIntervalMs(turbineBuilt);
-  const amountPerTrip = companionHaulAmountPerTrip(turbineBuilt);
+  const intervalMs = companionHaulIntervalMs(companionTier);
+  const amountPerTrip = companionHaulAmountPerTrip(companionTier);
   const elapsedMs = Math.max(0, now - lastHaulAt);
   const tripsElapsed = Math.floor(elapsedMs / intervalMs);
 
@@ -563,7 +559,7 @@ export function advanceDrillHauling(
   fuelReserve: ResourceBag,
   drills: Record<string, import("./drill").DrillState>,
   hearthTier: number,
-  turbineBuilt: boolean = false
+  companionTier: CompanionHaulTier = companionHaulTierDef(1)
 ): DrillHaulResult {
   if (hearthTier < 2) {
     return { fuelReserve, drills, hauled: false };
@@ -590,7 +586,7 @@ export function advanceDrillHauling(
   for (const [veinId, drillState] of drillEntries) {
     const space = DRILL_COAL_BUFFER_MAX - drillState.coalBuffer;
     const available = getMaterialAmount(newFuelReserve, "coal");
-    const perTripCap = turbineBuilt ? 5 * TURBINE_HAUL_AMOUNT_MULTIPLIER : 5; // 5 coal/trip base — drills consume much faster than the hearth
+    const perTripCap = companionTier.drillHaulCap;
     const toHaul = Math.min(space, available, perTripCap);
     if (toHaul <= 0) break;
 

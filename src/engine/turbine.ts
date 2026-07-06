@@ -36,10 +36,12 @@ import { canAffordMaterials, deductMaterials } from "./types";
  * mineshaftPanel.ts as reaching genuinely new depth, rather than
  * inventing a separate new gate.
  *
- * The multiplier values below (3x smelting speed, and see
- * companionHaulSpeedMultiplier in hearth.ts for the matching haul
- * boost) are an initial balance guess, not measured - flagged for the
- * broader balancing pass already expected later.
+ * The 3x smelting speed multiplier below is an initial balance guess,
+ * not measured - flagged for the broader balancing pass already
+ * expected later. Narag-Bund's own haul speed used to be boosted
+ * alongside this (a single flag doing double duty), but that's been
+ * split into his own independent upgrade track since - see
+ * companion.ts - so this multiplier is purely about the Forge now.
  */
 export const TURBINE_BUILD_COST: ResourceBag = {
   iron_ingot: 40,

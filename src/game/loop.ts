@@ -17,6 +17,7 @@ import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
 import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
 import { stockpileCapacityPerMaterial, type RoomStage } from "../engine/rooms";
+import { companionHaulTierDef } from "../engine/companion";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -76,7 +77,7 @@ function gameTick(): void {
       state.world.fuelReserve,
       state.world.companion.lastHaulAt,
       now,
-      state.world.turbineBuilt
+      companionHaulTierDef(state.world.companion.tier)
     );
     if (haul.lastHaulAt !== state.world.companion.lastHaulAt) {
       setState({
@@ -98,7 +99,7 @@ function gameTick(): void {
       state.world.fuelReserve,
       state.world.drills,
       state.world.hearthTier,
-      state.world.turbineBuilt
+      companionHaulTierDef(state.world.companion.tier)
     );
     if (drillHaul.hauled) {
       setState({

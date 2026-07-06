@@ -11,7 +11,7 @@ function makeStateWithProgress(): GameState {
       forgeTier: 2,
       hearthTier: 1,
       fuelReserve: { coal: 5 },
-      companion: { befriended: true, lastHaulAt: 0 },
+      companion: { befriended: true, lastHaulAt: 0, tier: 1 },
       unlockedMineDepth: 1,
       // lifetimeFuel set well past REKINDLE_FUEL_THRESHOLD (500) -
       // this fixture represents a dwarf who made REAL progress, not

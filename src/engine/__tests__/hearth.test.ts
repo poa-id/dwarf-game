@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { companionHaulTierDef, COMPANION_HAUL_TIERS } from "../companion";
 import {
   tickHearth,
   createInitialHearth,
@@ -348,44 +349,54 @@ describe("advanceCompanionHauling", () => {
     expect(reserve).toEqual({});
   });
 
-  describe("Turbine-boosted hauling (2026-07-06)", () => {
-    it("without the Turbine, uses the base interval/amount (unaffected default)", () => {
+  describe("Companion haul tiers (2026-07-06 redesign - was a single Turbine-linked boolean)", () => {
+    it("tier 1 (default) uses the original base interval/amount, unchanged from before this system existed", () => {
       const inv: ResourceBag = { coal: 1000 };
-      const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS, false);
+      const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS, companionHaulTierDef(1));
       expect(result.fuelReserve.coal).toBe(HAUL_AMOUNT_PER_TRIP);
     });
 
-    it("with the Turbine, hauls noticeably more in the same elapsed time - the whole point is eliminating manual coal-carrying", () => {
+    it("a higher tier hauls noticeably more in the same elapsed time", () => {
       const inv: ResourceBag = { coal: 1000 };
-      const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS, true);
+      const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS, companionHaulTierDef(5));
       expect(result.fuelReserve.coal).toBeGreaterThan(HAUL_AMOUNT_PER_TRIP);
     });
 
-    it("with the Turbine, the SAME wall-clock gap yields more trips too (shorter interval), not just a bigger per-trip amount", () => {
+    it("a higher tier's shorter interval yields more trips in the same wall-clock gap, not just a bigger per-trip amount", () => {
       const inv: ResourceBag = { coal: 100_000 };
-      const withoutTurbine = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3, false);
-      const withTurbine = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3, true);
-      expect(withTurbine.fuelReserve.coal).toBeGreaterThan(withoutTurbine.fuelReserve.coal as number);
+      const tier1 = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3, companionHaulTierDef(1));
+      const tier5 = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3, companionHaulTierDef(5));
+      expect(tier5.fuelReserve.coal).toBeGreaterThan(tier1.fuelReserve.coal as number);
+    });
+
+    it("each tier strictly improves both interval and amount over the previous one", () => {
+      for (let t = 1; t < COMPANION_HAUL_TIERS.length; t++) {
+        const cur = companionHaulTierDef(t);
+        const next = companionHaulTierDef(t + 1);
+        expect(next.haulIntervalMs).toBeLessThan(cur.haulIntervalMs);
+        expect(next.haulAmountPerTrip).toBeGreaterThan(cur.haulAmountPerTrip);
+        expect(next.drillHaulCap).toBeGreaterThan(cur.drillHaulCap);
+      }
     });
   });
 });
 
-describe("advanceDrillHauling with the Turbine (2026-07-06)", () => {
-  it("without the Turbine, caps at the base per-trip amount", async () => {
+describe("advanceDrillHauling with companion tiers (2026-07-06)", () => {
+  it("tier 1 (default) caps at the original base per-trip amount", async () => {
     const { advanceDrillHauling } = await import("../hearth");
     const drills = {
       mine_copper: { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: 20, oreBufferMax: 20, bufferTier: 0 },
     };
-    const result = advanceDrillHauling({ coal: 1000 }, drills, 2, false);
+    const result = advanceDrillHauling({ coal: 1000 }, drills, 2, companionHaulTierDef(1));
     expect(result.drills.mine_copper.coalBuffer).toBeLessThanOrEqual(5);
   });
 
-  it("with the Turbine, hauls noticeably more coal per trip to drills that need it", async () => {
+  it("a higher tier hauls noticeably more coal per trip to drills that need it", async () => {
     const { advanceDrillHauling } = await import("../hearth");
     const drills = {
       mine_copper: { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: 200, oreBufferMax: 20, bufferTier: 0 },
     };
-    const result = advanceDrillHauling({ coal: 1000 }, drills, 2, true);
+    const result = advanceDrillHauling({ coal: 1000 }, drills, 2, companionHaulTierDef(5));
     expect(result.drills.mine_copper.coalBuffer).toBeGreaterThan(5);
   });
 });

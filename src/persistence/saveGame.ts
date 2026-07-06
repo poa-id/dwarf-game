@@ -95,7 +95,13 @@ function backfillMissingFields(state: any): any {
     if (state.world.hearthTier === undefined) state.world.hearthTier = 0;
     if (state.world.fuelReserve === undefined) state.world.fuelReserve = {};
     if (state.world.companion === undefined) {
-      state.world.companion = { befriended: false, lastHaulAt: Date.now() };
+      state.world.companion = { befriended: false, lastHaulAt: Date.now(), tier: 1 };
+    }
+    if (state.world.companion.tier === undefined) {
+      // Old saves have a companion object but predate the haul-speed
+      // tier system (2026-07-06) - backfill at tier 1, his original
+      // base rate, not "not upgraded" (tier 0 doesn't exist).
+      state.world.companion.tier = 1;
     }
     if (state.world.toolsForged === undefined) {
       // Old saves predate smithed tools entirely - backfill at 0/0
