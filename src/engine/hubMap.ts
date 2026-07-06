@@ -152,11 +152,37 @@ export const FORGE_CENTER: Position = {
 
 // ── Structure positions ───────────────────────────────────────────────────────
 
-/** Smelter 2×2 add-on, anchored directly below the Forge building. */
-export const SMELTER_POSITION: Position = {
-  col: FORGE_BUILDING_FOOTPRINT.originCol,
-  row: FORGE_BUILDING_FOOTPRINT.originRow + FORGE_BUILDING_FOOTPRINT.height,
-};
+/**
+ * Smelter add-on, grown 2×2 -> 3×3 and moved (2026-07-06, new sprite +
+ * direct instruction: "move the smelter + change sprite") from
+ * directly-below-the-Forge to the Forge Room's east addon column - the
+ * top-right of 4 reserved 3×3 slots flanking the Forge (2 stacked on
+ * each side), matching the layout sketched directly on a screenshot.
+ * Room is cols 52-63 (12 wide); Forge itself occupies cols 54-60 (7
+ * wide), leaving cols 61-63 free on the east side - exactly 3 columns,
+ * fits without needing to widen the room at all.
+ */
+export const SMELTER_POSITION: Position = { col: 61, row: 10 };
+
+/**
+ * Reserved Forge addon slots (2026-07-06) - NOT wired to any rendering
+ * or game logic yet ("progress locked for the time being, but reserve
+ * the space" - direct instruction). Sprites already in hand
+ * (quenching-tank.png, sharpening-station.png, imbuing.png) for
+ * whenever these get built. Bottom-right (FORGE_ADDON_SE) is the
+ * fourth slot in the 2x2-of-slots layout; the Smelter took the
+ * top-right slot (see SMELTER_POSITION above).
+ *
+ * West column needed one more column than the Forge Room's own bounds
+ * currently provide (only cols 52-53 are free inside the room to the
+ * Forge's west) - cols 51-53 works instead, since col 51 is already
+ * open floor via the existing NE vertical corridor that runs through
+ * there (fill(49,9,51,22) in hubContent.ts) - no room-bounds change
+ * needed, just using floor that's already there.
+ */
+export const FORGE_ADDON_NW: Position = { col: 51, row: 10 }; // reserved - not yet built
+export const FORGE_ADDON_SW: Position = { col: 51, row: 14 }; // reserved - not yet built
+export const FORGE_ADDON_SE: Position = { col: 61, row: 14 }; // reserved - not yet built
 
 /**
  * Gemcutting station 6×6 anchor in the Tinkering Room. Repositioned

@@ -139,8 +139,10 @@ export function isNearKiln(): boolean {
 
 export function isNearSmelter(): boolean {
   const { position } = getState().vessel;
-  const nearCol = position.col >= SMELTER_POSITION.col - 1 && position.col <= SMELTER_POSITION.col + 2;
-  const nearRow = position.row >= SMELTER_POSITION.row - 1 && position.row <= SMELTER_POSITION.row + 2;
+  // Smelter grown 2x2 -> 3x3 (2026-07-06) - buffer widened from +2 to
+  // +3 to match, same fix as isNearKiln/isNearSawmill's earlier grow-outs.
+  const nearCol = position.col >= SMELTER_POSITION.col - 1 && position.col <= SMELTER_POSITION.col + 3;
+  const nearRow = position.row >= SMELTER_POSITION.row - 1 && position.row <= SMELTER_POSITION.row + 3;
   return nearCol && nearRow;
 }
 

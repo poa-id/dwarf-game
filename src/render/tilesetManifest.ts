@@ -94,7 +94,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   kiln: { assetUrl: kilnUrl, tileSpan: { cols: 3, rows: 3 } },
   sawmill: { assetUrl: sawmillUrl, tileSpan: { cols: 3, rows: 3 } },
   // Smelter add-on: 2x2 sprite sitting below the Forge.
-  smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 2, rows: 2 } },
+  smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 3, rows: 3 } },
   gemcutting: { assetUrl: gemcutting4x4Url, tileSpan: { cols: 6, rows: 6 } },
   // Unbuilt marker: same sprite but heavily tinted dark/cold so it reads as
   // 'the bench is here but cold and unused' rather than the active station.

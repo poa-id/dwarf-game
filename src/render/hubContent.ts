@@ -291,9 +291,9 @@ export function hubCellAt(
   if (
     smelterBuilt &&
     col >= SMELTER_POSITION.col &&
-    col < SMELTER_POSITION.col + 2 &&
+    col < SMELTER_POSITION.col + 3 &&
     row >= SMELTER_POSITION.row &&
-    row < SMELTER_POSITION.row + 2
+    row < SMELTER_POSITION.row + 3
   ) {
     return { kind: "smelter" };
   }
