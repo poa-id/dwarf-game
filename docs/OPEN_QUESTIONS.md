@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-480/480 tests passing. TSC clean. Build clean.
+485/485 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -167,9 +167,16 @@
 
 19. **Future Armory system** (2026-07-06) — mentioned in passing, not designed: `imbuing.png` (the purple rune-enchanting altar sprite) is reserved for this, not the Forge addon slots. No location, no mechanic, nothing else known yet - purely a placeholder note so the sprite doesn't get mistaken for Forge-addon material again.
 
+20. **Bigger Narag-Bund/logistics redesign, deferred** (2026-07-06) — direct vision, explicitly NOT started yet (only the 3 concrete bugs above were tackled first): "Narag-Bund is the conveyor belt of Factorio... upgrading infinitely will improve his capacity... everything should end in the stockpile where narug redistributes... if coal is the limiting factor, we need some interface to choose the coal allocation in %." This implies several real subsystems, not one: (a) replacing the current single Turbine haul-speed flag with a genuine Narag-Bund upgrade track (many tiers of capacity/speed), (b) a reverse haul direction (stockpile → stations, for whatever they're missing - coal-to-drills already exists in limited form, would need extending), (c) a coal/fuel allocation-priority UI for when total demand exceeds supply, (d) eventually, per the stated end-goal, enough automation that manual crafting inputs are always available at any station, and further out even manual crafting itself becomes optional. Ordering and scope of each piece still needs deciding - flagged here rather than guessed at.
+
 ---
 
 ## Recently Resolved (changelog)
+
+- **Three concrete logistics bugs fixed, found during a balance review** (2026-07-06) — flagged directly while walking through exact numbers together:
+  1. *Ingots required manual "Collect" per engine, ore didn't* — inconsistent with the rest of the automation chain. Ingots now flow straight to the player's inventory each tick the same way ore auto-drains to the stockpile. Removed the "Collect" row/action entirely from the Smelting Engine panel; `ingotBuffer`/`ingotBufferMax` remain on `SmeltingEngineState` only for old-save compatibility, nothing writes to them anymore.
+  2. *The Stockpile Room's Restored/Masterwork upgrades were dead* — their own "unlocks" text promised "capacity ×3" and "×10" but nothing anywhere enforced any cap, at any stage; those upgrades gave zero mechanical benefit for real Insight/material cost. Added `stockpileCapacityPerMaterial` (200 base at Cleared, ×3 Restored, ×10 Masterwork) and wired real enforcement into the drill→stockpile drain: ore that doesn't fit stays in the drill's own buffer (which is itself capped), so a full stockpile creates a visible, fixable bottleneck instead of silently vanishing or stacking without limit. Stockpile panel now shows `X/Y` per material instead of a bare number.
+  3. *Smelting Engine fuel deduction didn't scale with actual cycles run* — always deducted a flat single-cycle amount regardless of how many cycles executed in one tick (large time gaps, or the Turbine's 3x speed making multi-cycle ticks routine), silently under-charging fuel and partially undermining the Turbine's whole point (scaling fuel consumption alongside output). Now derives the real cycle count from `oreConsumed / orePerCycle` and scales the fuel deduction to match. This also happened to resolve the ingot-buffer/Turbine mismatch noted when the Turbine shipped - with no buffer left to overflow, a 3x-faster engine no longer needs a 3x-bigger buffer.
 
 - **The Turbine built** (2026-07-06) — direct design brief: "increase the output of ingots to a much higher level... if you upgrade engines the bottleneck will be either the fuel or the ore or the smelting ratio. Like any idle game." Took the top-left Forge addon slot (the imbuing.png sprite from the prior session was actually meant for a future Armory, not this - corrected). Implemented as a Smelting Engine cycle-speed multiplier (3x) rather than a flat ingots-per-cycle bonus - speeding up the cycle itself scales ore/fuel consumption right along with output, which is what actually creates the intended supply bottleneck (a flat output bonus would just be free ingots from the same ore, the opposite of the ask). Discovered while building this that the underlying shared-reserve infrastructure the brief called for already existed: `stockpileOre` auto-fills from drills once the Stockpile Room is cleared, and `fuelReserve` already feeds both the Hearth and Smelting Engines - the Turbine only needed to add throughput, not invent new storage. Gated behind Mine Shaft depth 2 ("First Deep") per direct instruction ("right before mid game... deeper mineshaft"). Paired with a matching Narag-Bund haul-speed boost (both a shorter interval and a bigger per-trip amount) for the fuel-reserve haul and the drill-coal haul, so the faster smelting doesn't just idle waiting on manual coal-carrying - exact multiplier values are an initial guess pending the broader balancing pass.
 

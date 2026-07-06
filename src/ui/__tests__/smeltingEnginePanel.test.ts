@@ -54,7 +54,7 @@ describe("renderSmeltingEnginePanel (2026-07-05 regression - innerHTML += destro
     existingRow.addEventListener("click", () => { clicked = true; });
 
     const state = makeStateWithUnlockedCopperEngine();
-    renderSmeltingEnginePanel(state, container, () => {}, () => {}, () => {});
+    renderSmeltingEnginePanel(state, container, () => {}, () => {});
 
     // Re-query - if the node was destroyed and recreated, this finds a
     // DIFFERENT element that never had the listener attached, and the
@@ -68,7 +68,7 @@ describe("renderSmeltingEnginePanel (2026-07-05 regression - innerHTML += destro
   it("still actually renders the smelting engine section's own content", () => {
     const container = document.createElement("div");
     const state = makeStateWithUnlockedCopperEngine();
-    renderSmeltingEnginePanel(state, container, () => {}, () => {}, () => {});
+    renderSmeltingEnginePanel(state, container, () => {}, () => {});
     expect(container.textContent).toContain("Smelting Engines");
     expect(container.querySelector('[data-engine-build="copper_engine"]')).not.toBeNull();
   });
@@ -77,7 +77,7 @@ describe("renderSmeltingEnginePanel (2026-07-05 regression - innerHTML += destro
     const container = document.createElement("div");
     const state = makeStateWithUnlockedCopperEngine();
     let builtId: string | null = null;
-    renderSmeltingEnginePanel(state, container, (id) => { builtId = id; }, () => {}, () => {});
+    renderSmeltingEnginePanel(state, container, (id) => { builtId = id; }, () => {});
 
     const buildRow = container.querySelector<HTMLElement>('[data-engine-build="copper_engine"]')!;
     buildRow.click();

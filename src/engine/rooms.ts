@@ -219,6 +219,28 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
   },
 ];
 
+/**
+ * Per-material stockpile capacity by room stage - previously the
+ * Stockpile Room's own "unlocks" text promised "capacity ×3" at
+ * Restored and "×10" at Masterwork, but nothing anywhere actually
+ * enforced any cap at all (reported directly while reviewing balance:
+ * Restored/Masterwork were dead upgrades, giving zero mechanical
+ * benefit beyond the Insight/material cost). This is the real
+ * enforcement: a genuine per-material cap that scales with room
+ * stage, matching what the text already claimed. Ruined has no
+ * capacity at all - the stockpile mechanic doesn't exist until Cleared.
+ */
+export const STOCKPILE_BASE_CAPACITY_PER_MATERIAL = 200;
+
+export function stockpileCapacityPerMaterial(stockpileRoomStage: RoomStage): number {
+  switch (stockpileRoomStage) {
+    case "cleared": return STOCKPILE_BASE_CAPACITY_PER_MATERIAL;
+    case "restored": return STOCKPILE_BASE_CAPACITY_PER_MATERIAL * 3;
+    case "masterwork": return STOCKPILE_BASE_CAPACITY_PER_MATERIAL * 10;
+    default: return 0;
+  }
+}
+
 export function roomById(id: string): RoomDefinition | undefined {
   return ROOM_DEFINITIONS.find((r) => r.id === id);
 }

@@ -3,17 +3,24 @@
  *
  * Where the drill automates ore extraction, the Smelting Engine automates
  * ingot production. It consumes ore from the Stockpile and coal from the
- * fuel reserve, producing ingots into its own output buffer.
+ * fuel reserve, producing ingots.
  *
  * Design philosophy:
  * - One engine per ore type. Each is built, upgraded, and runs independently.
  * - Consumes from stockpileOre (not the player's bag) — so the idle chain
- *   becomes: drill → stockpile → smelting engine → ingot buffer → player collects.
+ *   becomes: drill → stockpile → smelting engine → player's inventory.
  * - Coal consumption mirrors the drill: the same fuel reserve that feeds
- *   the Hearth and drills also feeds the forge engines. Narag-Bund will
- *   haul coal to them at Hearth tier 3.
- * - Ingots accumulate in ingotBuffer (capped at ingotBufferMax). Player
- *   or Narag hauls from there.
+ *   the Hearth and drills also feeds the forge engines. Narag-Bund hauls
+ *   coal to them at Hearth tier 2.
+ * - Ingots flow straight to the player's inventory each tick, same as ore
+ *   auto-draining to the stockpile - NOT held in a capped buffer awaiting
+ *   manual "Collect" clicks (that was the design through 2026-07-05;
+ *   removed 2026-07-06 as one of three concrete inconsistencies flagged
+ *   directly: ore moved automatically, ingots didn't, and the buffer cap
+ *   never scaled with the Turbine's speed multiplier, so a 3x-faster
+ *   engine just stalled 3x more often waiting to be manually emptied).
+ *   ingotBuffer/ingotBufferMax remain on SmeltingEngineState only for
+ *   save-compatibility with old saves; nothing writes to them anymore.
  *
  * Unlock gates:
  *   Copper engine:    Forge tier 1 + Smelter built (you need the smelter
@@ -157,30 +164,23 @@ export function tickSmeltingEngine(
   const cycles = Math.floor(elapsed / effectiveCycleMs);
   let totalIngots = 0;
   let totalOre = 0;
-  let newEngine = { ...engine };
   let ran = false;
 
   for (let i = 0; i < cycles; i++) {
     const oreNeeded = def.orePerCycle;
     const oreAvail = stockpileOre - totalOre;
-    const bufferSpace = engine.ingotBufferMax - (newEngine.ingotBuffer + totalIngots);
 
     if (oreAvail < oreNeeded) break;
     if (fuelAvailable <= 0) break; // fuel check: loop.ts handles exact deduction
-    if (bufferSpace < tierDef.ingotsPerCycle) break;
 
     totalOre    += oreNeeded;
     totalIngots += tierDef.ingotsPerCycle;
     ran = true;
   }
 
-  if (ran) {
-    newEngine = {
-      ...newEngine,
-      ingotBuffer: Math.min(engine.ingotBufferMax, newEngine.ingotBuffer + totalIngots),
-      lastCycleAt: engine.lastCycleAt + cycles * effectiveCycleMs,
-    };
-  }
+  const newEngine: SmeltingEngineState = ran
+    ? { ...engine, lastCycleAt: engine.lastCycleAt + cycles * effectiveCycleMs }
+    : engine;
 
   return { engine: newEngine, ingotsProduced: totalIngots, oreConsumed: totalOre, ranCycle: ran };
 }

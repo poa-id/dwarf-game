@@ -9,7 +9,7 @@
  */
 
 import type { GameState } from "../engine/types";
-import { ROOM_DEFINITIONS, canAdvanceRoom, stageDef, nextStage } from "../engine/rooms";
+import { ROOM_DEFINITIONS, canAdvanceRoom, stageDef, nextStage, stockpileCapacityPerMaterial } from "../engine/rooms";
 import { deductMaterials, MATERIALS } from "../engine/types";
 
 const ROOM = ROOM_DEFINITIONS.find((r) => r.id === "stockpile_room")!;
@@ -35,9 +35,13 @@ export function renderStockpilePanel(
   // Ore contents (shown when cleared+)
   const isOpen = currentStage !== "ruined";
   const stockpile = state.world.stockpileOre;
+  const capacity = stockpileCapacityPerMaterial(currentStage);
   const oreEntries = Object.entries(stockpile).filter(([, amt]) => amt > 0);
   const oreList = oreEntries.length > 0
-    ? oreEntries.map(([mat, amt]) => `${amt} ${MATERIALS[mat]?.name ?? mat}`).join(", ")
+    ? oreEntries.map(([mat, amt]) => {
+        const atCap = amt >= capacity;
+        return `${amt}/${capacity} ${MATERIALS[mat]?.name ?? mat}${atCap ? " (full!)" : ""}`;
+      }).join(", ")
     : "Empty";
 
   let html = `<h2>${current.label}</h2>`;

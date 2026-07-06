@@ -35,7 +35,6 @@ export function renderSmeltingEnginePanel(
   state: GameState,
   container: HTMLElement,
   onBuild: (engineId: string) => void,
-  onCollect: (engineId: string) => void,
   onUpgrade: (engineId: string) => void
 ): void {
   const unlockedDefs = SMELTING_ENGINE_DEFINITIONS.filter(d => isEngineUnlocked(d, state));
@@ -77,16 +76,11 @@ export function renderSmeltingEnginePanel(
       const tierDef = engineTierDef(def, tier);
       const nextTier = def.tiers.find(t => t.tier === tier + 1);
       const ingotName = MATERIALS[def.ingotMaterialId]?.name ?? def.ingotMaterialId;
-      const canCollect = engineState.ingotBuffer > 0;
       const spm = (tierDef.ingotsPerCycle / tierDef.cycleMs) * 60_000;
 
       container.insertAdjacentHTML("beforeend", `
         <div class="reserve-status"><strong>${def.name}</strong> T${tier} · ${tierDef.name}</div>
-        <div class="reserve-status">${ingotName} buffer: ${engineState.ingotBuffer}/${engineState.ingotBufferMax} · ${spm.toFixed(1)}/min</div>
-        ${canCollect ? `<div class="recipe-row" data-engine-collect="${def.id}">
-          <div class="recipe-name">Collect ${engineState.ingotBuffer} ${ingotName}</div>
-          <div class="recipe-status">Move to inventory</div>
-        </div>` : ""}
+        <div class="reserve-status">${ingotName}: ${spm.toFixed(1)}/min, straight to inventory</div>
         ${nextTier ? (() => {
           const affordable = canAffordCost(inv, nextTier.upgradeCost);
           return `<div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-engine-upgrade="${def.id}">
@@ -103,9 +97,6 @@ export function renderSmeltingEnginePanel(
     el.addEventListener("click", () => {
       if (!el.classList.contains("recipe-row-disabled")) onBuild(el.dataset.engineBuild!);
     });
-  });
-  container.querySelectorAll<HTMLElement>("[data-engine-collect]").forEach(el => {
-    el.addEventListener("click", () => onCollect(el.dataset.engineCollect!));
   });
   container.querySelectorAll<HTMLElement>("[data-engine-upgrade]").forEach(el => {
     el.addEventListener("click", () => {
@@ -131,27 +122,6 @@ export function performBuildEngine(state: GameState, engineId: string): GameStat
       smeltingEngines: { ...state.world.smeltingEngines, [engineId]: createFreshEngineState() },
     },
     vessel: { ...state.vessel, inventory: deductMaterials(state.vessel.inventory, def.buildCost) },
-  };
-}
-
-export function performCollectEngine(state: GameState, engineId: string): GameState {
-  const engineState = state.world.smeltingEngines[engineId];
-  const def = SMELTING_ENGINE_DEFINITIONS.find(d => d.id === engineId);
-  if (!engineState || !def || engineState.ingotBuffer === 0) return state;
-
-  const newInventory = { ...state.vessel.inventory as Record<string, number> };
-  newInventory[def.ingotMaterialId] = (newInventory[def.ingotMaterialId] ?? 0) + engineState.ingotBuffer;
-
-  return {
-    ...state,
-    world: {
-      ...state.world,
-      smeltingEngines: {
-        ...state.world.smeltingEngines,
-        [engineId]: { ...engineState, ingotBuffer: 0 },
-      },
-    },
-    vessel: { ...state.vessel, inventory: newInventory },
   };
 }
 

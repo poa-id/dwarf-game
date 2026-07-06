@@ -29,7 +29,7 @@ import {
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade, renderForgeRepairPanel, performForgeRepair } from "../ui/smithingPanel";
 import { canAffordSmithRecipe } from "../engine/smithing";
-import { renderSmeltingEnginePanel, performBuildEngine, performCollectEngine, performUpgradeEngine } from "../ui/smeltingEnginePanel";
+import { renderSmeltingEnginePanel, performBuildEngine, performUpgradeEngine } from "../ui/smeltingEnginePanel";
 import {
   renderHearthPanel,
   performStoke,
@@ -620,7 +620,6 @@ function updateContextualPanel(): void {
       state,
       refs.contextualPanel,
       (id) => { setState(performBuildEngine(getState(), id)); render(); },
-      (id) => { setState(performCollectEngine(getState(), id)); render(); },
       (id) => { setState(performUpgradeEngine(getState(), id)); render(); }
     );
     reapplyPanelHighlight(refs.contextualPanel);

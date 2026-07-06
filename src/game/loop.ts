@@ -16,6 +16,7 @@ import { getRestorationScore } from "../engine/production";
 import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
 import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
+import { stockpileCapacityPerMaterial, type RoomStage } from "../engine/rooms";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -126,11 +127,16 @@ function gameTick(): void {
   }
 
   // Tick smelting engines — consume stockpile ore, produce ingots
+  // straight into the player's inventory (2026-07-06 - previously
+  // accumulated in a capped buffer requiring a manual "Collect" click
+  // per engine, inconsistent with ore's own automatic stockpile drain
+  // and flagged directly as one of three concrete bugs to fix).
   const engineEntries = Object.entries(state.world.smeltingEngines);
   if (engineEntries.length > 0) {
     let newEngines = { ...state.world.smeltingEngines };
     let newStockpile = { ...state.world.stockpileOre };
     let newFuelReserve = { ...state.world.fuelReserve };
+    let newInventory = { ...state.vessel.inventory };
     let engineChanged = false;
 
     for (const [engineId, engineState] of engineEntries) {
@@ -150,18 +156,39 @@ function gameTick(): void {
           ...newStockpile,
           [def.oreMaterialId]: Math.max(0, stockpileOre - result.oreConsumed),
         };
-        // Deduct fuel
+        // Deposit produced ingots straight to inventory - no more
+        // per-engine "Collect" step.
+        if (result.ingotsProduced > 0) {
+          newInventory = {
+            ...newInventory,
+            [def.ingotMaterialId]: ((newInventory[def.ingotMaterialId] as number | undefined) ?? 0) + result.ingotsProduced,
+          };
+        }
+        // Deduct fuel - scaled by how many cycles actually ran this
+        // tick (derived from oreConsumed / orePerCycle), not a flat
+        // single-cycle amount. Fixed 2026-07-06: the old flat
+        // deduction under-charged fuel whenever multiple cycles ran
+        // in one tick (large time gaps, or the Turbine's 3x speed
+        // making multi-cycle ticks routine) - directly undermining the
+        // Turbine's whole point of scaling fuel consumption alongside
+        // output.
+        const cyclesRan = def.orePerCycle > 0 ? Math.round(result.oreConsumed / def.orePerCycle) : 0;
+        const fuelConsumed = def.coalPerCycle * cyclesRan;
         if (def.id === "deepstone_engine") {
-          newFuelReserve = { ...newFuelReserve, hearthsap: Math.max(0, ((newFuelReserve["hearthsap"] as number | undefined) ?? 0) - 1) };
+          newFuelReserve = { ...newFuelReserve, hearthsap: Math.max(0, ((newFuelReserve["hearthsap"] as number | undefined) ?? 0) - fuelConsumed) };
         } else {
-          newFuelReserve = { ...newFuelReserve, coal: Math.max(0, ((newFuelReserve["coal"] as number | undefined) ?? 0) - def.coalPerCycle) };
+          newFuelReserve = { ...newFuelReserve, coal: Math.max(0, ((newFuelReserve["coal"] as number | undefined) ?? 0) - fuelConsumed) };
         }
         engineChanged = true;
       }
     }
 
     if (engineChanged) {
-      setState({ ...state, world: { ...state.world, smeltingEngines: newEngines, stockpileOre: newStockpile, fuelReserve: newFuelReserve } });
+      setState({
+        ...state,
+        world: { ...state.world, smeltingEngines: newEngines, stockpileOre: newStockpile, fuelReserve: newFuelReserve },
+        vessel: { ...state.vessel, inventory: newInventory },
+      });
       state = getState();
       changed = true;
     }
@@ -172,10 +199,11 @@ function gameTick(): void {
   if (drillEntries.length > 0) {
     let newDrills = { ...state.world.drills };
     let newStockpile = { ...state.world.stockpileOre };
+    const stockpileStage = (state.world.roomStates["stockpile_room"] ?? "ruined") as RoomStage;
     const stockpileActive =
-      (state.world.roomStates["stockpile_room"] === "cleared" ||
-       state.world.roomStates["stockpile_room"] === "restored" ||
-       state.world.roomStates["stockpile_room"] === "masterwork");
+      (stockpileStage === "cleared" ||
+       stockpileStage === "restored" ||
+       stockpileStage === "masterwork");
     let drillChanged = false;
     const speedMultiplier = drillSpeedMultiplier(state.world.mineshaftDepth);
 
@@ -186,15 +214,28 @@ function gameTick(): void {
       if (result.ranCycle || result.drill.lastCycleAt !== drillState.lastCycleAt) {
         let finalDrill = result.drill;
         // If stockpile is active and ore was produced, drain ore buffer
-        // into stockpile instead of holding it in the drill buffer
+        // into stockpile instead of holding it in the drill buffer -
+        // but only up to the stockpile's own capacity (2026-07-06,
+        // fixed alongside the "capacity upgrades do nothing" bug -
+        // see stockpileCapacityPerMaterial in rooms.ts). Whatever
+        // doesn't fit stays in the drill's own ore buffer, which is
+        // itself capped - so a full stockpile creates a real, visible
+        // bottleneck (the drill stops once ITS buffer fills too),
+        // fixable by upgrading the room or collecting from it, rather
+        // than silently discarding overflow or storing it without limit.
         if (stockpileActive && result.oreProduced > 0) {
           const oreMat = def.oreMaterialId;
+          const currentStockpiled = newStockpile[oreMat] ?? 0;
+          const capacity = stockpileCapacityPerMaterial(stockpileStage);
+          const space = Math.max(0, capacity - currentStockpiled);
+          const toStockpile = Math.min(space, result.oreProduced);
           newStockpile = {
             ...newStockpile,
-            [oreMat]: (newStockpile[oreMat] ?? 0) + result.oreProduced,
+            [oreMat]: currentStockpiled + toStockpile,
           };
-          // Clear the ore buffer so the drill keeps running
-          finalDrill = { ...finalDrill, oreBuffer: 0 };
+          // Whatever didn't fit stays in the drill's own ore buffer
+          // (it was already produced there before this drain step).
+          finalDrill = { ...finalDrill, oreBuffer: result.oreProduced - toStockpile };
         }
         newDrills = { ...newDrills, [veinId]: finalDrill };
         drillChanged = true;
