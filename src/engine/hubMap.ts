@@ -198,12 +198,15 @@ export const KILN_POSITION: Position = { col: 14, row: 35 }; // 3×3: cols 14-16
 export const SAWMILL_POSITION: Position = { col: 52, row: 38 };
 
 /**
- * Narag-Bund's resting spot once befriended — just south-east of the
- * Hearth, on open hall floor. Always visible here once the player
- * has unlocked the Friend of Burden upgrade. His map presence
- * confirms he's real rather than just a UI panel status line.
+ * Narag-Bund's resting spot once befriended. Grown 1×1 -> 4×4 and
+ * moved north-and-east of the Hearth (2026-07-05, direct feedback +
+ * new high-res sprite). Verified against the Central Hall's circular
+ * floor (radius 9 around MAP_CENTER, see hubContent.ts's fill loop)
+ * - all four corners of this 4×4 footprint fall within the circle,
+ * and it stays clear of both the Hearth's own 6×6 footprint (ends at
+ * col42) and the NE corridor (starts at col49).
  */
-export const COMPANION_POSITION: Position = { col: 40, row: 29 }; // south of hearth (hearth ends row 27)
+export const COMPANION_POSITION: Position = { col: 43, row: 19 };
 
 /** The Mountain Console — ancient stone terminal in the northwest quadrant of the central hall. */
 // Grown 2×2 -> 3×3 (2026-07-04). Shifted one column left (was col 35)

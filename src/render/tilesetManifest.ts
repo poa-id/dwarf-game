@@ -1,7 +1,10 @@
 import type { CellKind } from "./palette";
 
 import rockWallUrl from "./tileset-assets/sliced/rock_wall.png";
+import rockWallSouthUrl from "./tileset-assets/sliced/rock_wall_south.png";
 import rockFloorUrl from "./tileset-assets/sliced/rock_floor.png";
+import rockFloorMinesUrl from "./tileset-assets/sliced/rock_floor_mines.png";
+import rockFloorDevUrl from "./tileset-assets/sliced/rock_floor_dev.png";
 import oreBaseUrl from "./tileset-assets/sliced/ore_base.png";
 import oreCopperUrl from "./tileset-assets/sliced/ore_copper.png";
 import oreIronUrl from "./tileset-assets/sliced/ore_iron.png";
@@ -78,7 +81,10 @@ export interface TileDefinition {
 export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   void: { assetUrl: "" }, // never drawn - render() skips void cells same as ASCII mode
   rock_wall: { assetUrl: rockWallUrl },
+  rock_wall_south: { assetUrl: rockWallSouthUrl },
   rock_floor: { assetUrl: rockFloorUrl },
+  rock_floor_mines: { assetUrl: rockFloorMinesUrl },
+  rock_floor_dev: { assetUrl: rockFloorDevUrl },
   ore_copper: { assetUrl: oreCopperUrl, tileSpan: { cols: 3, rows: 3 } },
   ore_iron: { assetUrl: oreIronUrl, tileSpan: { cols: 3, rows: 3 } },
   ore_deep: { assetUrl: oreDeepUrl, tileSpan: { cols: 3, rows: 3 } },
@@ -103,7 +109,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
   torch_lit: { assetUrl: torchLitUrl },
-  companion: { assetUrl: naragBundUrl },
+  companion: { assetUrl: naragBundUrl, tileSpan: { cols: 4, rows: 4 } },
   stockpile_chest: { assetUrl: stockpileChestUrl, tileSpan: { cols: 6, rows: 7 } },
   drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 3, rows: 3 } },

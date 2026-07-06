@@ -12,7 +12,10 @@
 export type CellKind =
   | "void"
   | "rock_wall"
+  | "rock_wall_south"
   | "rock_floor"
+  | "rock_floor_mines"
+  | "rock_floor_dev"
   | "ore_copper"
   | "ore_iron"
   | "ore_deep"
@@ -64,6 +67,7 @@ export type CellKind =
  */
 export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "rock_wall",
+  "rock_wall_south",
   "void", // deep rock beyond the visible wall border (2026-07-04) - impassable, same as rock_wall
   "rubble",
   "mountain_console",
@@ -125,7 +129,10 @@ const STAGE_0: StagePalette = {
   colors: {
     void: "#000000",
     rock_wall: "#9a9a9a",
+    rock_wall_south: "#9a9a9a",
     rock_floor: "#9a9a9a",
+    rock_floor_mines: "#9a9a9a",
+    rock_floor_dev: "#9a9a9a",
     ore_copper: "#9a9a9a",
     ore_iron: "#9a9a9a",
     ore_deep: "#9a9a9a",
@@ -205,7 +212,10 @@ const STAGE_2: StagePalette = {
   colors: {
     void: "#160a05",
     rock_wall: "#6b5640",
+    rock_wall_south: "#7a6248",
     rock_floor: "#3a2e22",
+    rock_floor_mines: "#332a20",
+    rock_floor_dev: "#403428",
     ore_copper: "#d4894a",
     ore_iron: "#9aa3ad",
     ore_deep: "#7060c0",
@@ -259,7 +269,10 @@ const STAGE_3: StagePalette = {
   colors: {
     void: "#1c2128",
     rock_wall: "#5a6472",
+    rock_wall_south: "#68707e",
     rock_floor: "#343a42",
+    rock_floor_mines: "#2e3038",
+    rock_floor_dev: "#3a3c48",
     ore_copper: "#e0884a",
     ore_iron: "#c8d2dc",
     ore_deep: "#9d6fef",
@@ -311,7 +324,10 @@ export function paletteForStage(stage: number): StagePalette {
 export const GLYPHS: Record<CellKind, string> = {
   void: " ",
   rock_wall: "#",
+  rock_wall_south: "#",
   rock_floor: "·",
+  rock_floor_mines: "·",
+  rock_floor_dev: "·",
   ore_copper: "o",
   ore_iron: "O",
   ore_deep: "◆",

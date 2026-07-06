@@ -60,16 +60,25 @@ function buildHubContent(): GridCell[] {
   for (let r = CY - HALL_R; r <= CY + HALL_R; r++) {
     for (let c = CX - HALL_R; c <= CX + HALL_R; c++) {
       if (Math.sqrt((c - CX) ** 2 + (r - CY) ** 2) <= HALL_R) {
-        set(c, r, "rock_floor");
+        // Developed floor (2026-07-05, direct instruction: "floor4...
+        // for the main hearth zone and more developed zones") - the
+        // Central Hall houses the Hearth itself, the game's earliest
+        // and most "restored" area.
+        set(c, r, "rock_floor_dev");
       }
     }
   }
 
   // ── 2. Active rooms ──────────────────────────────────────────────────
-  fill(52, 9,  63, 19, "rock_floor"); // NE: Forge Room
-  fill( 6, 20, 18, 30, "rock_floor"); // W:  Mine Room
-  fill( 6, 35, 18, 45, "rock_floor"); // SW: Garden Room
-  fill(52, 36, 63, 46, "rock_floor"); // SE: Tinkering Room
+  // Floor zones per direction (2026-07-05): "floor2...for the mines
+  // and garden. floor4...for the main hearth zone and more developed
+  // zones like the forge and gemcutting rooms." Corridors and
+  // not-yet-mentioned rooms (Stockpile, Trade Hall, sealed rooms) stay
+  // on the plain rock_floor default.
+  fill(52, 9,  63, 19, "rock_floor_dev");   // NE: Forge Room
+  fill( 6, 20, 18, 30, "rock_floor_mines"); // W:  Mine Room
+  fill( 6, 35, 18, 45, "rock_floor_mines"); // SW: Garden Room
+  fill(52, 36, 63, 46, "rock_floor_dev");   // SE: Tinkering Room (Gemcutting)
 
   // ── 3. L-shaped corridors, exactly 3 tiles wide ──────────────────────
   //
@@ -115,6 +124,20 @@ function buildHubContent(): GridCell[] {
   fill(53, 23, 63, 25, "rubble"); // E  face (right end of E stub)
   fill(35, 42, 45, 45, "rubble"); // S  face (bottom of S stub)
   fill( 6,  9, 18, 11, "rubble"); // NW face (left end of NW horiz)
+
+  // Re-assert room floor zones (2026-07-05) - several corridors above
+  // enter a room through its own edge and overlap a few rows/cols of
+  // it (e.g. the "W: straight left" corridor at rows 23-25 clips the
+  // Mine Room's own rows 20-30), and since those corridor fills run
+  // AFTER the room fills earlier in this function, they'd otherwise
+  // silently overwrite the room's zone-specific floor back to the
+  // plain default in that overlap strip. Re-running the same 4 fills
+  // here, after every corridor, guarantees each room's own floor zone
+  // always wins within its own bounds.
+  fill(52, 9,  63, 19, "rock_floor_dev");   // NE: Forge Room
+  fill( 6, 20, 18, 30, "rock_floor_mines"); // W:  Mine Room
+  fill( 6, 35, 18, 45, "rock_floor_mines"); // SW: Garden Room
+  fill(52, 36, 63, 46, "rock_floor_dev");   // SE: Tinkering Room (Gemcutting)
 
   // ── 5. Hearth 6×6 — the heart of the mountain ────────────────────────
   const { originCol: hc, originRow: hr } = HEARTH_FOOTPRINT;
@@ -221,6 +244,29 @@ function buildHubContent(): GridCell[] {
     }
   }
 
+  // ── 15. South-facing wall variant (2026-07-05) ──────────────────────
+  // First rollout of directional walls, per direct instruction: "The
+  // wall is to try to replace all south facing wall blocks, then I'll
+  // do the rest." A wall cell is "south-facing" when the cell directly
+  // NORTH of it (row-1, i.e. the room it borders) is open floor - that
+  // wall segment is what a player standing in that room sees as the
+  // room's southern/bottom boundary, rendered front-on. This
+  // deliberately does NOT touch walls bordering a room on their east,
+  // west, or north side - only south-facing ones get the new sprite
+  // for now, exactly as scoped. Runs after the void-conversion above so
+  // it only ever applies to genuine room-bordering walls, never
+  // interior rock that was just converted to void.
+  const beforeWallVariant = grid.slice();
+  for (let row = 1; row < HUB_HEIGHT; row++) {
+    for (let col = 0; col < HUB_WIDTH; col++) {
+      const idx = row * HUB_WIDTH + col;
+      if (beforeWallVariant[idx].kind !== "rock_wall") continue;
+      const northKind = beforeWallVariant[(row - 1) * HUB_WIDTH + col].kind;
+      const northIsFloor = northKind !== "rock_wall" && northKind !== "void" && northKind !== "rubble";
+      if (northIsFloor) grid[idx] = { kind: "rock_wall_south" };
+    }
+  }
+
   return grid;
 }
 
@@ -321,7 +367,11 @@ export function hubCellAt(
 
   // Narag-Bund appears at his resting spot once befriended.
   // Walkable — the player can share the cell with him.
-  if (companionBefriended && col === COMPANION_POSITION.col && row === COMPANION_POSITION.row) {
+  if (
+    companionBefriended &&
+    col >= COMPANION_POSITION.col && col < COMPANION_POSITION.col + 4 &&
+    row >= COMPANION_POSITION.row && row < COMPANION_POSITION.row + 4
+  ) {
     return { kind: "companion" };
   }
 
@@ -391,8 +441,15 @@ export function hubCellAt(
     // Show drill sprite on top of the vein once a drill is built there
     const drillTier = drillTiers[vein.id] ?? 0;
     if (drillTier > 0) {
+      // Bug fixed 2026-07-05 (reported directly: "the coal drill
+      // upgrade is placing the copper drill sprite") - this chain had
+      // explicit checks for iron_vein and deepstone but silently fell
+      // through to drill_copper for coal_seam, despite drill_coal
+      // being a fully registered, distinct CellKind with its own
+      // sprite (see tilesetManifest.ts) that was just never reached.
       const drillKind = vein.rockNodeId === "iron_vein" ? "drill_iron"
         : vein.rockNodeId === "deepstone" ? "drill_deep"
+        : vein.rockNodeId === "coal_seam" ? "drill_coal"
         : "drill_copper";
       return { kind: drillKind as import("./palette").CellKind };
     }

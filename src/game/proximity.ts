@@ -10,6 +10,7 @@ import {
   SAWMILL_POSITION,
   GEMCUTTING_POSITION,
   CONSOLE_POSITION,
+  COMPANION_POSITION,
 } from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
 
@@ -76,8 +77,12 @@ export function isNearCompanion(): boolean {
   const { position } = getState().vessel;
   const world = getState().world;
   if (!world.companion.befriended) return false;
-  // Narag-Bund sits at COMPANION_POSITION (40, 29) — south of the hearth
-  return Math.abs(position.col - 40) <= 2 && Math.abs(position.row - 29) <= 2;
+  // Narag-Bund grown 1x1 -> 4x4, moved north-and-east of the Hearth
+  // (2026-07-05) - see hubMap.ts's COMPANION_POSITION comment.
+  return (
+    position.col >= COMPANION_POSITION.col - 1 && position.col <= COMPANION_POSITION.col + 4 &&
+    position.row >= COMPANION_POSITION.row - 1 && position.row <= COMPANION_POSITION.row + 4
+  );
 }
 
 export function isForgeRepaired(): boolean {
