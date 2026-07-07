@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-540/540 tests passing. TSC clean. Build clean.
+546/546 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -179,6 +179,11 @@
 ---
 
 ## Recently Resolved (changelog)
+
+- **CRITICAL: smelting broken by the Forge panel consolidation, fixed same day** (2026-07-07) — reported directly: "I cant smelt ingots now." Both `renderSmelterPanel` and `renderTurbinePanel` still used `container.innerHTML = ...` internally (correct back when each owned its own contextual panel container), but now render into the SAME container as Smithing and Smelting Engines as part of the Forge's newly-combined panel - `innerHTML=` on anything after the first writer in that sequence destroys every DOM node written before it. Since Turbine always ran last, it silently wiped out Smithing, Smelting Engines, AND the Smelter on every render - only the Turbine's own panel ever actually appeared. Same bug class as the Smelting Engine panel's own fix from 2026-07-05; should have checked for it directly when moving these two panels into the shared container. Fixed both to `insertAdjacentHTML`. Added a real integration test this time reproducing the full render.ts sequence (Smithing → Smelting Engines → Smelter → Turbine, one container) to catch this specific failure mode going forward.
+
+- **Void-conversion reverted to 1-cell radius; specific gaps closed with targeted fills instead** (2026-07-07) — the 2-cell radius from earlier the same day fixed a real gap bug but also thickened the visible wall border everywhere on the map, reported directly: "the walls now show 2 rows lit instead of one and void after that." Reverted to the original 1-cell radius (restoring the "one row of visible wall" look), and instead closed the two specific gap columns directly with small explicit floor-strip fills: one between the Garden Room and the Grove entrance (col 20, rows 37-41), one near the Forge Room's western approach, between the Archive room's edge and the NE corridor (col 47, rows 8-24). Both were the same root shape - a single wall column exactly 2 cells from carved space on both sides, each neighbor individually "rescued" by its own 1-cell-adjacent floor but the column between them falling through the crack.
+- **Deep Foundry no longer connects to the Mine Room** (2026-07-07) — reported directly: "the west wing of the deep foundry connects with the mine room which is not intended." Deep Foundry's floor (rows 9-19) sat directly above the Mine Room's floor (rows 20-30), same columns, with no wall between them - clearing Deep Foundry would merge the two rooms into one continuous space. Excluded row 19 from Deep Foundry's own interior (now rows 9-18 only), leaving it as a permanent wall boundary regardless of either room's clear state.
 
 - **Forge addons (Smelter, Turbine) folded into the Forge's own menu** (2026-07-07) — direct instruction: "if a structure is an addon of another main workshop, lets unify the menus into the main workshop," confirmed to include the first build too, not just ongoing management. Smelting Engines were already correctly consolidated this way from earlier work; the Smelter and Turbine still had their own separate `isNearSmelter()`/`isNearTurbine()`-gated panels requiring a walk to their physical location. Removed both standalone panel blocks, added their panels into the same combined block `isNearForge()` already uses for Smithing + Smelting Engines. Their physical structures still stand on the map as landmarks; walking up to them directly now shows a short redirect hint ("part of the Forge, manage it from there") instead of their old functional panel. Documented the general rule in this file's Architecture section for when the Kiln's Infuser and the remaining Forge addon slots (Quenching, Sharpening) eventually get built - same pattern from the start, not a retrofit.
 

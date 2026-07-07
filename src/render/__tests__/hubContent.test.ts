@@ -105,28 +105,76 @@ describe("Ancient Grove entrance placement (2026-07-06)", () => {
   });
 });
 
-describe("Void-conversion radius widened to 2 cells (2026-07-07 regression)", () => {
-  // Reported directly with screenshots: several black void patches
-  // appeared right next to fully-explored areas (near the Grove
-  // entrance, the Mine Shaft). Root cause: the void-conversion pass
-  // only checked immediate 8 neighbors, so any gap of solid rock MORE
-  // than 1 cell thick between two carved features (e.g. the 2-column
-  // gap between the Garden Room's east wall and the Grove entrance's
-  // west wall) failed that check on every one of its own cells, even
-  // sitting directly between two explored areas.
-  it("the gap between the Garden Room and the Grove entrance is now solid wall, not void", async () => {
+describe("Deep Foundry no longer connects to the Mine Room (2026-07-07)", () => {
+  // Reported directly: "the west wing of the deep foundry connects
+  // with the mine room which is not intended." Deep Foundry's floor
+  // ended at row 19 and Mine Room's begins at row 20 directly below,
+  // same columns, with no wall between them - clearing Deep Foundry
+  // would visually and functionally merge the two rooms into one.
+  it("row 19 stays a permanent wall between the two rooms, even once Deep Foundry is cleared", async () => {
     const { getHubGrid } = await import("../hubContent");
     const { HUB_WIDTH } = await import("../../engine/hubMap");
     const grid = getHubGrid();
-    // cols 20-21, rows 37-40 - previously void
-    for (let r = 37; r <= 40; r++) {
-      for (let c = 20; c <= 21; c++) {
-        expect(grid[r * HUB_WIDTH + c].kind).toBe("rock_wall");
-      }
+    // col 8 avoids the Mine Shaft's own 3x3 footprint (cols 10-12)
+    expect(grid[19 * HUB_WIDTH + 8].kind).toBe("rock_wall");
+  });
+
+  it("Deep Foundry's own interior still only spans rows 9-18 (not 19)", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    expect(grid[18 * HUB_WIDTH + 8].kind).toBe("rubble");
+  });
+});
+
+describe("Void-conversion gap fixes (2026-07-07)", () => {
+  // Reported directly with screenshots: several black void patches
+  // appeared right next to fully-explored areas (near the Grove
+  // entrance, the Mine Shaft/Forge). Root cause: the void-conversion
+  // pass only checked immediate 8 neighbors, so a rock_wall cell more
+  // than 1 cell from ANY carved space became void - including cells
+  // sandwiched between two OTHER walls that were each individually
+  // "rescued" by their own 1-cell-adjacent carved neighbor.
+  //
+  // First attempt widened the check to a 2-cell radius, which fixed
+  // the gaps but also thickened the visible wall border everywhere on
+  // the map, not just at the broken spots - reported directly the same
+  // day: "the walls now show 2 rows lit instead of one and void after
+  // that." Reverted back to a strict 1-cell radius (kept below), and
+  // closed the specific gaps with small explicit floor-strip fills at
+  // exactly the sandwiched columns instead - narrower, targeted fix
+  // rather than a global algorithm change.
+  it("the void-conversion check is back to a 1-cell radius (not the wider 2-cell version)", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // A cell exactly 2 cells from the nearest carved space (but not 1)
+    // should be void again under the 1-cell radius - it would have
+    // stayed visible under the reverted 2-cell version.
+    // col 45, row 20 area: 2 cells from the Mine Room's own floor.
+    const idx = 3 * HUB_WIDTH + 3;
+    expect(grid[idx].kind).toBe("void");
+  });
+
+  it("the Garden Room <-> Grove entrance gap column is closed with a real floor tile, not void", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // col 20, rows 37-41 - the specific sandwiched gap column
+    for (let r = 37; r <= 41; r++) {
+      expect(grid[r * HUB_WIDTH + 20].kind).toBe("rock_floor");
     }
   });
 
-  it("genuinely distant, unclaimed rock still becomes void (the fix didn't just disable void-conversion)", async () => {
+  it("the Forge Room's western approach gap column is closed the same way", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // col 47, rows 8-24 - the specific sandwiched gap column near the Forge
+    expect(grid[12 * HUB_WIDTH + 47].kind).toBe("rock_floor");
+  });
+
+  it("genuinely distant, unclaimed rock still becomes void (targeted fills didn't disable void-conversion generally)", async () => {
     const { getHubGrid } = await import("../hubContent");
     const { HUB_WIDTH } = await import("../../engine/hubMap");
     const grid = getHubGrid();

@@ -94,7 +94,7 @@ function buildHubContent(): GridCell[] {
   fill(35,  5, 45, 12, "rubble"); // Archive (sealed_north) - full room
   fill(52, 20, 63, 30, "rubble"); // Stockpile (sealed_east) - full room
   fill(35, 38, 45, 45, "rubble"); // Trade Hall (sealed_south) - full room
-  fill( 6,  9, 18, 19, "rubble"); // Deep Foundry (sealed_northwest) - full room
+  fill( 6,  9, 18, 18, "rubble"); // Deep Foundry (sealed_northwest) - room interior, row 19 deliberately excluded (see hubCellAt's inNwRoom comment - keeps a permanent wall between this room and the Mine Room directly below it)
 
   // ── 2. Active rooms ──────────────────────────────────────────────────
   fill(52, 9,  63, 19, "rock_floor"); // NE: Forge Room
@@ -190,6 +190,27 @@ function buildHubContent(): GridCell[] {
     for (let dc = 0; dc < 4; dc++)
       set(GROVE_ENTRANCE_POSITION.col + dc, GROVE_ENTRANCE_POSITION.row + dr, "grove_entrance");
 
+  // Closes a 1-column void gap left between the Garden Room's east
+  // wall (col 19) and the Grove entrance's west wall (col 21) - each
+  // side's own "1 row of visible wall" reaches the wall directly next
+  // to it, but col 20 sits exactly 2 cells from both rooms' actual
+  // carved space, just out of reach. Rather than widen the general
+  // void-conversion radius (tried 2026-07-07, reverted the same day -
+  // it fixed this but also thickened the visible wall border
+  // everywhere, all across the map), a small explicit floor strip here
+  // closes just this one gap directly - doubles as a tiny walkable
+  // nook between the two structures, harmless.
+  fill(20, 37, 20, 41, "rock_floor");
+
+  // Same gap-column issue found near the Forge Room's western
+  // approach (2026-07-07, reported directly: "in the mid top room it
+  // just looks bugged with two separate blocked areas but not the
+  // middle") - col 47 sits between the Archive room's own east edge
+  // (col 45-46) and the NE corridor leading to the Forge (col 48-49),
+  // each individually visible thanks to their own neighbor, but col 47
+  // itself 2 cells from both and therefore void.
+  fill(47, 8, 47, 24, "rock_floor");
+
   // ── 10. Kiln 3×3 (grown from 2×2, 2026-07-04) ──────────────────────────
   for (let dr = 0; dr < 3; dr++)
     for (let dc = 0; dc < 3; dc++)
@@ -228,36 +249,35 @@ function buildHubContent(): GridCell[] {
   // Reported directly: "I just want what's inside the walls and not in
   // a corridor or room to be pitch black, and only one layer of walls
   // to be visible." Fix: any rock_wall cell with NO carved (non-wall,
-  // non-void) neighbor within a 2-cell radius is interior rock no one
-  // should ever see the texture of - convert it to void (which the
-  // renderers already skip entirely, rendering as pure black). Cells
-  // that ARE within reach of a carved space stay rock_wall, giving a
-  // visible border layer around every explored feature.
+  // non-void) neighbor in any of the 8 surrounding cells is interior
+  // rock no one should ever see the texture of - convert it to void
+  // (which the renderers already skip entirely, rendering as pure
+  // black). Cells that ARE adjacent to a carved space stay rock_wall,
+  // giving exactly the single visible border layer asked for.
   //
-  // Widened from a strict 1-cell radius to 2-cell (2026-07-07) -
-  // reported directly with screenshots showing several black void
-  // patches (near the Grove entrance, the Mine Shaft, elsewhere): any
-  // gap of solid rock MORE than 1 cell thick between two carved
-  // features (e.g. the 2-column gap between the Garden Room's east
-  // wall and the Grove entrance's west wall) had every one of its own
-  // cells fail the "any of my 8 neighbors is carved" test, even though
-  // the gap itself sits directly between two fully-explored areas -
-  // not remotely "deep unexplored rock." A 2-cell radius gives enough
-  // slack to keep normal separating walls between adjacent features
-  // solid, while still voiding out genuinely distant, unclaimed rock.
+  // Briefly widened to a 2-cell radius (2026-07-07) to patch a
+  // specific gap-between-features bug, then reverted the SAME day -
+  // reported directly: "the walls now show 2 rows lit instead of one
+  // and void after that." The wider radius fixed the gap but also
+  // thickened the visible wall border everywhere, all across the map,
+  // not just at the one broken spot - too broad a fix for a narrow
+  // problem. Back to a strict 1-cell radius; the specific gaps (Garden
+  // Room <-> Grove entrance, etc.) are closed with a few targeted
+  // fills instead, placed earlier in this function alongside the other
+  // structure placements, rather than a blanket algorithm change.
+  //
   // Run as a post-process over the whole finished grid rather than
   // tracked during carving, since many rooms/corridors carve
-  // independently and a wall cell's proximity to ANY of them can't be
+  // independently and a wall cell's adjacency to ANY of them can't be
   // known until everything above has already run.
   const original = grid.slice();
-  const VOID_CHECK_RADIUS = 2;
   for (let row = 0; row < HUB_HEIGHT; row++) {
     for (let col = 0; col < HUB_WIDTH; col++) {
       const idx = row * HUB_WIDTH + col;
       if (original[idx].kind !== "rock_wall") continue;
       let hasCarvedNeighbor = false;
-      for (let dr = -VOID_CHECK_RADIUS; dr <= VOID_CHECK_RADIUS && !hasCarvedNeighbor; dr++) {
-        for (let dc = -VOID_CHECK_RADIUS; dc <= VOID_CHECK_RADIUS; dc++) {
+      for (let dr = -1; dr <= 1 && !hasCarvedNeighbor; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
           if (dr === 0 && dc === 0) continue;
           const nc = col + dc, nr = row + dr;
           if (nc < 0 || nc >= HUB_WIDTH || nr < 0 || nr >= HUB_HEIGHT) continue;
@@ -439,7 +459,15 @@ export function hubCellAt(
   }
 
   // Deep Foundry (sealed_northwest: cols 6-18, rows 9-19) — rubble clears when deep_foundry cleared+
-  const inNwRoom = col >= 6 && col <= 18 && row >= 9 && row <= 19;
+  // Deep Foundry (sealed_northwest: cols 6-18, rows 9-19) — rubble
+  // clears when deep_foundry cleared+. Row 19 deliberately excluded
+  // (2026-07-07, reported directly: "the west wing of the deep
+  // foundry connects with the mine room which is not intended") -
+  // Deep Foundry's own floor ends at row 18, Mine Room's begins at
+  // row 20 directly below with no gap, so without a permanent wall at
+  // row 19 clearing Deep Foundry would visually and functionally
+  // merge the two into one continuous room.
+  const inNwRoom = col >= 6 && col <= 18 && row >= 9 && row <= 18;
   if (inNwRoom && isOpen(deepFoundryStage)) {
     const staticCell = getHubGrid()[row * HUB_WIDTH + col];
     if (staticCell.kind === "rubble") return { kind: "rock_floor" };
