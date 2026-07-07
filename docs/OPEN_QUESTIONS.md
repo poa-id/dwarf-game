@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-521/521 tests passing. TSC clean. Build clean.
+526/526 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -173,6 +173,8 @@
 ---
 
 ## Recently Resolved (changelog)
+
+- **All 4 sealed rooms had a void interior instead of a real floor** (2026-07-06) — reported directly with a screenshot: "The stockpile room looks really weird." Root cause: sealed rooms (Stockpile, Trade Hall, Deep Foundry, Archive) only ever had a thin rubble "face" filled at their entrance in the static grid, not their actual interior - which defaulted to plain rock_wall, same as any unexplored rock. The void-conversion pass (added 2026-07-04 to fix "endless wall texture beyond the visible border") correctly saw those never-carved interior cells as having no carved neighbor and converted them to void - and since the "reveal the room once cleared" overrides only ever checked for rubble/rock_wall (never void), the interior stayed a black hole forever, even after clearing the room. Fixed by filling each sealed room's FULL bounds with rubble, moved to run before the corridor fills specifically - each room's approach corridor legitimately cuts through part of its own bounds and needs to stay open regardless of the room's seal state, so filling rubble first and letting corridors carve their own strip through afterward gets this right without hand-computing exclusion zones per room.
 
 - **wood_planks cost rebalancing pass** (2026-07-06) — gap #21 tackled. Computed a fair conversion ratio from the Sawmill's own economics first, rather than guessing: 4 wood/attempt, 85% success chance, wood spent even on a miss, so 1 plank costs ~4.7 wood on average - rounded to a clean 5:1 and ceil'd (e.g. a 20-wood cost becomes 4 planks). Converted: all 3 ore drills (10 wood -> 2 planks each), the Wood Harvester's own build cost (15 -> 3), both buildable Smelting Engines (20/15 -> 4/3), 5 room-clearing costs across Stockpile/Trade Hall/Deep Foundry (20-30 wood -> 4-6 planks), and both early Garden planter slots (30/50 -> 6/10). Deliberately did NOT convert the Smelter or Gemcutting station - both have an explicit, pre-existing "iron-free by design, reachable before the Tunnel Entrance" comment protecting them from dependency creep, and requiring planks would add a real prerequisite (sawmill + sawing, or the Harvester/companion chain) that works against that documented intent; the Sawmill's own build cost also has to stay raw wood regardless, for the obvious reason (can't require planks to build the plank-maker). Also fixed a stale text bug found in the same file: the Stockpile Room's "Restored" stage claimed "Narag-Bund hauls ore from drills to stockpile automatically" - ore has always drained automatically with zero companion involvement at all, confirmed directly while investigating the dead-capacity-upgrade bug earlier this session.
 

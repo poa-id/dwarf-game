@@ -67,6 +67,34 @@ function buildHubContent(): GridCell[] {
     }
   }
 
+  // ── 1.5. Sealed rooms — full interior filled with rubble, BEFORE any
+  // corridor/room fills below ────────────────────────────────────────
+  // Fixed 2026-07-06 (reported directly with a screenshot: "The
+  // stockpile room looks really weird"). Previously only a thin
+  // rubble "face" was filled (in what used to be section 4, further
+  // down) - the room's actual INTERIOR (well beyond that thin face)
+  // was left to default to rock_wall in the static grid, same as any
+  // other unexplored rock. The void-conversion pass (section 14 below)
+  // then correctly saw those interior cells as having no carved
+  // neighbor at build time and converted them to void - and since the
+  // "room is cleared, reveal it" overrides further down only ever
+  // check for rubble/rock_wall (never void), the room's interior
+  // stayed a black hole forever, even after clearing it.
+  //
+  // Runs BEFORE the corridor fills in section 2 deliberately: each
+  // sealed room's approach corridor cuts through part of its own
+  // bounds (e.g. the Stockpile's cols 49-51 corridor strip overlaps
+  // its own cols 52-63 sealed interior) and must stay open at all
+  // times, sealed or not. Filling rubble here first, then letting the
+  // corridor fills below carve their strip back to floor afterward,
+  // gets this right automatically - full room minus corridor-strip
+  // overlap = correct - without needing to hand-compute the exact
+  // exclusion bounds for each room.
+  fill(35,  5, 45, 12, "rubble"); // Archive (sealed_north) - full room
+  fill(52, 20, 63, 30, "rubble"); // Stockpile (sealed_east) - full room
+  fill(35, 38, 45, 45, "rubble"); // Trade Hall (sealed_south) - full room
+  fill( 6,  9, 18, 19, "rubble"); // Deep Foundry (sealed_northwest) - full room
+
   // ── 2. Active rooms ──────────────────────────────────────────────────
   fill(52, 9,  63, 19, "rock_floor"); // NE: Forge Room
   fill( 6, 20, 18, 30, "rock_floor"); // W:  Mine Room
@@ -109,14 +137,6 @@ function buildHubContent(): GridCell[] {
   // NW stub: vert cols 29-31, rows 9-22; horiz rows 9-11 leftward
   fill(29,  9, 31, 22, "rock_floor"); // NW vert
   fill( 6,  9, 31, 11, "rock_floor"); // NW horiz
-
-  // ── 4. Sealed rubble faces at corridor ends ──────────────────────────
-  // These are solid rubble walls that terminate each sealed corridor.
-  // The corridor leads up to them and stops — no floor room beyond.
-  fill(35,  5, 45,  8, "rubble"); // N  face (4 rows of rubble)
-  fill(53, 23, 63, 25, "rubble"); // E  face (right end of E stub)
-  fill(35, 42, 45, 45, "rubble"); // S  face (bottom of S stub)
-  fill( 6,  9, 18, 11, "rubble"); // NW face (left end of NW horiz)
 
   // ── 5. Hearth 6×6 — the heart of the mountain ────────────────────────
   const { originCol: hc, originRow: hr } = HEARTH_FOOTPRINT;

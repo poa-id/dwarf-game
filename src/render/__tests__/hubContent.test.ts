@@ -33,3 +33,52 @@ describe("hubCellAt (2026-07-05 regression - coal drill sprite)", () => {
     expect(cell.kind).toBe("drill_copper");
   });
 });
+
+describe("Sealed rooms have a real rubble interior, not void (2026-07-06 regression)", () => {
+  // Reported directly with a screenshot: "The stockpile room looks
+  // really weird." Root cause: only a thin rubble "face" was filled at
+  // each sealed room's entrance - the room's actual interior defaulted
+  // to rock_wall in the static grid, got voided by the void-conversion
+  // pass, and stayed void forever even after the room was cleared
+  // (the "reveal on clear" overrides only ever converted rubble/
+  // rock_wall, never void). Checking deep-interior points (well clear
+  // of each room's approach corridor, which must legitimately stay
+  // open) against the STATIC grid confirms they're rubble, not void.
+  it("Stockpile (sealed_east) interior is rubble, not void", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // row 25 overlaps the E-stub corridor's full-width band (cols
+    // 49-63, rows 23-25) - row 28 is clear of it.
+    expect(grid[28 * HUB_WIDTH + 58].kind).toBe("rubble");
+  });
+
+  it("Trade Hall (sealed_south) interior is rubble, not void", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    expect(grid[40 * HUB_WIDTH + 36].kind).toBe("rubble");
+  });
+
+  it("Deep Foundry (sealed_northwest) interior is rubble, not void", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    expect(grid[15 * HUB_WIDTH + 10].kind).toBe("rubble");
+  });
+
+  it("Archive (sealed_north) interior is rubble, not void", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    expect(grid[8 * HUB_WIDTH + 36].kind).toBe("rubble");
+  });
+
+  it("each sealed room's approach corridor stays open (not swallowed by the full-room rubble fill)", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // Stockpile's approach corridor at col 50, row 25 (within cols 49-51)
+    expect(grid[25 * HUB_WIDTH + 50].kind).toBe("rock_floor");
+  });
+});
