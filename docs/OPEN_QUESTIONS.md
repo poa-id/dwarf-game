@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-528/528 tests passing. TSC clean. Build clean.
+530/530 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -171,10 +171,19 @@
 
 21. **Future Dungeoneering system - gryffon sprite reserved** (2026-07-06) — mentioned in passing, not designed: "The Bird gryffon sprite save it for later when we implement dungeoneering." No location, no mechanic, nothing else known - purely a placeholder note so the sprite is safely tracked rather than mistaken for near-term work.
 
+22. **Deep Foundry is genuinely empty once cleared** (2026-07-07, confirmed directly) — same class of gap Trade Hall had before `trade_post` got placed: the room's floor reveals correctly, but nothing has ever been placed in it. Deepstone Smelting Engine's own unlock comment says "the Deep Foundry cleared" gates it, so there's likely meant to be a real structure/landmark here eventually - not designed yet.
+
+23. **Grove entrance mechanic - "works the same as the Mine Shaft but for wood and sap tiers"** (2026-07-07) — direct design brief, only the entrance structure is placed so far (see changelog). The described system: depth-style unlocks (mirroring `SHAFT_DEPTHS`) that make new WOOD/SAP-tier materials accessible via menu (not physical new nodes, matching the corrected Mine Shaft understanding above) for mid-late-game materials. Direct note: "I have given info about this before, different wood tiers. I can provide it again if you need it" - exact tier names/materials/costs not yet re-confirmed in this session, needed before building the real mechanic (only guessed-at placeholder numbers would result otherwise). Also noted directly: automation (a Grove-equivalent to ore drills) should work the same way for these newer tiers - same increasing-demand/level-gate shape as the existing copper/iron/deepstone progression, nothing structurally different needed.
+
 
 ---
 
 ## Recently Resolved (changelog)
+
+- **Void-conversion radius widened 1 -> 2 cells** (2026-07-07) — reported directly with screenshots showing several black void patches right next to fully-explored areas (between the Garden Room and the new Grove entrance, near the Mine Shaft). Root cause: the void-conversion pass only ever checked immediate 8 neighbors, so any gap of solid rock MORE than 1 cell thick between two carved features failed that check on every one of its own cells - even sitting directly between two explored areas, nowhere near genuinely distant unexplored rock. Widened the check to a 2-cell radius, which keeps normal separating walls between adjacent features solid while still voiding out genuinely distant, unclaimed rock (verified with a regression test that a far corner of the map is still void). This is a general map-generation fix, not specific to any one room - should resolve similar patches anywhere else they were quietly occurring too.
+- **Grove entrance shifted one column left** (2026-07-07) — direct instruction: "for even spacing."
+- **Contextual panel can now scroll internally** (2026-07-07) — reported directly: "The forge menu has more options than we can see and I can't vertically scroll." The panel had no `max-height` or `overflow-y` at all, so a tall combined panel (Forge repair/tiers + Smithing + Smelting Engines rows, all stacked in the same box) could overflow past the viewport with the rest of it simply unreachable. Added the same `max-height` + internal-scroll pattern `.stats-section` already used elsewhere in the layout, so the page itself still never scrolls (the established rule), but an individual panel that's grown taller than its allotted space now scrolls within itself instead of silently cutting content off.
+- **Mine Shaft's depth-2 unlock text was misleading** (2026-07-07) — reported directly: "Unlocks doesn't make new veins appear, they are accessible from menus... the mineshaft... incorrectly says new veins will appear in the mine room." Confirmed: depth 1's own unlock text already correctly said "accessible by Mining skill," but depth 2's said "a new vein appears in the mine room" - genuinely wrong, no new physical node ever gets added to the map at any depth. Fixed to match depth 1's correct phrasing. Checked for the same mistake elsewhere in the codebase - the one other reference (a WorldState doc comment) was already phrased correctly ("accessible"), so this was the only actual instance.
 
 - **Trade Post was blocking the room's only entrance** (2026-07-06) — reported directly with a screenshot: "the market is blocking the way." Confirmed exactly: the south corridor (3 wide, cols 39-41) lands right at the room's north edge, and the trade post's old position started its solid 5×5 footprint one single row past that - zero approach buffer, walk straight into it. Repositioned to leave 3 rows of clear approach space and shift the unavoidable overlap to one side, opening a wide obvious bypass route instead of a narrow one on each side (a 5-wide structure can't fully avoid a 3-wide corridor centered in an 11-wide room no matter where it sits, but it can avoid ambushing the player at the doorway).
 - **Harvest companion sprite confirmed: a mole rat, name Siginhakhd** — swapped in over the oxen placeholder. UI now uses his name in the post-befriend panel; pre-befriend text stays deliberately unnamed ("something waits near the roots") since the player hasn't met him yet - revealing his name only after befriending is the natural story beat.

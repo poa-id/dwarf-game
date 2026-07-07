@@ -160,7 +160,21 @@ canvas {
 
 .contextual-panel {
   min-height: 60px;
+  max-height: 46vh; /* 2026-07-07: was uncapped - a tall combined panel (Forge repair/tiers + Smithing + Smelting Engines rows) could overflow past the viewport with no way to reach the cut-off content. Reported directly: "The forge menu has more options than we can see and I can't vertically scroll." */
+  overflow-y: auto; /* scrolls internally when content exceeds max-height, same pattern as .stats-section below */
   flex-shrink: 0; /* the action panel (Forge/Hearth/Kiln) keeps its natural height and is never squeezed by its siblings - it's the box the player most needs fully visible and clickable */
+}
+
+.contextual-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.contextual-panel::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+.contextual-panel::-webkit-scrollbar-track {
+  background: #0a0a0a;
 }
 
 .stats-section h2 {

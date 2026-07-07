@@ -228,23 +228,36 @@ function buildHubContent(): GridCell[] {
   // Reported directly: "I just want what's inside the walls and not in
   // a corridor or room to be pitch black, and only one layer of walls
   // to be visible." Fix: any rock_wall cell with NO carved (non-wall,
-  // non-void) neighbor in any of the 8 surrounding cells is interior
-  // rock no one should ever see the texture of - convert it to void
-  // (which the renderers already skip entirely, rendering as pure
-  // black). Cells that ARE adjacent to a carved space stay rock_wall,
-  // giving exactly the single visible border layer asked for. Run as
-  // a post-process over the whole finished grid rather than tracked
-  // during carving, since many rooms/corridors carve independently and
-  // a wall cell's adjacency to ANY of them can't be known until
-  // everything above has already run.
+  // non-void) neighbor within a 2-cell radius is interior rock no one
+  // should ever see the texture of - convert it to void (which the
+  // renderers already skip entirely, rendering as pure black). Cells
+  // that ARE within reach of a carved space stay rock_wall, giving a
+  // visible border layer around every explored feature.
+  //
+  // Widened from a strict 1-cell radius to 2-cell (2026-07-07) -
+  // reported directly with screenshots showing several black void
+  // patches (near the Grove entrance, the Mine Shaft, elsewhere): any
+  // gap of solid rock MORE than 1 cell thick between two carved
+  // features (e.g. the 2-column gap between the Garden Room's east
+  // wall and the Grove entrance's west wall) had every one of its own
+  // cells fail the "any of my 8 neighbors is carved" test, even though
+  // the gap itself sits directly between two fully-explored areas -
+  // not remotely "deep unexplored rock." A 2-cell radius gives enough
+  // slack to keep normal separating walls between adjacent features
+  // solid, while still voiding out genuinely distant, unclaimed rock.
+  // Run as a post-process over the whole finished grid rather than
+  // tracked during carving, since many rooms/corridors carve
+  // independently and a wall cell's proximity to ANY of them can't be
+  // known until everything above has already run.
   const original = grid.slice();
+  const VOID_CHECK_RADIUS = 2;
   for (let row = 0; row < HUB_HEIGHT; row++) {
     for (let col = 0; col < HUB_WIDTH; col++) {
       const idx = row * HUB_WIDTH + col;
       if (original[idx].kind !== "rock_wall") continue;
       let hasCarvedNeighbor = false;
-      for (let dr = -1; dr <= 1 && !hasCarvedNeighbor; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
+      for (let dr = -VOID_CHECK_RADIUS; dr <= VOID_CHECK_RADIUS && !hasCarvedNeighbor; dr++) {
+        for (let dc = -VOID_CHECK_RADIUS; dc <= VOID_CHECK_RADIUS; dc++) {
           if (dr === 0 && dc === 0) continue;
           const nc = col + dc, nr = row + dr;
           if (nc < 0 || nc >= HUB_WIDTH || nr < 0 || nr >= HUB_HEIGHT) continue;

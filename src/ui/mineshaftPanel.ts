@@ -50,7 +50,7 @@ export const SHAFT_DEPTHS: ShaftDepthDef[] = [
     description: "Deeper than any dwarf has gone in generations. The stone here is different — dense, cold, humming faintly.",
     repairCost: { iron_ingot: 20, deepstone_ingot: 8, ironwood: 5 },
     insightCost: 2000,
-    unlocks: "Starstone ore unlocked — a new vein appears in the mine room.",
+    unlocks: "Starstone ore unlocked — accessible by Mining skill, same as the existing veins (no new vein physically appears in the mine room).",
   },
   {
     depth: 3,

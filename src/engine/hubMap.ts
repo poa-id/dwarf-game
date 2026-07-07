@@ -403,4 +403,4 @@ export const HARVEST_COMPANION_POSITION: Position = { col: 10, row: 35 };
  * comment) is explicitly designed-but-deferred, not part of this
  * placement.
  */
-export const GROVE_ENTRANCE_POSITION: Position = { col: 23, row: 38 };
+export const GROVE_ENTRANCE_POSITION: Position = { col: 22, row: 38 }; // shifted left 1 col (2026-07-07, direct instruction: "for even spacing")

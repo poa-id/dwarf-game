@@ -104,3 +104,35 @@ describe("Ancient Grove entrance placement (2026-07-06)", () => {
     expect(grid[43 * HUB_WIDTH + 24].kind).toBe("rock_floor");
   });
 });
+
+describe("Void-conversion radius widened to 2 cells (2026-07-07 regression)", () => {
+  // Reported directly with screenshots: several black void patches
+  // appeared right next to fully-explored areas (near the Grove
+  // entrance, the Mine Shaft). Root cause: the void-conversion pass
+  // only checked immediate 8 neighbors, so any gap of solid rock MORE
+  // than 1 cell thick between two carved features (e.g. the 2-column
+  // gap between the Garden Room's east wall and the Grove entrance's
+  // west wall) failed that check on every one of its own cells, even
+  // sitting directly between two explored areas.
+  it("the gap between the Garden Room and the Grove entrance is now solid wall, not void", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // cols 20-21, rows 37-40 - previously void
+    for (let r = 37; r <= 40; r++) {
+      for (let c = 20; c <= 21; c++) {
+        expect(grid[r * HUB_WIDTH + c].kind).toBe("rock_wall");
+      }
+    }
+  });
+
+  it("genuinely distant, unclaimed rock still becomes void (the fix didn't just disable void-conversion)", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // Far corner of the map, nowhere near anything carved
+    const idx = 44 * HUB_WIDTH + 0;
+    expect(grid[idx]).toBeDefined();
+    expect(grid[idx].kind).toBe("void");
+  });
+});
