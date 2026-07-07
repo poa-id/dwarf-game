@@ -17,6 +17,7 @@ import {
   MAP_CENTER,
   COMPANION_POSITION,
   HARVEST_COMPANION_POSITION,
+  GROVE_ENTRANCE_POSITION,
   CONSOLE_POSITION,
   STOCKPILE_CHEST_POSITION,
   MINE_SHAFT_POSITION,
@@ -177,6 +178,17 @@ function buildHubContent(): GridCell[] {
       for (let dc = 0; dc < 3; dc++)
         set(wood.position.col + dc, wood.position.row + dr, "wood_node");
   }
+
+  // ── 9.5. Ancient Grove entrance — 4×4, always visible (2026-07-06) ───
+  // Landmark only for now - the system behind it (a Deep Tree Grove
+  // depth progression) is explicitly designed-but-deferred, not part
+  // of this placement. Set as a static structure (not a dynamic
+  // "reveal once X" override) since there's no unlock condition yet -
+  // it's just always there, embedded in the wall beside the corridor
+  // to the Garden Room.
+  for (let dr = 0; dr < 4; dr++)
+    for (let dc = 0; dc < 4; dc++)
+      set(GROVE_ENTRANCE_POSITION.col + dc, GROVE_ENTRANCE_POSITION.row + dr, "grove_entrance");
 
   // ── 10. Kiln 3×3 (grown from 2×2, 2026-07-04) ──────────────────────────
   for (let dr = 0; dr < 3; dr++)

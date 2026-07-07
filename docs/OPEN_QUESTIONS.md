@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-526/526 tests passing. TSC clean. Build clean.
+528/528 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -169,10 +169,16 @@
 
 20. **Bigger Narag-Bund/logistics redesign - piece (a) done, (b)/(c)/(d) still pending** (2026-07-06) — direct vision: "Narag-Bund is the conveyor belt of Factorio... upgrading infinitely will improve his capacity... everything should end in the stockpile where narug redistributes... if coal is the limiting factor, we need some interface to choose the coal allocation in %." Four real subsystems: (a) ~~replacing the single Turbine haul-speed flag with a genuine Narag-Bund upgrade track~~ **done - see changelog, `companion.ts`'s 5-tier ladder**; (b) a reverse haul direction (stockpile → stations, for whatever they're missing - coal-to-drills already exists, would need extending to more consumer types); (c) a coal/fuel allocation-priority UI for when total demand exceeds supply; (d) eventually, per the stated end-goal, enough automation that manual crafting inputs are always available at any station, and further out even manual crafting itself becomes optional. Ordering and scope of (b)/(c)/(d) still need deciding.
 
+21. **Future Dungeoneering system - gryffon sprite reserved** (2026-07-06) — mentioned in passing, not designed: "The Bird gryffon sprite save it for later when we implement dungeoneering." No location, no mechanic, nothing else known - purely a placeholder note so the sprite is safely tracked rather than mistaken for near-term work.
+
 
 ---
 
 ## Recently Resolved (changelog)
+
+- **Trade Post was blocking the room's only entrance** (2026-07-06) — reported directly with a screenshot: "the market is blocking the way." Confirmed exactly: the south corridor (3 wide, cols 39-41) lands right at the room's north edge, and the trade post's old position started its solid 5×5 footprint one single row past that - zero approach buffer, walk straight into it. Repositioned to leave 3 rows of clear approach space and shift the unavoidable overlap to one side, opening a wide obvious bypass route instead of a narrow one on each side (a 5-wide structure can't fully avoid a 3-wide corridor centered in an 11-wide room no matter where it sits, but it can avoid ambushing the player at the doorway).
+- **Harvest companion sprite confirmed: a mole rat, name Siginhakhd** — swapped in over the oxen placeholder. UI now uses his name in the post-befriend panel; pre-befriend text stays deliberately unnamed ("something waits near the roots") since the player hasn't met him yet - revealing his name only after befriending is the natural story beat.
+- **Ancient Grove entrance placed** (2026-07-06) — direct instruction: "implement the grove entrance in the horizontal corridor to the garden, inside the wall, centered horizontally, 4x4 size." Placed at cols 23-26, rows 38-41 - centered on the corridor stretch that isn't already the Garden Room's own floor (cols 19-31 of the full cols 6-31 corridor), embedded in the wall immediately north of the corridor's own row span. Landmark only for now (a status panel, no functionality) - the system behind it (a "Deep Tree Grove" depth progression) is explicitly designed-but-deferred per garden.ts's own doc comment, not part of this placement.
 
 - **All 4 sealed rooms had a void interior instead of a real floor** (2026-07-06) — reported directly with a screenshot: "The stockpile room looks really weird." Root cause: sealed rooms (Stockpile, Trade Hall, Deep Foundry, Archive) only ever had a thin rubble "face" filled at their entrance in the static grid, not their actual interior - which defaulted to plain rock_wall, same as any unexplored rock. The void-conversion pass (added 2026-07-04 to fix "endless wall texture beyond the visible border") correctly saw those never-carved interior cells as having no carved neighbor and converted them to void - and since the "reveal the room once cleared" overrides only ever checked for rubble/rock_wall (never void), the interior stayed a black hole forever, even after clearing the room. Fixed by filling each sealed room's FULL bounds with rubble, moved to run before the corridor fills specifically - each room's approach corridor legitimately cuts through part of its own bounds and needs to stay open regardless of the room's seal state, so filling rubble first and letting corridors carve their own strip through afterward gets this right without hand-computing exclusion zones per room.
 
@@ -240,7 +246,7 @@
 **5 more sprites received 2026-07-03, confirmed build order (not yet built):**
 1. ~~Gemwood tree~~ (done, see above)
 2. ~~Sawmill~~ (done, see below)
-3. Kiln tier system + Hearth Infuser (hearthsap + coal → infused coal) + infused coal's drill-performance effect
+3. Kiln tier system + Hearth Infuser (hearthsap + coal → infused coal) + infused coal's drill-performance effect. Confirmed directly (2026-07-06, asked plainly: "are those already implemented?") - checked the code, nothing exists yet beyond the base Kiln (charcoal burning + hearthsap rendering). Sprites for both the superheated Kiln tier and the Infuser addon are now in hand, still unprocessed/unwired - same as the other reserved-sprite gaps, no CellKind or mechanic to attach them to until this gets designed.
 4. Brewery + Brewing skill (recipes, ale buffs)
 5. Ancient Grove entrance + Deep Tree Grove depth system (see gap #12 above)
 - **Sawmill** (2026-07-03) — new Garden Room addon (2×2, immediately east of the Kiln along the same north-wall row - see hubMap.ts SAWMILL_POSITION for the free-space verification). Woodcraft-governed wood → wood_planks conversion, build-gated like the Smelter (Insight + materials) rather than free like the Kiln. New `sawmill.ts` engine module, `sawmillPanel.ts` UI, new `building` MaterialCategory (wood_planks is its first member - has no consumers yet, see gap #17). Sprite processed with the same border-flood-fill approach as the gemwood tree. Tests: 12 new (`sawmill.test.ts`).

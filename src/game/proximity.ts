@@ -9,6 +9,7 @@ import {
   SMELTER_POSITION,
   SAWMILL_POSITION,
   TURBINE_POSITION,
+  GROVE_ENTRANCE_POSITION,
   GEMCUTTING_POSITION,
   CONSOLE_POSITION,
   COMPANION_POSITION,
@@ -185,6 +186,18 @@ export function isNearTurbine(): boolean {
     position.col <= TURBINE_POSITION.col + 3 &&
     position.row >= TURBINE_POSITION.row - 1 &&
     position.row <= TURBINE_POSITION.row + 3
+  );
+}
+
+export function isNearGroveEntrance(): boolean {
+  const { position } = getState().vessel;
+  // Ancient Grove entrance is 4x4 - landmark only for now, no unlock
+  // condition, always reachable/inspectable.
+  return (
+    position.col >= GROVE_ENTRANCE_POSITION.col - 1 &&
+    position.col <= GROVE_ENTRANCE_POSITION.col + 4 &&
+    position.row >= GROVE_ENTRANCE_POSITION.row - 1 &&
+    position.row <= GROVE_ENTRANCE_POSITION.row + 4
   );
 }
 

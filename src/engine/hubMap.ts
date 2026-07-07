@@ -265,14 +265,26 @@ export const STOCKPILE_CHEST_POSITION: Position = { col: 56, row: 21 };
  * (sealed_south: cols 35-45, rows 38-45). Added 2026-07-05 - the
  * trade_post sprite and its full palette/tileset registration
  * (SOLID_CELL_KINDS, colors, glyph) already existed, but NOTHING ever
- * actually placed it on the map. The room was fully functional (the
- * merchant panel works from anywhere in the room, gated on
- * tradeHallStage alone) but visually empty once cleared - reported
- * directly: "I already unlocked it [and] its empty." 5×5, centered in
- * the 11×8 room (1 col margin left/right isn't possible with odd
- * leftover space - 3 left/3 right; 1 row margin top, 2 bottom).
+ * actually placed it on the map.
+ *
+ * Repositioned 2026-07-06 - reported directly with a screenshot: "the
+ * market is blocking the way." The original centered placement (col
+ * 38, row 39) put the solid 5×5 structure DIRECTLY in the path of the
+ * room's only entrance: the south corridor is 3 wide (cols 39-41) and
+ * lands right at the room's north edge (row 38), so the post's own
+ * north face started at row 39 - one single step past the corridor's
+ * mouth, with zero room to even see it coming, let alone step around
+ * it. A 5-wide structure can't fully avoid a 3-wide corridor centered
+ * in an 11-wide room no matter where it sits, but it CAN be shifted to
+ * (a) leave a real approach buffer before the player hits it, and (b)
+ * put the unavoidable overlap on one side only, leaving a wide, obvious
+ * bypass route rather than a narrow one on each side. col 40 (was 38)
+ * overlaps only cols 40-41 of the corridor, leaving cols 35-39 (5
+ * tiles) clear on the west side; row 41 (was 39) leaves rows 38-40 (3
+ * rows) of clear approach space before the structure, and sits flush
+ * with the room's own south wall at row 45.
  */
-export const TRADE_POST_POSITION: Position = { col: 38, row: 39 };
+export const TRADE_POST_POSITION: Position = { col: 40, row: 41 };
 
 // ── Ore vein placements ───────────────────────────────────────────────────────
 
@@ -373,3 +385,22 @@ export const PLANTER_POSITIONS: Position[] = [
  * own 4×4 grow-out - this one hasn't been asked to grow yet.
  */
 export const HARVEST_COMPANION_POSITION: Position = { col: 10, row: 35 };
+
+/**
+ * Ancient Grove entrance (2026-07-06, direct instruction: "implement
+ * the grove entrance in the horizontal corridor to the garden, inside
+ * the wall, centered horizontally, 4x4 size"). The horizontal
+ * corridor to the Garden Room is fill(6,42,31,44) - the portion that
+ * isn't already the Garden Room's own floor (cols 6-18) is cols 19-31
+ * (13 wide), so "centered horizontally" on that stretch puts a 4-wide
+ * structure at cols 23-26. "Inside the wall" places it just north of
+ * the corridor's own row span (rows 42-44), in the otherwise-uncarved
+ * rock immediately bordering it: rows 38-41.
+ *
+ * This is the ENTRANCE STRUCTURE only - a landmark, not yet
+ * functional. The system behind it (a "Deep Tree Grove" depth
+ * progression mirroring the Mine Shaft, per garden.ts's own doc
+ * comment) is explicitly designed-but-deferred, not part of this
+ * placement.
+ */
+export const GROVE_ENTRANCE_POSITION: Position = { col: 23, row: 38 };

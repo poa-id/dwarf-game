@@ -34,6 +34,7 @@ export type CellKind =
   | "rubble"
   | "companion"
   | "harvest_companion"
+  | "grove_entrance"
   | "mountain_console"
   | "stockpile_chest"
   | "drill_copper"
@@ -90,6 +91,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "ore_coal",
   "wood_node",
   "wood_harvester",
+  "grove_entrance",
   "tunnel_edge",
   "torch_broken",
   "torch_lit",
@@ -138,6 +140,7 @@ const STAGE_0: StagePalette = {
     ore_exhausted: "#9a9a9a",
     wood_node: "#9a9a9a",
     wood_harvester: "#9a9a9a",
+    grove_entrance: "#9a9a9a",
     wood_exhausted: "#9a9a9a",
     dwarf: "#9a9a9a",
     hearth: "#9a9a9a", // unlit - indistinguishable from stone. this is the whole point.
@@ -221,6 +224,7 @@ const STAGE_2: StagePalette = {
     ore_exhausted: "#3a2e22", // same as rock_floor - it's just spent rock now, nothing left to mine
     wood_node: "#8a6a3a",
     wood_harvester: "#7a6248",
+    grove_entrance: "#3a5a48", // mossy teal-green, distinct from every warm dwarf-built structure - deliberately alien/ancient
     wood_exhausted: "#3a2e22",
     dwarf: "#f0c896",
     hearth: "#ff8c3a",
@@ -278,6 +282,7 @@ const STAGE_3: StagePalette = {
     ore_exhausted: "#343a42",
     wood_node: "#9a7a4a",
     wood_harvester: "#8a7050",
+    grove_entrance: "#4a6a58",
     wood_exhausted: "#343a42",
     dwarf: "#f5dcb0",
     hearth: "#ffaa44",
@@ -333,6 +338,7 @@ export const GLYPHS: Record<CellKind, string> = {
   ore_exhausted: "▫", // hollow square - the shape memory of ore that's no longer there
   wood_node: "♣", // root tangle - the closest plain glyph to "something organic growing"
   wood_harvester: "H",
+  grove_entrance: "G",
   wood_exhausted: "▫", // same hollow-square language as exhausted ore - consistent "spent resource" signal
   dwarf: "@",
   hearth: "♥",

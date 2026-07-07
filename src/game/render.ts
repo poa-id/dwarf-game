@@ -21,6 +21,7 @@ import {
   isNearKiln,
   isNearSawmill,
   isNearTurbine,
+  isNearGroveEntrance,
   isNearSmelter,
   isNearGemcutting,
   isNearConsole,
@@ -370,6 +371,11 @@ export function updateActionHint(): void {
     return;
   }
 
+  if (isNearGroveEntrance()) {
+    refs.actionHint.textContent = "The Ancient Grove — sealed";
+    return;
+  }
+
   if (isNearGemcutting() && world.gemcuttingBuilt) {
     refs.actionHint.textContent = "Gemcutting station — press Enter to cut gems";
     return;
@@ -512,7 +518,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "companion" | "harvestCompanion" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "turbine" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
+let lastActivePanelKind: "console" | "companion" | "harvestCompanion" | "grove" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "turbine" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -793,6 +799,17 @@ function updateContextualPanel(): void {
       setState(performTurbineBuild(getState()));
       render();
     });
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
+  if (isNearGroveEntrance()) {
+    if (lastActivePanelKind !== "grove") resetPanelHighlight();
+    lastActivePanelKind = "grove";
+    refs.contextualPanel.innerHTML = `
+      <h2>The Ancient Grove</h2>
+      <p class="reserve-status">Roots and cold light, sealed behind stone older than the hold itself. Whatever waits beyond isn't ready to be reached yet.</p>
+    `;
     reapplyPanelHighlight(refs.contextualPanel);
     return;
   }

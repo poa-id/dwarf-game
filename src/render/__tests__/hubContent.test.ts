@@ -82,3 +82,25 @@ describe("Sealed rooms have a real rubble interior, not void (2026-07-06 regress
     expect(grid[25 * HUB_WIDTH + 50].kind).toBe("rock_floor");
   });
 });
+
+describe("Ancient Grove entrance placement (2026-07-06)", () => {
+  it("is placed as a static 4x4 structure at its documented position", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH, GROVE_ENTRANCE_POSITION } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    for (let dr = 0; dr < 4; dr++) {
+      for (let dc = 0; dc < 4; dc++) {
+        const idx = (GROVE_ENTRANCE_POSITION.row + dr) * HUB_WIDTH + (GROVE_ENTRANCE_POSITION.col + dc);
+        expect(grid[idx].kind).toBe("grove_entrance");
+      }
+    }
+  });
+
+  it("does not block the corridor to the Garden Room", async () => {
+    const { getHubGrid } = await import("../hubContent");
+    const { HUB_WIDTH } = await import("../../engine/hubMap");
+    const grid = getHubGrid();
+    // The corridor itself is rows 42-44; grove sits at rows 38-41, well clear of it.
+    expect(grid[43 * HUB_WIDTH + 24].kind).toBe("rock_floor");
+  });
+});

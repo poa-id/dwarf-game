@@ -29,6 +29,7 @@ import oxenUrl from "./tileset-assets/sliced/oxen.png";
 import stockpileChestUrl from "./tileset-assets/sliced/stockpile_chest.png";
 import woodNodeUrl from "./tileset-assets/sliced/wood_node.png";
 import woodHarvesterUrl from "./tileset-assets/sliced/wood_harvester.png";
+import groveEntranceUrl from "./tileset-assets/sliced/grove_entrance.png";
 import planterBrokenUrl from "./tileset-assets/sliced/planter_broken.png";
 import planterEmptyUrl from "./tileset-assets/sliced/planter_empty.png";
 import planterSproutUrl from "./tileset-assets/sliced/planter_sprout.png";
@@ -118,6 +119,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   mountain_console: { assetUrl: mountainConsoleUrl, tileSpan: { cols: 3, rows: 3 } },
   wood_node: { assetUrl: woodNodeUrl, tileSpan: { cols: 3, rows: 3 } },
   wood_harvester: { assetUrl: woodHarvesterUrl, tileSpan: { cols: 3, rows: 3 } },
+  grove_entrance: { assetUrl: groveEntranceUrl, tileSpan: { cols: 4, rows: 4 } },
   planter_broken: { assetUrl: planterBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_empty: { assetUrl: planterEmptyUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_sprout: { assetUrl: planterSproutUrl, tileSpan: { cols: 3, rows: 3 } },

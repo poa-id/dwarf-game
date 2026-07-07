@@ -9,10 +9,11 @@ import type { GameState } from "../engine/types";
 
 /**
  * The harvest companion's panel - befriend gate (before) or haul
- * status (after). Sprite is a placeholder (oxen.png) and so is
- * everything about his identity - per direct note, "he might not end
- * up being an Oxen" - so this panel deliberately avoids naming him
- * anything beyond "the harvest companion."
+ * status (after). Confirmed 2026-07-06: a mole rat, name Siginhakhd,
+ * sprite now in place. Pre-befriend text stays deliberately
+ * name-free ("something waits near the roots") - the player hasn't
+ * met him yet, so revealing his name only after befriending is the
+ * natural story beat, not an oversight.
  */
 export function renderHarvestCompanionPanel(state: GameState, container: HTMLElement, onBefriend: () => void): void {
   const world = state.world;
@@ -40,7 +41,7 @@ export function renderHarvestCompanionPanel(state: GameState, container: HTMLEle
     `;
   } else {
     container.innerHTML = `
-      <h2>The harvest companion</h2>
+      <h2>Siginhakhd</h2>
       <p class="reserve-status">Hauls wood from Harvesters to the Sawmill.</p>
       <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">Haul every 10s, 3 wood/trip.</p>
     `;
