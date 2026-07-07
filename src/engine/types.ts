@@ -194,6 +194,70 @@ export function deductMaterials(bag: ResourceBag, cost: ResourceBag): ResourceBa
   return updated;
 }
 
+/**
+ * Display order for the Bag UI (2026-07-07) - reported directly:
+ * "Separate items in bag or order them in some way, its impossible to
+ * look for something or know how much you have of something." Every
+ * material already carries a category and tier, previously unused for
+ * display purposes - the bag was a flat list in whatever order
+ * Object.entries happened to return (essentially "whichever material
+ * was first picked up ever," not a meaningful order at all). Rough
+ * "raw -> refined -> rare -> practical -> misc" progression.
+ */
+export const INVENTORY_CATEGORY_ORDER: MaterialCategory[] = [
+  "ore", "ingot", "true_metal", "gem", "fuel", "wood", "building", "currency",
+];
+
+export const INVENTORY_CATEGORY_LABELS: Record<MaterialCategory, string> = {
+  ore: "Ore",
+  ingot: "Ingots",
+  true_metal: "True Metals",
+  gem: "Gems",
+  fuel: "Fuel",
+  wood: "Wood",
+  building: "Building Materials",
+  currency: "Currency",
+};
+
+export interface InventoryCategorySection {
+  category: MaterialCategory;
+  label: string;
+  items: Array<{ materialId: string; amount: number; name: string }>;
+}
+
+/**
+ * Groups a held inventory (amount > 0 only) by category in
+ * INVENTORY_CATEGORY_ORDER, sorted by tier (then name) within each
+ * group. Pure and UI-agnostic - the Bag panel turns this into HTML.
+ */
+export function groupInventoryByCategory(bag: ResourceBag): InventoryCategorySection[] {
+  const held = Object.entries(bag).filter(([, amount]) => (amount ?? 0) > 0);
+  const byCategory = new Map<MaterialCategory, Array<[string, number]>>();
+  for (const [materialId, amount] of held) {
+    const category = MATERIALS[materialId]?.category ?? "building";
+    if (!byCategory.has(category)) byCategory.set(category, []);
+    byCategory.get(category)!.push([materialId, amount as number]);
+  }
+
+  return INVENTORY_CATEGORY_ORDER
+    .filter((cat) => byCategory.has(cat))
+    .map((cat) => {
+      const items = byCategory.get(cat)!
+        .sort((a, b) => {
+          const tierA = MATERIALS[a[0]]?.tier ?? 0;
+          const tierB = MATERIALS[b[0]]?.tier ?? 0;
+          if (tierA !== tierB) return tierA - tierB;
+          return (MATERIALS[a[0]]?.name ?? a[0]).localeCompare(MATERIALS[b[0]]?.name ?? b[0]);
+        })
+        .map(([materialId, amount]) => ({
+          materialId,
+          amount,
+          name: MATERIALS[materialId]?.name ?? materialId,
+        }));
+      return { category: cat, label: INVENTORY_CATEGORY_LABELS[cat], items };
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Hearth / Flame — the idle skill that gates color
 // ---------------------------------------------------------------------------

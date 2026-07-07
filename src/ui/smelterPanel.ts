@@ -90,7 +90,7 @@ export function renderSmelterPanel(
         <div class="recipe-status">${copperStatus}</div>
         <div class="recipe-success-rate">${copperDropChance}% True Copper</div>
       </div>
-      ${canPurifyCopper ? '<div class="batch-bar"><button class="batch-btn" data-batch-purify="copper_ingot" data-times="5">×5</button><button class="batch-btn" data-batch-purify="copper_ingot" data-times="10">×10</button><button class="batch-btn" data-batch-purify="copper_ingot" data-times="50">×50</button></div>' : ""}
+      ${canPurifyCopper ? '<div class="batch-bar"><button class="batch-btn" data-action="purify" data-ingot="copper_ingot" data-times="5">×5</button><button class="batch-btn" data-action="purify" data-ingot="copper_ingot" data-times="10">×10</button><button class="batch-btn" data-action="purify" data-ingot="copper_ingot" data-times="50">×50</button></div>' : ""}
     `;
 
     // Copper tier upgrade
@@ -134,7 +134,7 @@ export function renderSmelterPanel(
           <div class="recipe-status">${ironStatus}</div>
           <div class="recipe-success-rate">${ironDropChance}% True Iron</div>
         </div>
-        ${canPurifyIron ? '<div class="batch-bar"><button class="batch-btn" data-batch-purify="iron_ingot" data-times="5">×5</button><button class="batch-btn" data-batch-purify="iron_ingot" data-times="10">×10</button><button class="batch-btn" data-batch-purify="iron_ingot" data-times="50">×50</button></div>' : ""}
+        ${canPurifyIron ? '<div class="batch-bar"><button class="batch-btn" data-action="purify" data-ingot="iron_ingot" data-times="5">×5</button><button class="batch-btn" data-action="purify" data-ingot="iron_ingot" data-times="10">×10</button><button class="batch-btn" data-action="purify" data-ingot="iron_ingot" data-times="50">×50</button></div>' : ""}
       `
       : "";
 
@@ -186,6 +186,20 @@ export function renderSmelterPanel(
       else if (action === "unlock-iron-purifying") onUnlockIronPurifying();
       else if (action === "upgrade-iron-smelter-tier") onUpgradeIronTier();
       else if (action === "spend-true-metal-perk") onSpendTrueMetalOnPerk();
+    });
+  });
+
+  // Batch buttons (×5/×10/×50) - previously used a different attribute
+  // (data-batch-purify) than anything the click wiring above actually
+  // queried for, so they rendered but never fired at all. Fixed to use
+  // the same data-action="purify" convention every other batch-enabled
+  // panel (Kiln, Smithing, Sawmill, Gemcutting, Hearth) already uses,
+  // plus the matching .batch-btn wiring block those all have.
+  container.querySelectorAll<HTMLButtonElement>(".batch-btn[data-action]").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const times = parseInt(btn.dataset.times ?? "1");
+      if (btn.dataset.action === "purify") onPurify((btn.dataset.ingot as MaterialId) ?? "copper_ingot", times);
     });
   });
 }

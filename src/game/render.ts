@@ -3,7 +3,7 @@ import { TilesetRenderer } from "../render/TilesetRenderer";
 import { hubCellAt } from "../render/hubContent";
 import { isSolidCellKind } from "../render/palette";
 import { cellVisibility, DEFAULT_LIGHT_RADIUS, zoneContaining } from "../engine/visibility";
-import { cellKey, MATERIALS, getMaterialAmount } from "../engine/types";
+import { cellKey, getMaterialAmount, groupInventoryByCategory } from "../engine/types";
 import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
 import { bestAvailablePickaxe, ROCK_NODES } from "../engine/mining";
 import { PICKAXE_ICONS, AXE_ICONS } from "../render/toolIconManifest";
@@ -293,13 +293,17 @@ function updateStatsPanel(): void {
     return;
   }
 
-  refs.statEls.inventoryList.innerHTML = heldEntries
-    .map(([materialId, amount]) => {
-      const def = MATERIALS[materialId];
-      const label = def?.name ?? materialId;
-      return `<p>${label}: ${amount}</p>`;
-    })
-    .join("");
+  const sections = groupInventoryByCategory(inventory).map((section) => {
+    const rows = section.items
+      .map(
+        (item) =>
+          `<p class="inventory-row"><span class="inventory-item-name">${item.name}</span><span class="inventory-item-amount">${item.amount}</span></p>`
+      )
+      .join("");
+    return `<div class="inventory-category"><h3>${section.label}</h3>${rows}</div>`;
+  });
+
+  refs.statEls.inventoryList.innerHTML = sections.join("");
 }
 
 function updateZoneHint(): void {

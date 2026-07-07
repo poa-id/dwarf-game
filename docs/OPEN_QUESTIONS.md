@@ -7,7 +7,7 @@
 
 ## Current State Summary
 
-530/530 tests passing. TSC clean. Build clean.
+540/540 tests passing. TSC clean. Build clean.
 
 **Repo:** https://github.com/poa-id/dwarf-game.git  
 **Local:** possorio / poa-id  
@@ -179,6 +179,9 @@
 ---
 
 ## Recently Resolved (changelog)
+
+- **Smelter batch buttons were never wired to anything** (2026-07-07) — reported directly: "the batch options are not working in the smelter." The ×5/×10/×50 buttons rendered using a `data-batch-purify` attribute that nothing in the click-wiring code ever queried for - the wiring only ever attached listeners to `.recipe-row[data-action]` elements, and the batch buttons are separate sibling `<button>` elements, not recipe rows. Fixed to use the same `data-action="purify"` + dedicated `.batch-btn[data-action]` wiring convention every other batch-enabled panel (Kiln, Smithing, Sawmill, Gemcutting, Hearth) already uses. 3 new tests confirm both button tiers fire with the right count and that they don't double-fire against the row's own listener.
+- **Bag/inventory redesigned - grouped and sorted, not a flat unsorted list** (2026-07-07) — reported directly: "Separate items in bag or order them in some way, its impossible to look for something or know how much you have of something." Every material already carried a `category` and `tier` in its definition, unused for display purposes until now. Extracted a pure, tested `groupInventoryByCategory` function (in `types.ts`, not `render.ts` - keeps it testable in isolation per the project's own "engine layer = pure functions" rule): groups held items by category in a raw -> refined -> rare -> practical -> misc progression (Ore, Ingots, True Metals, Gems, Fuel, Wood, Building Materials, Currency), sorted by tier within each group. New CSS for category headers and aligned name/amount rows.
 
 - **Void-conversion radius widened 1 -> 2 cells** (2026-07-07) — reported directly with screenshots showing several black void patches right next to fully-explored areas (between the Garden Room and the new Grove entrance, near the Mine Shaft). Root cause: the void-conversion pass only ever checked immediate 8 neighbors, so any gap of solid rock MORE than 1 cell thick between two carved features failed that check on every one of its own cells - even sitting directly between two explored areas, nowhere near genuinely distant unexplored rock. Widened the check to a 2-cell radius, which keeps normal separating walls between adjacent features solid while still voiding out genuinely distant, unclaimed rock (verified with a regression test that a far corner of the map is still void). This is a general map-generation fix, not specific to any one room - should resolve similar patches anywhere else they were quietly occurring too.
 - **Grove entrance shifted one column left** (2026-07-07) — direct instruction: "for even spacing."

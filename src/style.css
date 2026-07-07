@@ -292,6 +292,44 @@ canvas {
   font-style: italic;
 }
 
+.inventory-category {
+  margin-bottom: 10px;
+}
+
+.inventory-category h3 {
+  margin: 0 0 4px 0;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #776650;
+  font-weight: 400;
+  border-bottom: 1px solid #262218;
+  padding-bottom: 3px;
+}
+
+.inventory-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0;
+  padding: 2px 0;
+  font-size: 0.72rem;
+  color: #bbb;
+}
+
+.inventory-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.inventory-item-amount {
+  color: #c8a878;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
 .reset-btn {
   /* Out of the document flow entirely (2026-07-05, explicit direction:
      "very hidden in a corner or out of the way, we can't have vertical
