@@ -359,7 +359,7 @@ export function updateActionHint(): void {
   }
 
   if (isNearSmelter() && world.smelterBuilt) {
-    refs.actionHint.textContent = `Smelter — tier ${world.smelterTier} · press Enter to purify`;
+    refs.actionHint.textContent = "The Smelter — part of the Forge, manage it from there";
     return;
   }
 
@@ -369,9 +369,7 @@ export function updateActionHint(): void {
   }
 
   if (isNearTurbine()) {
-    refs.actionHint.textContent = world.turbineBuilt
-      ? "The Turbine — running"
-      : "The Turbine — select 'Build the Turbine' from the menu";
+    refs.actionHint.textContent = "The Turbine — part of the Forge, manage it from there";
     return;
   }
 
@@ -522,7 +520,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "companion" | "harvestCompanion" | "grove" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "turbine" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
+let lastActivePanelKind: "console" | "companion" | "harvestCompanion" | "grove" | "forge" | "hearth" | "kiln" | "sawmill" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -622,6 +620,58 @@ function updateContextualPanel(): void {
       (id) => { setState(performBuildEngine(getState(), id)); render(); },
       (id) => { setState(performUpgradeEngine(getState(), id)); render(); }
     );
+    // Smelter appended in the same forge context (2026-07-07) - direct
+    // instruction: "if a structure is an addon of another main
+    // workshop, lets unify the menus into the main workshop... no need
+    // to walk to the addon at all, ever." The Smelter's own physical
+    // structure still stands on the map as a landmark, but managing it
+    // (build/purify/upgrade) now happens from the Forge - see the
+    // removed standalone isNearSmelter() panel block this replaced.
+    renderSmelterPanel(
+      state,
+      refs.contextualPanel,
+      () => {
+        const outcome = performSmelterBuild(getState());
+        setState(outcome.newState);
+        render();
+      },
+      (ingotMaterialId, times = 1) => {
+        let s = getState();
+        let leveledUp = false;
+        for (let i = 0; i < times; i++) {
+          if (!canAffordPurify(s.vessel.inventory, ingotMaterialId)) break;
+          const outcome = performPurify(s, ingotMaterialId);
+          s = outcome.newState;
+          if (outcome.leveledUp) leveledUp = true;
+        }
+        setState(s);
+        if (leveledUp) narrate("level_up");
+        render();
+      },
+      () => {
+        setState(performSmelterTierUpgrade(getState()));
+        render();
+      },
+      () => {
+        setState(performUnlockIronPurifying(getState()));
+        render();
+      },
+      () => {
+        setState(performIronSmelterTierUpgrade(getState()));
+        render();
+      },
+      () => {
+        setState(performSpendTrueMetalOnPerk(getState()));
+        render();
+      }
+    );
+    // Turbine appended in the same forge context (2026-07-07) - same
+    // "addon folds into the main workshop" consolidation as the
+    // Smelter above.
+    renderTurbinePanel(state, refs.contextualPanel, () => {
+      setState(performTurbineBuild(getState()));
+      render();
+    });
     reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
@@ -723,51 +773,6 @@ function updateContextualPanel(): void {
     return;
   }
 
-  if (isNearSmelter()) {
-    if (lastActivePanelKind !== "smelter") resetPanelHighlight();
-    lastActivePanelKind = "smelter";
-    renderSmelterPanel(
-      state,
-      refs.contextualPanel,
-      () => {
-        const outcome = performSmelterBuild(getState());
-        setState(outcome.newState);
-        render();
-      },
-      (ingotMaterialId, times = 1) => {
-        let s = getState();
-        let leveledUp = false;
-        for (let i = 0; i < times; i++) {
-          if (!canAffordPurify(s.vessel.inventory, ingotMaterialId)) break;
-          const outcome = performPurify(s, ingotMaterialId);
-          s = outcome.newState;
-          if (outcome.leveledUp) leveledUp = true;
-        }
-        setState(s);
-        if (leveledUp) narrate("level_up");
-        render();
-      },
-      () => {
-        setState(performSmelterTierUpgrade(getState()));
-        render();
-      },
-      () => {
-        setState(performUnlockIronPurifying(getState()));
-        render();
-      },
-      () => {
-        setState(performIronSmelterTierUpgrade(getState()));
-        render();
-      },
-      () => {
-        setState(performSpendTrueMetalOnPerk(getState()));
-        render();
-      }
-    );
-    reapplyPanelHighlight(refs.contextualPanel);
-    return;
-  }
-
   if (isNearSawmill()) {
     if (lastActivePanelKind !== "sawmill") resetPanelHighlight();
     lastActivePanelKind = "sawmill";
@@ -792,17 +797,6 @@ function updateContextualPanel(): void {
         render();
       }
     );
-    reapplyPanelHighlight(refs.contextualPanel);
-    return;
-  }
-
-  if (isNearTurbine()) {
-    if (lastActivePanelKind !== "turbine") resetPanelHighlight();
-    lastActivePanelKind = "turbine";
-    renderTurbinePanel(state, refs.contextualPanel, () => {
-      setState(performTurbineBuild(getState()));
-      render();
-    });
     reapplyPanelHighlight(refs.contextualPanel);
     return;
   }

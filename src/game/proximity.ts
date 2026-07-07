@@ -161,6 +161,14 @@ export function isNearSmelter(): boolean {
   const { position } = getState().vessel;
   // Smelter grown 2x2 -> 3x3 (2026-07-06) - buffer widened from +2 to
   // +3 to match, same fix as isNearKiln/isNearSawmill's earlier grow-outs.
+  //
+  // 2026-07-07: no longer gates the Smelter's own panel - direct
+  // instruction, "if a structure is an addon of another main
+  // workshop, lets unify the menus into the main workshop... no need
+  // to walk to the addon at all, ever." Managing the Smelter now
+  // happens from the Forge (isNearForge()); this only gates the
+  // redirect action-hint shown if the player walks up to the Smelter's
+  // own physical structure anyway.
   const nearCol = position.col >= SMELTER_POSITION.col - 1 && position.col <= SMELTER_POSITION.col + 3;
   const nearRow = position.row >= SMELTER_POSITION.row - 1 && position.row <= SMELTER_POSITION.row + 3;
   return nearCol && nearRow;
@@ -181,6 +189,10 @@ export function isNearSawmill(): boolean {
 export function isNearTurbine(): boolean {
   const { position } = getState().vessel;
   // Turbine is 3x3 - same buffer shape as every other 3x3 structure.
+  //
+  // 2026-07-07: no longer gates the Turbine's own panel - same
+  // consolidation as isNearSmelter above. Managing the Turbine now
+  // happens from the Forge; this only gates the redirect hint.
   return (
     position.col >= TURBINE_POSITION.col - 1 &&
     position.col <= TURBINE_POSITION.col + 3 &&
