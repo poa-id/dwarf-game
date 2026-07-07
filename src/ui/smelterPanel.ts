@@ -170,11 +170,18 @@ export function renderSmelterPanel(
       `
       : "";
 
-  container.innerHTML = `
+  // insertAdjacentHTML, not innerHTML= (2026-07-07 fix - critical
+  // regression): this panel now renders inside the Forge's combined
+  // contextual panel, appended after Smithing/Smelting Engines.
+  // innerHTML= would destroy both of those DOM nodes (and their event
+  // listeners) the instant this ran - exactly the same class of bug
+  // fixed for the Smelting Engine panel earlier this session. Reported
+  // directly: "I cant smelt ingots now."
+  container.insertAdjacentHTML("beforeend", `
     <h2>the smelter</h2>
     ${bodyHtml}
     ${perkSection}
-  `;
+  `);
 
   container.querySelectorAll<HTMLDivElement>(".recipe-row[data-action]").forEach((row) => {
     row.addEventListener("click", () => {

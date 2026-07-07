@@ -37,20 +37,28 @@ export function renderTurbinePanel(state: GameState, container: HTMLElement, onB
         ? costText
         : `Need: ${costText}`;
 
-    container.innerHTML = `
+    // insertAdjacentHTML, not innerHTML= (2026-07-07 fix - critical
+    // regression): this panel now renders inside the Forge's combined
+    // contextual panel, appended after Smithing/Smelting Engines/
+    // Smelter. innerHTML= would destroy every one of those DOM nodes
+    // (and their event listeners) the instant this ran, since it
+    // always executes last in that sequence - exactly the same class
+    // of bug fixed for the Smelting Engine panel earlier this session.
+    // Reported directly: "I cant smelt ingots now."
+    container.insertAdjacentHTML("beforeend", `
       <h2>the turbine</h2>
       <p class="reserve-status">Bellows for the Forge. Superheats the whole smelting operation.</p>
       <div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-action="build-turbine">
         <div class="recipe-name">Build the Turbine</div>
         <div class="recipe-status">${statusText}</div>
       </div>
-    `;
+    `);
   } else {
-    container.innerHTML = `
+    container.insertAdjacentHTML("beforeend", `
       <h2>the turbine</h2>
       <p class="reserve-status">Online — Smelting Engines run ${TURBINE_SMELT_SPEED_MULTIPLIER}x faster.</p>
       <p class="reserve-status">Speeds up the Forge, not Narag-Bund - he has his own hauling upgrades now.</p>
-    `;
+    `);
   }
 
   container.querySelectorAll<HTMLDivElement>(".recipe-row[data-action]").forEach((row) => {
