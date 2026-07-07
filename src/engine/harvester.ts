@@ -70,7 +70,9 @@ export const HARVESTER_DEFINITIONS: HarvesterDefinition[] = [
     id: "root_harvester",
     name: "Root Harvester",
     nodeId: "garden_roots",
-    buildCost: { copper_ingot: 15, wood: 15, iron_ingot: 5 },
+    // 2026-07-06: wood_planks instead of raw wood (was 15) - see
+    // drill.ts's copper_drill comment for the conversion ratio.
+    buildCost: { copper_ingot: 15, wood_planks: 3, iron_ingot: 5 },
     coalPerCycle: 1,
     tiers: [
       { tier: 1, name: "Basic Harvester",     cycleMs: 30_000, woodPerCycle: 1, upgradeCost: {} },

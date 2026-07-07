@@ -36,7 +36,7 @@ function makeStateWithUnlockedCopperEngine(): GameState {
       smeltingEngines: {},
     },
     vessel: {
-      inventory: { copper_ingot: 100, iron_ingot: 100, wood: 100 },
+      inventory: { copper_ingot: 100, iron_ingot: 100, wood: 100, wood_planks: 100 },
     },
   } as unknown as GameState;
 }

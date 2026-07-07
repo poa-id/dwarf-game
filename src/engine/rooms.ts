@@ -70,7 +70,7 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
         stage: "cleared",
         label: "East Wing Cleared",
         description: "The rubble is moved. Stone floor exposed. A single battered chest remains.",
-        cost: { wood: 20, copper_ingot: 5 },
+        cost: { wood_planks: 4, copper_ingot: 5 }, // 2026-07-06: was 20 raw wood - converted, see drill.ts's copper_drill comment for the ratio
         insightCost: 300,
         unlocks: "Manual ore storage. Drills can deposit ore here automatically.",
       },
@@ -78,9 +78,9 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
         stage: "restored",
         label: "The Stockpile",
         description: "Shelves rebuilt. Ore bins sorted by type. The mountain has a working treasury again.",
-        cost: { copper_ingot: 20, iron_ingot: 10, wood: 30 },
+        cost: { copper_ingot: 20, iron_ingot: 10, wood_planks: 6 }, // 2026-07-06: was 30 raw wood
         insightCost: 800,
-        unlocks: "Stockpile capacity ×3. Narag-Bund hauls ore from drills to stockpile automatically.",
+        unlocks: "Stockpile capacity ×3.", // 2026-07-06: removed the stale "Narag-Bund hauls ore" claim - ore has always drained from drills to the stockpile automatically, with zero companion involvement (confirmed directly while investigating the earlier dead-upgrade bug)
       },
       {
         stage: "masterwork",
@@ -113,7 +113,7 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
         stage: "cleared",
         label: "Trade Post (Stub)",
         description: "The merchant's post cleared. A bell mounted at the road entrance. Someone will come.",
-        cost: { wood: 25, copper_ingot: 10, iron_ingot: 3 },
+        cost: { wood_planks: 5, copper_ingot: 10, iron_ingot: 3 }, // 2026-07-06: was 25 raw wood
         insightCost: 500,
         unlocks: "Merchant arrives every 10 minutes. Trade cut gems for rare materials.",
       },
@@ -121,7 +121,7 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
         stage: "restored",
         label: "The Trade Hall",
         description: "Shelves stocked, scales restored. Merchants arrive more often and offer better rates.",
-        cost: { iron_ingot: 15, copper_ingot: 20, wood: 30 },
+        cost: { iron_ingot: 15, copper_ingot: 20, wood_planks: 6 }, // 2026-07-06: was 30 raw wood
         insightCost: 1200,
         unlocks: "Merchant arrives every 5 minutes. Expanded inventory.",
       },
@@ -154,7 +154,7 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
         stage: "cleared",
         label: "Deep Foundry (Stub)",
         description: "The great furnace cleared. Cold still, but the brickwork is sound.",
-        cost: { iron_ingot: 20, wood: 20, deepstone_ingot: 5 },
+        cost: { iron_ingot: 20, wood_planks: 4, deepstone_ingot: 5 }, // 2026-07-06: was 20 raw wood
         insightCost: 1000,
         unlocks: "Deepstone tool recipes unlocked. Better smelt success rate.",
       },

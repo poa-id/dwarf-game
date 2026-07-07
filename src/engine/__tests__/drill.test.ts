@@ -115,8 +115,8 @@ describe("drillTierDefinition / nextDrillTier", () => {
 
 describe("canAffordBuildDrill / canAffordUpgradeDrill", () => {
   it("build cost check requires every material in buildCost", () => {
-    const short: ResourceBag = { copper_ingot: 20, wood: 10 }; // missing iron_ingot
-    const full: ResourceBag = { copper_ingot: 20, wood: 10, iron_ingot: 5 };
+    const short: ResourceBag = { copper_ingot: 20, wood_planks: 2 }; // missing iron_ingot
+    const full: ResourceBag = { copper_ingot: 20, wood_planks: 2, iron_ingot: 5 };
     expect(canAffordBuildDrill(copperDrillDef, short)).toBe(false);
     expect(canAffordBuildDrill(copperDrillDef, full)).toBe(true);
   });

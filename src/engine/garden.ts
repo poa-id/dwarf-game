@@ -184,10 +184,10 @@ export const PLANTER_UNLOCK_COSTS: PlanterUnlockCost[] = [
   { insightCost: 0, materialCost: {}, herbloreRequired: 0 },
 
   // Slot 1 — a second planter. Meaningful but achievable early.
-  { insightCost: 80, materialCost: { copper_ingot: 20, iron_ingot: 5, wood: 30 }, herbloreRequired: 3 },
+  { insightCost: 80, materialCost: { copper_ingot: 20, iron_ingot: 5, wood_planks: 6 }, herbloreRequired: 3 }, // 2026-07-06: was 30 raw wood
 
   // Slot 2 — third planter. Now you have real garden output. Iron tier investment.
-  { insightCost: 250, materialCost: { iron_ingot: 30, wood: 50, hearthsap: 5 }, herbloreRequired: 6 },
+  { insightCost: 250, materialCost: { iron_ingot: 30, wood_planks: 10, hearthsap: 5 }, herbloreRequired: 6 }, // 2026-07-06: was 50 raw wood
 
   // Slot 3 — fourth planter. Deep investment. Requires deepstone access.
   { insightCost: 600, materialCost: { iron_ingot: 60, deepstone_ingot: 10, ironwood: 15 }, herbloreRequired: 10 },

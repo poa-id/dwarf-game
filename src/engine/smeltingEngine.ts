@@ -57,7 +57,7 @@ export const SMELTING_ENGINE_DEFINITIONS: SmeltingEngineDef[] = [
     ingotMaterialId: "copper_ingot",
     orePerCycle: 3,       // matches manual smelt cost
     coalPerCycle: 1,
-    buildCost: { copper_ingot: 30, iron_ingot: 5, wood: 20 },
+    buildCost: { copper_ingot: 30, iron_ingot: 5, wood_planks: 4 }, // 2026-07-06: was 20 raw wood - see drill.ts's copper_drill comment for the ratio
     tiers: [
       { tier: 1, name: "Slow Bellows",      cycleMs: 60_000, ingotsPerCycle: 1, upgradeCost: {} },
       { tier: 2, name: "Steady Bellows",    cycleMs: 40_000, ingotsPerCycle: 1, upgradeCost: { copper_ingot: 20 } },
@@ -72,7 +72,7 @@ export const SMELTING_ENGINE_DEFINITIONS: SmeltingEngineDef[] = [
     ingotMaterialId: "iron_ingot",
     orePerCycle: 3,
     coalPerCycle: 2,
-    buildCost: { iron_ingot: 20, copper_ingot: 10, wood: 15 },
+    buildCost: { iron_ingot: 20, copper_ingot: 10, wood_planks: 3 }, // 2026-07-06: was 15 raw wood
     tiers: [
       { tier: 1, name: "Cold Crucible",     cycleMs: 90_000, ingotsPerCycle: 1, upgradeCost: {} },
       { tier: 2, name: "Warm Crucible",     cycleMs: 60_000, ingotsPerCycle: 1, upgradeCost: { iron_ingot: 15 } },

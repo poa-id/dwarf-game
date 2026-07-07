@@ -124,7 +124,11 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
     // going forward: each drill requires the NEXT tier's metal.
     buildCost: {
       copper_ingot: 20,
-      wood: 10,
+      wood_planks: 2, // 2026-07-06: was 10 raw wood - converted to
+      // shaped lumber now that the Harvester/Sawmill chain exists
+      // (ratio: ~4.7 wood per plank on average, given the Sawmill's
+      // 85% success chance and wood being spent even on a miss -
+      // rounded to a clean 5:1 and ceil'd, so this is 10/5=2)
       iron_ingot: 5,
     },
     coalPerCycle: 1,
@@ -169,7 +173,7 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
     oreMaterialId: "iron_ore",
     buildCost: {
       iron_ingot: 20,
-      wood: 10,
+      wood_planks: 2, // 2026-07-06: converted from 10 raw wood (see copper_drill's comment for the ratio)
       deepstone_ingot: 5,
     },
     coalPerCycle: 2, // iron needs more heat
@@ -198,7 +202,7 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
     buildCost: {
       iron_ingot: 15,
       copper_ingot: 10,
-      wood: 10,
+      wood_planks: 2, // 2026-07-06: converted from 10 raw wood (see copper_drill's comment for the ratio)
     },
     coalPerCycle: 0,
     requiresShaftDepth: 1,
