@@ -19,6 +19,7 @@ export type CellKind =
   | "ore_coal"
   | "ore_exhausted"
   | "wood_node"
+  | "wood_harvester"
   | "wood_exhausted"
   | "dwarf"
   | "hearth"
@@ -32,6 +33,7 @@ export type CellKind =
   | "gemcutting_unbuilt"
   | "rubble"
   | "companion"
+  | "harvest_companion"
   | "mountain_console"
   | "stockpile_chest"
   | "drill_copper"
@@ -87,6 +89,7 @@ export const SOLID_CELL_KINDS: ReadonlySet<CellKind> = new Set([
   "ore_deep",
   "ore_coal",
   "wood_node",
+  "wood_harvester",
   "tunnel_edge",
   "torch_broken",
   "torch_lit",
@@ -134,6 +137,7 @@ const STAGE_0: StagePalette = {
     ore_coal: "#9a9a9a",
     ore_exhausted: "#9a9a9a",
     wood_node: "#9a9a9a",
+    wood_harvester: "#9a9a9a",
     wood_exhausted: "#9a9a9a",
     dwarf: "#9a9a9a",
     hearth: "#9a9a9a", // unlit - indistinguishable from stone. this is the whole point.
@@ -147,6 +151,7 @@ const STAGE_0: StagePalette = {
     gemcutting_unbuilt: "#9a9a9a",
     rubble: "#7a7060",
     companion: "#c87820",
+    harvest_companion: "#8a6a3a",
     mountain_console: "#7ab8d4",
     stockpile_chest: "#b89a4a",
     drill_copper: "#c87830",
@@ -215,6 +220,7 @@ const STAGE_2: StagePalette = {
     ore_coal: "#3a3530", // near-black, coal reads as "almost no light reflects off this" even once materials gain color
     ore_exhausted: "#3a2e22", // same as rock_floor - it's just spent rock now, nothing left to mine
     wood_node: "#8a6a3a",
+    wood_harvester: "#7a6248",
     wood_exhausted: "#3a2e22",
     dwarf: "#f0c896",
     hearth: "#ff8c3a",
@@ -228,6 +234,7 @@ const STAGE_2: StagePalette = {
     gemcutting_unbuilt: "#4a4050",
     rubble: "#5a5040",
     companion: "#d4890a",
+    harvest_companion: "#9a7a4a",
     mountain_console: "#5a9ab8",
     stockpile_chest: "#c8a830",
     drill_copper: "#d4894a",
@@ -270,6 +277,7 @@ const STAGE_3: StagePalette = {
     ore_coal: "#28241f",
     ore_exhausted: "#343a42",
     wood_node: "#9a7a4a",
+    wood_harvester: "#8a7050",
     wood_exhausted: "#343a42",
     dwarf: "#f5dcb0",
     hearth: "#ffaa44",
@@ -283,6 +291,7 @@ const STAGE_3: StagePalette = {
     gemcutting_unbuilt: "#5a5060",
     rubble: "#6a6050",
     companion: "#e09a20",
+    harvest_companion: "#a88a5a",
     mountain_console: "#8accd8",
     stockpile_chest: "#d4b840",
     drill_copper: "#e09a5a",
@@ -323,6 +332,7 @@ export const GLYPHS: Record<CellKind, string> = {
   ore_coal: "c",
   ore_exhausted: "▫", // hollow square - the shape memory of ore that's no longer there
   wood_node: "♣", // root tangle - the closest plain glyph to "something organic growing"
+  wood_harvester: "H",
   wood_exhausted: "▫", // same hollow-square language as exhausted ore - consistent "spent resource" signal
   dwarf: "@",
   hearth: "♥",
@@ -336,6 +346,7 @@ export const GLYPHS: Record<CellKind, string> = {
   gemcutting_unbuilt: ".",
   rubble: "x",
   companion: "N",
+  harvest_companion: "O",
   mountain_console: "Ω",
   stockpile_chest: "S",
   drill_copper: "d",

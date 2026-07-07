@@ -19,6 +19,7 @@ import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
 import { stockpileCapacityPerMaterial, type RoomStage } from "../engine/rooms";
 import { companionHaulTierDef } from "../engine/companion";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
+import { harvesterDefinitionByNodeId, tickHarvester } from "../engine/harvester";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -268,6 +269,69 @@ function gameTick(): void {
       });
       state = getState();
       changed = true;
+    }
+  }
+
+  // Tick all built Wood Harvesters - identical shape to the drill tick
+  // above, per direct instruction ("this follows the same logic of the
+  // ore drills but for wood").
+  const harvesterEntries = Object.entries(state.world.harvesters);
+  if (harvesterEntries.length > 0) {
+    let newHarvesters = { ...state.world.harvesters };
+    let harvesterChanged = false;
+
+    for (const [nodeId, harvesterState] of harvesterEntries) {
+      const def = harvesterDefinitionByNodeId(nodeId);
+      if (!def) continue;
+      const result = tickHarvester(harvesterState, def, now);
+      if (result.ranCycle || result.harvester.lastCycleAt !== harvesterState.lastCycleAt) {
+        newHarvesters = { ...newHarvesters, [nodeId]: result.harvester };
+        harvesterChanged = true;
+      }
+    }
+
+    if (harvesterChanged) {
+      setState({ ...state, world: { ...state.world, harvesters: newHarvesters } });
+      state = getState();
+      changed = true;
+    }
+  }
+
+  // The harvest companion hauls wood from Harvesters into the
+  // Sawmill's own local wood buffer (2026-07-06) - a separate hauler
+  // from Narag-Bund, "related to the garden, harvesting" rather than
+  // fuel/ore. Fixed 10s interval for now (no upgrade tiers yet, unlike
+  // Narag-Bund's own ladder - not asked for on this one).
+  const HARVEST_HAUL_INTERVAL_MS = 10_000;
+  const HARVEST_HAUL_AMOUNT_PER_TRIP = 3;
+  if (state.world.harvestCompanion.befriended) {
+    const elapsedMs = Math.max(0, now - state.world.harvestCompanion.lastHaulAt);
+    const tripsElapsed = Math.floor(elapsedMs / HARVEST_HAUL_INTERVAL_MS);
+    if (tripsElapsed > 0) {
+      let newHarvesters = { ...state.world.harvesters };
+      let newSawmillWoodBuffer = state.world.sawmillWoodBuffer;
+      let hauledAny = false;
+
+      for (const [nodeId, harvesterState] of Object.entries(newHarvesters)) {
+        if (harvesterState.woodBuffer <= 0) continue;
+        const toHaul = Math.min(harvesterState.woodBuffer, tripsElapsed * HARVEST_HAUL_AMOUNT_PER_TRIP);
+        if (toHaul <= 0) continue;
+        newHarvesters = { ...newHarvesters, [nodeId]: { ...harvesterState, woodBuffer: harvesterState.woodBuffer - toHaul } };
+        newSawmillWoodBuffer += toHaul;
+        hauledAny = true;
+      }
+
+      setState({
+        ...state,
+        world: {
+          ...state.world,
+          harvesters: newHarvesters,
+          sawmillWoodBuffer: newSawmillWoodBuffer,
+          harvestCompanion: { ...state.world.harvestCompanion, lastHaulAt: state.world.harvestCompanion.lastHaulAt + tripsElapsed * HARVEST_HAUL_INTERVAL_MS },
+        },
+      });
+      state = getState();
+      if (hauledAny) changed = true;
     }
   }
 

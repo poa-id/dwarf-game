@@ -60,13 +60,27 @@ export interface SawmillAttemptResult {
   success: boolean;
   xpGained: number;
   woodSpent: number;
+  /** How much of woodSpent came from the Sawmill's own buffer (spent first) vs carried wood - caller needs this to update WorldState.sawmillWoodBuffer separately from inventory. */
+  woodSpentFromBuffer: number;
+  woodSpentFromInventory: number;
   planksGained: number;
   newLevel: number;
   leveledUp: boolean;
 }
 
-export function canAffordPlankSaw(inventory: ResourceBag): boolean {
-  return canAffordMaterials(inventory, { wood: PLANK_RECIPE.woodCost });
+/**
+ * 2026-07-06: the Sawmill now has its own local wood buffer, filled by
+ * the harvest companion hauling from Wood Harvesters (see
+ * WorldState.sawmillWoodBuffer) - checking/spending wood now considers
+ * BOTH that buffer and carried wood together, preferring the buffer
+ * first since it's the "already delivered, no carrying needed" pool.
+ * Sawing itself STAYS a manual action for now ("player triggers
+ * sawing until an upgrade is made like in the smelting engines" -
+ * that automation upgrade doesn't exist yet).
+ */
+export function canAffordPlankSaw(inventory: ResourceBag, sawmillWoodBuffer: number = 0): boolean {
+  const totalWood = getMaterialAmount(inventory, "wood") + sawmillWoodBuffer;
+  return totalWood >= PLANK_RECIPE.woodCost;
 }
 
 /**
@@ -82,7 +96,8 @@ export function attemptSawPlanks(
   woodcraftSkill: SkillState,
   inventory: ResourceBag,
   roll: number,
-  hearthYieldBonus: number = 0
+  hearthYieldBonus: number = 0,
+  sawmillWoodBuffer: number = 0
 ): SawmillAttemptResult {
   if (woodcraftSkill.level < PLANK_RECIPE.requiredLevel) {
     throw new Error(
@@ -90,13 +105,18 @@ export function attemptSawPlanks(
     );
   }
 
-  const woodHeld = getMaterialAmount(inventory, "wood");
+  const woodHeld = getMaterialAmount(inventory, "wood") + sawmillWoodBuffer;
   if (woodHeld < PLANK_RECIPE.woodCost) {
     throw new Error(`Not enough wood: have ${woodHeld}, need ${PLANK_RECIPE.woodCost}`);
   }
 
   const success = roll < PLANK_RECIPE.baseSuccessChance;
   const oldLevel = woodcraftSkill.level;
+
+  // Spend from the Sawmill's own buffer first (already delivered, no
+  // carrying needed), falling back to carried wood for the remainder.
+  const fromBuffer = Math.min(sawmillWoodBuffer, PLANK_RECIPE.woodCost);
+  const fromInventory = PLANK_RECIPE.woodCost - fromBuffer;
 
   // Wood is consumed on attempt regardless of success - mirrors
   // attemptCharcoalBurn/attemptSmith's "materials burn even on a miss" precedent.
@@ -105,6 +125,8 @@ export function attemptSawPlanks(
       success: false,
       xpGained: 0,
       woodSpent: PLANK_RECIPE.woodCost,
+      woodSpentFromBuffer: fromBuffer,
+      woodSpentFromInventory: fromInventory,
       planksGained: 0,
       newLevel: oldLevel,
       leveledUp: false,
@@ -118,17 +140,25 @@ export function attemptSawPlanks(
     success: true,
     xpGained: PLANK_RECIPE.baseXp,
     woodSpent: PLANK_RECIPE.woodCost,
+    woodSpentFromBuffer: fromBuffer,
+    woodSpentFromInventory: fromInventory,
     planksGained: applyHearthYieldBonus(PLANK_RECIPE.plankYield, hearthYieldBonus),
     newLevel,
     leveledUp: newLevel > oldLevel,
   };
 }
 
+/**
+ * Deducts only the INVENTORY portion of the wood spent - the buffer
+ * portion (result.woodSpentFromBuffer) is a WorldState field, not
+ * inventory, so the caller updates WorldState.sawmillWoodBuffer
+ * separately (see performSawPlanks in sawmillPanel.ts).
+ */
 export function applySawPlanksResult(
   inventory: ResourceBag,
   result: SawmillAttemptResult
 ): ResourceBag {
-  let updated = deductMaterials(inventory, { wood: result.woodSpent });
+  let updated = deductMaterials(inventory, { wood: result.woodSpentFromInventory });
   if (result.success && result.planksGained > 0) {
     updated = addMaterial(updated, "wood_planks", result.planksGained);
   }

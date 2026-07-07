@@ -483,6 +483,31 @@ export interface WorldState {
    */
   sawmillBuilt: boolean;
   turbineBuilt: boolean;
+  /**
+   * Wood Harvesters, keyed by HarvesterDefinition.nodeId (2026-07-06) -
+   * "this follows the same logic of the ore drills but for wood."
+   * Mirrors `drills` exactly in shape/usage.
+   */
+  harvesters: Record<string, import("./harvester").HarvesterState>;
+  /**
+   * The Sawmill's own local wood buffer, filled by the harvest
+   * companion hauling from Harvesters (2026-07-06) - NOT the shared
+   * ore stockpile, a separate pool specific to the Sawmill. Sawing
+   * planks draws from this first, falling back to carried wood if
+   * it's empty, so the chain still works even before any Harvester
+   * exists.
+   */
+  sawmillWoodBuffer: number;
+  /**
+   * The second companion hauling wood from Harvesters to the Sawmill
+   * (2026-07-06) - a separate befriend step from Narag-Bund, gated on
+   * having a Harvester built rather than the Hearth's own upgrade
+   * tree, since this one is "related to the garden, harvesting," not
+   * fuel/ore. Sprite is oxen.png for now, but per direct note "he
+   * might not end up being an Oxen" - deliberately not named after the
+   * animal anywhere in code, only in the placeholder asset filename.
+   */
+  harvestCompanion: { befriended: boolean; lastHaulAt: number };
   /** Unlocked via Insight spend (500) once iron ingots are in inventory.
    *  Separate from smelterTier — each metal has its own tier track. */
   ironPurifyingUnlocked: boolean;

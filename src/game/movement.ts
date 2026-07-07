@@ -14,8 +14,9 @@ export const KEY_TO_DIRECTION: Record<string, Direction> = {
 
 function isSolidAt(col: number, row: number): boolean {
   const world = getState().world;
-  const { litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion, consoleAwakened, roomStates, drills, sawmillBuilt, turbineBuilt } = world;
+  const { litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt, companion, consoleAwakened, roomStates, drills, sawmillBuilt, turbineBuilt, harvesters, harvestCompanion } = world;
   const drillTiers = Object.fromEntries(Object.entries(drills).map(([id, d]) => [id, d.tier]));
+  const harvesterTier = harvesters["garden_roots"]?.tier ?? 0;
   return isSolidCellKind(
     hubCellAt(col, row, litTorches, veinDepletion, woodDepletion, forgeTier, smelterBuilt, gemcuttingBuilt,
       companion.befriended, consoleAwakened,
@@ -28,7 +29,9 @@ function isSolidAt(col: number, row: number): boolean {
       world.mineshaftDepth,
       world.gardenSlots,
       sawmillBuilt,
-      turbineBuilt
+      turbineBuilt,
+      harvesterTier,
+      harvestCompanion.befriended
     ).kind
   );
 }

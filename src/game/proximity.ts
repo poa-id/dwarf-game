@@ -12,6 +12,7 @@ import {
   GEMCUTTING_POSITION,
   CONSOLE_POSITION,
   COMPANION_POSITION,
+  HARVEST_COMPANION_POSITION,
 } from "../engine/hubMap";
 import { isNearTorch } from "../engine/torches";
 
@@ -44,14 +45,10 @@ export const nearestMinedOreVein = nearestOreVein;
 export function nearestWoodNode() {
   const { position } = getState().vessel;
   return WOOD_NODE_PLACEMENTS.find((w) => {
-    // Wood node shrunk 3x3 -> 2x2 (2026-07-04, see hubMap.ts's
-    // WOOD_NODE_PLACEMENTS comment) - buffer narrowed from +3 to +2 to
-    // match (a 2x2 footprint occupies anchor..anchor+1, so a symmetric
-    // 1-cell buffer needs +2, not +3 - the old value was just quietly
-    // over-generous rather than broken, but still worth fixing for
-    // consistency with the same fix just applied to isNearKiln).
-    const nearCol = position.col >= w.position.col - 1 && position.col <= w.position.col + 2;
-    const nearRow = position.row >= w.position.row - 1 && position.row <= w.position.row + 2;
+    // Wood node grown back 2x2 -> 3x3 (2026-07-06, to match the new
+    // Wood Harvester) - buffer widened from +2 to +3 to match.
+    const nearCol = position.col >= w.position.col - 1 && position.col <= w.position.col + 3;
+    const nearRow = position.row >= w.position.row - 1 && position.row <= w.position.row + 3;
     return nearCol && nearRow;
   });
 }
@@ -84,6 +81,27 @@ export function isNearCompanion(): boolean {
     position.col >= COMPANION_POSITION.col - 1 && position.col <= COMPANION_POSITION.col + 4 &&
     position.row >= COMPANION_POSITION.row - 1 && position.row <= COMPANION_POSITION.row + 4
   );
+}
+
+export function isNearHarvestCompanion(): boolean {
+  const { position } = getState().vessel;
+  // Note: does NOT gate on befriended, unlike isNearCompanion - the
+  // build/befriend panel needs to be reachable BEFORE he's befriended
+  // (mirrors isNearSawmill/isNearTurbine's "always reachable, panel
+  // itself shows the gate" pattern, not Narag-Bund's "only appears
+  // once already unlocked" pattern - he doesn't need his own visible
+  // sprite to interact with the befriend offer).
+  return (
+    position.col >= HARVEST_COMPANION_POSITION.col - 1 && position.col <= HARVEST_COMPANION_POSITION.col + 3 &&
+    position.row >= HARVEST_COMPANION_POSITION.row - 1 && position.row <= HARVEST_COMPANION_POSITION.row + 3
+  );
+}
+
+export function isNearHarvester(): boolean {
+  // The Wood Harvester sits exactly on the wood node's position
+  // (mirrors the drill-on-vein pattern) - reuse nearestWoodNode's
+  // existing proximity math rather than duplicating it.
+  return nearestWoodNode() !== undefined;
 }
 
 export function isForgeRepaired(): boolean {

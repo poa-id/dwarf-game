@@ -16,6 +16,7 @@ import {
   TRADE_POST_POSITION,
   MAP_CENTER,
   COMPANION_POSITION,
+  HARVEST_COMPANION_POSITION,
   CONSOLE_POSITION,
   STOCKPILE_CHEST_POSITION,
   MINE_SHAFT_POSITION,
@@ -149,10 +150,11 @@ function buildHubContent(): GridCell[] {
         set(vein.position.col + dc, vein.position.row + dr, kind);
   }
 
-  // ── 9. Wood nodes — 2×2 footprint (shrunk from 3×3, 2026-07-04) ────────
+  // ── 9. Wood nodes — 3×3 footprint (grown back from 2×2, 2026-07-06,
+  // to match the new Wood Harvester structure) ────────────────────────
   for (const wood of WOOD_NODE_PLACEMENTS) {
-    for (let dr = 0; dr < 2; dr++)
-      for (let dc = 0; dc < 2; dc++)
+    for (let dr = 0; dr < 3; dr++)
+      for (let dc = 0; dc < 3; dc++)
         set(wood.position.col + dc, wood.position.row + dr, "wood_node");
   }
 
@@ -252,7 +254,9 @@ export function hubCellAt(
   mineshaftDepth: number = 0,
   gardenSlots: PlanterSlot[] = [],
   sawmillBuilt: boolean = false,
-  turbineBuilt: boolean = false
+  turbineBuilt: boolean = false,
+  harvesterTier: number = 0,
+  harvestCompanionBefriended: boolean = false
 ): GridCell {
   if (col < 0 || col >= HUB_WIDTH || row < 0 || row >= HUB_HEIGHT) {
     return { kind: "void" };
@@ -341,6 +345,17 @@ export function hubCellAt(
     return { kind: "companion" };
   }
 
+  // The harvest companion appears at his resting spot once befriended
+  // (2026-07-06) - a separate befriend step from Narag-Bund. Same
+  // "walkable, share the cell" treatment.
+  if (
+    harvestCompanionBefriended &&
+    col >= HARVEST_COMPANION_POSITION.col && col < HARVEST_COMPANION_POSITION.col + 3 &&
+    row >= HARVEST_COMPANION_POSITION.row && row < HARVEST_COMPANION_POSITION.row + 3
+  ) {
+    return { kind: "harvest_companion" };
+  }
+
   // Stockpile room — east wing + corridor junction (cols 49-63, rows 21-30).
   // Row 20 stays as rock_wall (forge/stockpile separator).
   // Extended to col 49 to clear corridor junction cells that would otherwise
@@ -422,13 +437,19 @@ export function hubCellAt(
   }
 
   const woodPlacement = WOOD_NODE_PLACEMENTS.find(
-    (w) => w.position.col === col && w.position.row === row
+    (w) => col >= w.position.col && col < w.position.col + 3 &&
+           row >= w.position.row && row < w.position.row + 3
   );
   if (woodPlacement) {
     const woodNode = WOOD_NODES.find((n) => n.id === woodPlacement.woodNodeId);
     const depletion = woodDepletion[woodPlacement.id] ?? createFreshDepletionState();
     if (woodNode && isWoodExhausted(woodNode, depletion)) {
       return { kind: "wood_exhausted" };
+    }
+    // Show harvester sprite on top of the wood node once built there
+    // (2026-07-06) - mirrors the drill-on-vein pattern exactly above.
+    if (harvesterTier > 0) {
+      return { kind: "wood_harvester" };
     }
   }
 

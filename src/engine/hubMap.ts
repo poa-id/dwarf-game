@@ -322,13 +322,15 @@ export interface WoodNodePlacement {
 }
 
 export const WOOD_NODE_PLACEMENTS: WoodNodePlacement[] = [
-  // Garden Room — root tangle on the west wall. Shrunk 3×3 -> 2×2
-  // (2026-07-04, per direction: the Kiln should be the bigger of the
-  // two, not the raw resource node it processes).
+  // Garden Room — root tangle on the west wall. Grown back 2×2 -> 3×3
+  // (2026-07-06) to match the new Wood Harvester sprite/structure,
+  // which sits on top of it exactly like an ore drill sits on its
+  // vein - same footprint, same position, mirrors that pattern
+  // precisely (ore veins are 3×3, so are their drills).
   {
     id: "garden_roots",
     woodNodeId: "root_tangle",
-    position: { col: 6, row: 35 },  // 2×2: cols 6-7, rows 35-36 (against north wall)
+    position: { col: 6, row: 35 },  // 3×3: cols 6-8, rows 35-37 (against north wall)
   },
 ];
 
@@ -361,3 +363,13 @@ export const PLANTER_POSITIONS: Position[] = [
   { col: 10, row: 43 }, // slot 4 — south-centre (rows 43-45)
   { col: 14, row: 43 }, // slot 5 — south-east (rows 43-45)
 ];
+
+/**
+ * The harvest companion's resting spot (2026-07-06) - "related to the
+ * garden, harvesting" per direct note, so placed in the Garden Room's
+ * open middle area (cols 9-13, rows 35-38 are clear: root tangle/
+ * harvester occupies cols 6-8, the Kiln occupies cols 14-16, planters
+ * start at row 39). 3×3, same as Narag-Bund's original size before his
+ * own 4×4 grow-out - this one hasn't been asked to grow yet.
+ */
+export const HARVEST_COMPANION_POSITION: Position = { col: 10, row: 35 };

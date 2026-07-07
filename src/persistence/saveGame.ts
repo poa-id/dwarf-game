@@ -155,6 +155,17 @@ function backfillMissingFields(state: any): any {
       // Old saves predate the Turbine entirely - same backfill pattern.
       state.world.turbineBuilt = false;
     }
+    if (state.world.harvesters === undefined) {
+      // Old saves predate the Wood Harvester entirely - same backfill
+      // pattern as `drills` before it.
+      state.world.harvesters = {};
+    }
+    if (state.world.sawmillWoodBuffer === undefined) {
+      state.world.sawmillWoodBuffer = 0;
+    }
+    if (state.world.harvestCompanion === undefined) {
+      state.world.harvestCompanion = { befriended: false, lastHaulAt: Date.now() };
+    }
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

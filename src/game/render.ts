@@ -26,6 +26,7 @@ import {
   isNearConsole,
   isNearGarden,
   isNearCompanion,
+  isNearHarvestCompanion,
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade, renderForgeRepairPanel, performForgeRepair } from "../ui/smithingPanel";
 import { canAffordSmithRecipe } from "../engine/smithing";
@@ -63,6 +64,8 @@ import {
 } from "../ui/gemcuttingPanel";
 import { canAffordCutGem } from "../engine/gemcutting";
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer } from "../ui/drillPanel";
+import { renderHarvesterPanel, performBuildHarvester, performRefuelHarvester, performCollectHarvesterWood, performUpgradeHarvester } from "../ui/harvesterPanel";
+import { renderHarvestCompanionPanel, performBefriendHarvestCompanion } from "../ui/harvestCompanionPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
 import { renderGardenPanel, performPlantSeed, performHarvestSlot, performUnlockPlanter } from "../ui/gardenPanel";
@@ -494,7 +497,7 @@ export function updateActionHint(): void {
         w.consoleAwakened, w.roomStates["stockpile_room"] ?? "ruined",
         w.roomStates["trade_hall"] ?? "ruined", w.roomStates["deep_foundry"] ?? "ruined",
         w.roomStates["the_archive"] ?? "ruined", drillTiers, w.placedTorches, w.mineshaftDepth, w.gardenSlots,
-        w.sawmillBuilt, w.turbineBuilt);
+        w.sawmillBuilt, w.turbineBuilt, w.harvesters["garden_roots"]?.tier ?? 0, w.harvestCompanion.befriended);
       return cell.kind === "rock_wall" || cell.kind === "rubble";
     });
     if (adjacentWall) {
@@ -509,7 +512,7 @@ export function updateActionHint(): void {
  * highlight resets to row 0 rather than carrying over an index that
  * made sense for a different panel's row count. See panelNavigation.ts.
  */
-let lastActivePanelKind: "console" | "companion" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "turbine" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
+let lastActivePanelKind: "console" | "companion" | "harvestCompanion" | "forge" | "hearth" | "kiln" | "smelter" | "sawmill" | "turbine" | "gemcutting" | "drill" | "stockpile" | "garden" | "trade" | "foundry" | "archive" | "mineshaft" | "none" = "none";
 
 /**
  * Decides which contextual panel (if any) applies given the dwarf's
@@ -769,7 +772,7 @@ function updateContextualPanel(): void {
         let s = getState();
         let leveledUp = false;
         for (let i = 0; i < times; i++) {
-          if (!canAffordPlankSaw(s.vessel.inventory)) break;
+          if (!canAffordPlankSaw(s.vessel.inventory, s.world.sawmillWoodBuffer)) break;
           const outcome = performSawPlanks(s);
           s = outcome.newState;
           if (outcome.leveledUp) leveledUp = true;
@@ -946,6 +949,44 @@ function updateContextualPanel(): void {
     return;
   }
 
+  // Wood Harvester panel — shown when near the wood node (mirrors the
+  // ore drill panel above exactly, same "reachable whether built or
+  // not" shape).
+  const nearWoodNodeForHarvester = nearestWoodNode();
+  if (nearWoodNodeForHarvester) {
+    if (lastActivePanelKind !== "drill") {
+      resetPanelHighlight();
+      refs.contextualPanel.innerHTML = "";
+    }
+    lastActivePanelKind = "drill";
+    refs.contextualPanel.innerHTML = "";
+    renderHarvesterPanel(
+      state,
+      nearWoodNodeForHarvester.id,
+      refs.contextualPanel,
+      () => { setState(performBuildHarvester(getState(), nearWoodNodeForHarvester.id)); render(); },
+      () => { setState(performRefuelHarvester(getState(), nearWoodNodeForHarvester.id)); render(); },
+      () => { setState(performCollectHarvesterWood(getState(), nearWoodNodeForHarvester.id)); render(); },
+      () => { setState(performUpgradeHarvester(getState(), nearWoodNodeForHarvester.id)); render(); }
+    );
+    if (refs.contextualPanel.innerHTML) reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
+  // The harvest companion's befriend/status panel — reachable whether
+  // or not he's been befriended yet (mirrors Sawmill/Turbine's "panel
+  // itself shows the gate" pattern).
+  if (isNearHarvestCompanion()) {
+    if (lastActivePanelKind !== "harvestCompanion") resetPanelHighlight();
+    lastActivePanelKind = "harvestCompanion";
+    renderHarvestCompanionPanel(state, refs.contextualPanel, () => {
+      setState(performBefriendHarvestCompanion(getState()));
+      render();
+    });
+    reapplyPanelHighlight(refs.contextualPanel);
+    return;
+  }
+
   lastActivePanelKind = "none";
   refs.contextualPanel.innerHTML = "";
 }
@@ -994,7 +1035,9 @@ export function render(): void {
         state.world.mineshaftDepth,
         state.world.gardenSlots,
         state.world.sawmillBuilt,
-        state.world.turbineBuilt
+        state.world.turbineBuilt,
+        state.world.harvesters["garden_roots"]?.tier ?? 0,
+        state.world.harvestCompanion.befriended
       );
     },
     (col, row) => {
@@ -1018,7 +1061,9 @@ export function render(): void {
         state.world.mineshaftDepth,
         state.world.gardenSlots,
         state.world.sawmillBuilt,
-        state.world.turbineBuilt
+        state.world.turbineBuilt,
+        state.world.harvesters["garden_roots"]?.tier ?? 0,
+        state.world.harvestCompanion.befriended
       );
       const isSolid = (c: number, r: number) =>
         isSolidCellKind(
@@ -1040,7 +1085,9 @@ export function render(): void {
             state.world.mineshaftDepth,
             state.world.gardenSlots,
             state.world.sawmillBuilt,
-            state.world.turbineBuilt
+            state.world.turbineBuilt,
+            state.world.harvesters["garden_roots"]?.tier ?? 0,
+            state.world.harvestCompanion.befriended
           ).kind
         );
       return cellVisibility(col, row, position, state.world, cellKey(col, row), DEFAULT_LIGHT_RADIUS, cell.kind, isSolid);

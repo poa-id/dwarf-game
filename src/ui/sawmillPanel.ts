@@ -49,7 +49,7 @@ export function renderSawmillPanel(
   } else {
     const { woodcraft } = state.vessel.skills;
     const meetsLevel = woodcraft.level >= PLANK_RECIPE.requiredLevel;
-    const affordable = canAffordPlankSaw(state.vessel.inventory);
+    const affordable = canAffordPlankSaw(state.vessel.inventory, state.world.sawmillWoodBuffer);
     const canSaw = meetsLevel && affordable;
     const costText = `${PLANK_RECIPE.woodCost} ${MATERIALS.wood?.name ?? "wood"}`;
     let status = costText;
@@ -106,9 +106,12 @@ export function performSawPlanks(state: GameState): SawmillOutcome {
     state.vessel.skills.woodcraft,
     state.vessel.inventory,
     Math.random(),
-    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier
+    yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier,
+    state.world.sawmillWoodBuffer
   );
   const newInventory = applySawPlanksResult(state.vessel.inventory, result);
+  // The buffer portion isn't inventory - deduct it from WorldState directly.
+  const newSawmillWoodBuffer = state.world.sawmillWoodBuffer - result.woodSpentFromBuffer;
 
   const oldLevel = state.vessel.skills.woodcraft.level;
   const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
@@ -117,7 +120,11 @@ export function performSawPlanks(state: GameState): SawmillOutcome {
 
   const newState: GameState = {
     ...state,
-    world: { ...state.world, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
+    world: {
+      ...state.world,
+      insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates),
+      sawmillWoodBuffer: newSawmillWoodBuffer,
+    },
     vessel: {
       ...state.vessel,
       inventory: newInventory,

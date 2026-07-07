@@ -25,8 +25,10 @@ import smelterAddonUrl from "./tileset-assets/sliced/smelter_addon.png";
 import gemcutting4x4Url from "./tileset-assets/sliced/gemcutting_4x4.png";
 import torchLitUrl from "./tileset-assets/sliced/torch_lit.png";
 import naragBundUrl from "./tileset-assets/sliced/narag_bund.png";
+import oxenUrl from "./tileset-assets/sliced/oxen.png";
 import stockpileChestUrl from "./tileset-assets/sliced/stockpile_chest.png";
 import woodNodeUrl from "./tileset-assets/sliced/wood_node.png";
+import woodHarvesterUrl from "./tileset-assets/sliced/wood_harvester.png";
 import planterBrokenUrl from "./tileset-assets/sliced/planter_broken.png";
 import planterEmptyUrl from "./tileset-assets/sliced/planter_empty.png";
 import planterSproutUrl from "./tileset-assets/sliced/planter_sprout.png";
@@ -106,6 +108,7 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
   torch_lit: { assetUrl: torchLitUrl },
   companion: { assetUrl: naragBundUrl, tileSpan: { cols: 4, rows: 4 } },
+  harvest_companion: { assetUrl: oxenUrl, tileSpan: { cols: 3, rows: 3 } },
   stockpile_chest: { assetUrl: stockpileChestUrl, tileSpan: { cols: 6, rows: 7 } },
   drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 3, rows: 3 } },
@@ -113,7 +116,8 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   mineshaft_broken: { assetUrl: mineshaftBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
   mineshaft_lit: { assetUrl: mineshaftLitUrl, tileSpan: { cols: 3, rows: 3 } },
   mountain_console: { assetUrl: mountainConsoleUrl, tileSpan: { cols: 3, rows: 3 } },
-  wood_node: { assetUrl: woodNodeUrl, tileSpan: { cols: 2, rows: 2 } },
+  wood_node: { assetUrl: woodNodeUrl, tileSpan: { cols: 3, rows: 3 } },
+  wood_harvester: { assetUrl: woodHarvesterUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_broken: { assetUrl: planterBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_empty: { assetUrl: planterEmptyUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_sprout: { assetUrl: planterSproutUrl, tileSpan: { cols: 3, rows: 3 } },

@@ -101,3 +101,36 @@ describe("applySawPlanksResult", () => {
     expect(newInv.wood_planks ?? 0).toBe(0);
   });
 });
+
+describe("Sawmill wood buffer - spends buffer first, falls back to inventory (2026-07-06)", () => {
+  it("spends entirely from the buffer when it covers the full cost, leaving inventory wood untouched", () => {
+    const inv = inventoryWith({ wood: 10 });
+    const result = attemptSawPlanks(woodcraftLvl1, inv, 0.01, 0, PLANK_RECIPE.woodCost);
+    expect(result.woodSpentFromBuffer).toBe(PLANK_RECIPE.woodCost);
+    expect(result.woodSpentFromInventory).toBe(0);
+    const newInv = applySawPlanksResult(inv, result);
+    expect(newInv.wood).toBe(10); // untouched - the buffer covered it all
+  });
+
+  it("spends from the buffer first, then tops up from inventory for the remainder", () => {
+    const inv = inventoryWith({ wood: 10 });
+    const partialBuffer = PLANK_RECIPE.woodCost - 1;
+    const result = attemptSawPlanks(woodcraftLvl1, inv, 0.01, 0, partialBuffer);
+    expect(result.woodSpentFromBuffer).toBe(partialBuffer);
+    expect(result.woodSpentFromInventory).toBe(1);
+    const newInv = applySawPlanksResult(inv, result);
+    expect(newInv.wood).toBe(10 - 1);
+  });
+
+  it("works with an empty buffer exactly as before this system existed (all from inventory)", () => {
+    const inv = inventoryWith({ wood: 10 });
+    const result = attemptSawPlanks(woodcraftLvl1, inv, 0.01, 0, 0);
+    expect(result.woodSpentFromBuffer).toBe(0);
+    expect(result.woodSpentFromInventory).toBe(PLANK_RECIPE.woodCost);
+  });
+
+  it("canAffordPlankSaw considers the buffer - affordable even with insufficient carried wood alone", () => {
+    expect(canAffordPlankSaw({ wood: 1 }, PLANK_RECIPE.woodCost - 1)).toBe(true);
+    expect(canAffordPlankSaw({ wood: 0 }, 0)).toBe(false);
+  });
+});
