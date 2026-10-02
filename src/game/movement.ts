@@ -31,7 +31,7 @@ function isSolidAt(col: number, row: number): boolean {
       sawmillBuilt,
       turbineBuilt,
       harvesterTier,
-      harvestCompanion.befriended
+      harvestCompanion.befriended || (harvesters["garden_roots"]?.tier ?? 0) > 0
     ).kind
   );
 }

@@ -80,7 +80,7 @@ export function renderDrillSection(
     const isRunning = (!needsFuel || drillState.coalBuffer >= def.coalPerCycle) &&
                       drillState.oreBuffer < (drillState.oreBufferMax ?? DRILL_ORE_BUFFER_MAX);
     const statusLine = isRunning
-      ? `Running — ${tierDef.orePerCycle} ore every ${cyclesSec.toFixed(1)}s · ${orePerMin.toFixed(1)}/min`
+      ? `Running — ${tierDef.orePerCycle} ore every ${cyclesSec.toFixed(1)}s · ${(orePerMin / 60).toFixed(2)} ore/s`
       : needsFuel && drillState.coalBuffer < def.coalPerCycle
         ? "Stopped — out of coal"
         : "Stopped — ore buffer full";
@@ -147,7 +147,7 @@ export function renderDrillSection(
     const outputRow = outputRank < MAX_DRILL_OUTPUT_RANK
       ? `<div class="recipe-row ${canOutputUpgrade ? "" : "recipe-row-disabled"}" data-drill-action="output-upgrade">
            <div class="recipe-name">Tune Output — Rank ${outputRank + 1}</div>
-           <div class="recipe-status">${canOutputUpgrade ? outputCostText : `Need: ${outputCostText}`} — +25% cycles/min</div>
+           <div class="recipe-status">${canOutputUpgrade ? outputCostText : `Need: ${outputCostText}`} — +25% output rate</div>
          </div>`
       : "";
 

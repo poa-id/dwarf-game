@@ -41,19 +41,26 @@ export function renderStockpilePanel(
   const expansionRank = state.world.stockpileExpansionRank ?? 0;
   const capacity = stockpileCapacityPerMaterial(currentStage, expansionRank);
   const oreEntries = Object.entries(stockpile).filter(([, amt]) => amt > 0);
-  const oreList = oreEntries.length > 0
-    ? oreEntries.map(([mat, amt]) => {
-        const atCap = amt >= capacity;
-        return `${amt}/${capacity} ${MATERIALS[mat]?.name ?? mat}${atCap ? " (full!)" : ""}`;
-      }).join(", ")
-    : "Empty";
+  const stockpileList = oreEntries.length > 0
+    ? `<div class="stockpile-list">${oreEntries
+        .sort(([a], [b]) => (MATERIALS[a]?.category ?? "").localeCompare(MATERIALS[b]?.category ?? "") || (MATERIALS[a]?.name ?? a).localeCompare(MATERIALS[b]?.name ?? b))
+        .map(([mat, amt]) => {
+          const atCap = amt >= capacity;
+          const percent = Math.min(100, (amt / capacity) * 100);
+          return `<div class="stockpile-item ${atCap ? "stockpile-item-full" : ""}">
+            <div class="stockpile-item-line"><span>${MATERIALS[mat]?.name ?? mat}</span><strong>${amt} / ${capacity}</strong></div>
+            <div class="stockpile-meter"><span style="width:${percent}%"></span></div>
+          </div>`;
+        }).join("")}</div>`
+    : `<p class="inventory-empty">Nothing has been entrusted to the mountain yet.</p>`;
 
   let html = `<h2>${current.label}</h2>`;
 
   // Don't show upgrade label/unlocks when still ruined — mystery first
   if (isOpen) {
     html += `
-      <p class="reserve-status" style="color:#c8a830;">Stockpile: ${oreList}</p>
+      <p class="stockpile-explainer"><strong>Mountain stores.</strong> Narag-Bund and automated workshops may use anything placed here. Your Bag remains personal.</p>
+      ${stockpileList}
     `;
     const expansionCost = stockpileExpansionCost(expansionRank);
     const canExpand = canAffordMaterials(state.vessel.inventory, expansionCost);
@@ -67,16 +74,16 @@ export function renderStockpilePanel(
     if (oreEntries.length > 0) {
       html += `
         <div class="recipe-row" data-action="collect-stockpile">
-          <div class="recipe-name">Collect All</div>
-          <div class="recipe-status">Move stored materials to inventory</div>
+          <div class="recipe-name">Withdraw All to Bag</div>
+          <div class="recipe-status">Remove everything from automation and carry it personally</div>
         </div>
       `;
     }
     if (Object.values(state.vessel.inventory).some((amount) => (amount ?? 0) > 0)) {
       html += `
         <div class="recipe-row" data-action="deposit-stockpile">
-          <div class="recipe-name">Deposit Materials</div>
-          <div class="recipe-status">Store carried resources up to each bin's capacity</div>
+          <div class="recipe-name">Entrust Bag to the Mountain</div>
+          <div class="recipe-status">Make carried materials available to logistics and workshops</div>
         </div>
       `;
     }

@@ -35,8 +35,8 @@ export function renderHarvestCompanionPanel(state: GameState, container: HTMLEle
         : `Need: ${costText}`;
 
     container.innerHTML = `
-      <h2>A watchful shape in the dark</h2>
-      <p class="reserve-status">Something waits near the roots, patient, heavy-footed.</p>
+      <h2>A watchful shape among the roots</h2>
+      <p class="reserve-status">The Wood Harvester's rhythm drew this creature from the dark. It watches the planters, as if it already understands their seasons.</p>
       <div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-action="befriend-harvest-companion">
         <div class="recipe-name">Offer friendship</div>
         <div class="recipe-status">${statusText}</div>

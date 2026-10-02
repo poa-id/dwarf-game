@@ -74,7 +74,7 @@ export function renderConsolePanel(
         <div class="recipe-row ${d.isRunning ? "" : "recipe-row-disabled"}">
           <div class="recipe-name">${d.name} — ${d.tierName}</div>
           <div class="recipe-status">${d.isRunning
-            ? `${d.orePerMin.toFixed(1)} ore/min · output rank ${d.outputRank} · coal ${d.coalBuffer}/${d.coalBufferMax}`
+            ? `${(d.orePerMin / 60).toFixed(2)} ore/s · output rank ${d.outputRank} · coal ${d.coalBuffer}/${d.coalBufferMax}`
             : `Stopped · ore ${d.oreBuffer}/${d.oreBufferMax} · coal ${d.coalBuffer}/${d.coalBufferMax}`
           }</div>
         </div>
@@ -103,9 +103,9 @@ export function renderConsolePanel(
 
     <div style="margin-bottom: 12px;">
       <div class="reserve-status"><strong>Production</strong></div>
-      <div class="reserve-status">${oreMin > 0 ? `${oreMin.toFixed(1)} ore/min` : "No idle production"} · ${insightMin > 0 ? `~${insightMin.toFixed(1)} insight/min` : "mine manually for insight"}</div>
+      <div class="reserve-status">${oreMin > 0 ? `${(oreMin / 60).toFixed(2)} ore/s` : "No idle production"} · ${insightMin > 0 ? `~${(insightMin / 60).toFixed(2)} insight/s` : "mine manually for insight"}</div>
       ${rekindleBonus > 0 ? `<div class="reserve-status" style="color: #8accd8;">Mountain memory: +${rekindleBonus}% yield (${state.world.dwarfCount} lives)</div>` : ""}
-      ${state.world.companion.befriended ? `<div class="reserve-status" style="color: #c6a15b;">Narag-Bund logistics: ${logisticsPerMin.toFixed(1)} resources/min · harness rank ${state.world.companion.trainingRank ?? 0} · ${logisticsMode.replace("_", " ")}</div>` : ""}
+      ${state.world.companion.befriended ? `<div class="reserve-status" style="color: #c6a15b;">Narag-Bund logistics: ${(logisticsPerMin / 60).toFixed(2)} resources/s · harness rank ${state.world.companion.trainingRank ?? 0} · ${logisticsMode.replace("_", " ")}</div>` : ""}
     </div>
 
     <div style="margin-bottom: 12px;">

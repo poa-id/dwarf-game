@@ -246,12 +246,42 @@ export function renderHearthPanel(
   // mandatory here, mirroring main.ts's existing reset-save pattern.
   const rekindleEl = container.querySelector<HTMLDivElement>("[data-rekindle]");
   rekindleEl?.addEventListener("click", () => {
-    const confirmed = window.confirm(
-      "Rekindle now? This dwarf's skills and everything he carries will be gone. What he built into the mountain - the forge, the hearth, the kiln, every torch - remains. There is no undoing this."
-    );
-    if (!confirmed) return;
-    onRekindle();
+    openRekindleRite(state, onRekindle);
   });
+}
+
+/** A world-native confirmation rite instead of the browser's system dialog. */
+export function openRekindleRite(state: GameState, onConfirm: () => void): void {
+  document.querySelector(".rite-overlay")?.remove();
+  const overlay = document.createElement("div");
+  overlay.className = "rite-overlay";
+  const nextBonus = Math.min(50, Math.round((state.world.rekindleMultiplier + 0.05) * 100));
+  const carried = Object.values(state.vessel.inventory).reduce<number>((sum, amount) => sum + (amount ?? 0), 0);
+  overlay.innerHTML = `
+    <section class="rite-modal" role="dialog" aria-modal="true" aria-labelledby="rekindle-title">
+      <p class="rite-kicker">the flame remembers</p>
+      <h2 id="rekindle-title">Rekindle</h2>
+      <p class="rite-copy">This dwarf will give their life to the Hearth. Their work remains in the mountain, and the next will wake stronger.</p>
+      <div class="rite-ledger">
+        <div><span>THE MOUNTAIN KEEPS</span><strong>rooms, machines, stockpile, tools, companions, garden</strong></div>
+        <div><span>THE FLAME TAKES</span><strong>personal skills and ${carried} carried item${carried === 1 ? "" : "s"}</strong></div>
+        <div><span>THE NEXT DWARF INHERITS</span><strong>+${nextBonus}% permanent yield and faster learning</strong></div>
+      </div>
+      ${carried > 0 ? `<p class="rite-warning">Deposit carried materials first if you want the mountain to keep them.</p>` : ""}
+      <div class="rite-actions">
+        <button type="button" class="rite-cancel">Not yet</button>
+        <button type="button" class="rite-confirm">Enter the flame</button>
+      </div>
+    </section>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector<HTMLButtonElement>(".rite-cancel")?.addEventListener("click", close);
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
+  overlay.querySelector<HTMLButtonElement>(".rite-confirm")?.addEventListener("click", () => {
+    close();
+    onConfirm();
+  });
+  overlay.querySelector<HTMLButtonElement>(".rite-cancel")?.focus();
 }
 
 export interface StokeOutcome {

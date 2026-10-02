@@ -67,7 +67,7 @@ export function renderHarvesterPanel(
     const isRunning = harvesterState.coalBuffer >= def.coalPerCycle &&
                       harvesterState.woodBuffer < woodMax;
     const statusLine = isRunning
-      ? `Running — ${tierDef.woodPerCycle} wood every ${cyclesSec.toFixed(1)}s · ${woodPerMin.toFixed(1)}/min`
+      ? `Running — ${tierDef.woodPerCycle} wood every ${cyclesSec.toFixed(1)}s · ${(woodPerMin / 60).toFixed(2)} wood/s`
       : harvesterState.coalBuffer < def.coalPerCycle
         ? "Stopped — out of coal"
         : "Stopped — wood buffer full";
@@ -111,7 +111,7 @@ export function renderHarvesterPanel(
     const outputRow = outputRank < MAX_HARVESTER_OUTPUT_RANK
       ? `<div class="recipe-row ${canOutputUpgrade ? "" : "recipe-row-disabled"}" data-harvester-action="output-upgrade">
            <div class="recipe-name">Tune Output — Rank ${outputRank + 1}</div>
-           <div class="recipe-status">${canOutputUpgrade ? outputCostText : `Need: ${outputCostText}`} — +25% cycles/min</div>
+           <div class="recipe-status">${canOutputUpgrade ? outputCostText : `Need: ${outputCostText}`} — +25% output rate</div>
          </div>`
       : "";
 

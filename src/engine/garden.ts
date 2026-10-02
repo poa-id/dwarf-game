@@ -11,8 +11,8 @@
  * Herblore skill:
  * - Planting any crop gives Herblore XP
  * - Tier 1 crops (shroom, fern): from Herblore 1
- * - Tier 2 crops (ironwood): from Herblore 8
- * - Tier 3 crops (gemwood): from Herblore 15
+ * - Tier 2 crops (ironwood): from Herblore 4
+ * - Tier 3 crops (gemwood): from Herblore 8
  * - Wood ladder continues beyond gemwood (Stonewood/Emberwood/Voidwood,
  *   tiers 4-6) via a planned "Deep Tree Grove" depth system mirroring
  *   the Mine Shaft - designed but not yet built, see OPEN_QUESTIONS.md.
@@ -67,8 +67,8 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     seedMaterialId: "stoneshroom_spore",
     harvestMaterialId: "stoneshroom",
     harvestAmount: 2,
-    stageDurationsMs: [5 * 60_000, 8 * 60_000, 7 * 60_000], // 20 min total (base)
-    herbloreXp: 15,
+    stageDurationsMs: [1 * 60_000, 2 * 60_000, 2 * 60_000], // 5 min total (base)
+    herbloreXp: 20,
     herbloreRequired: 1,
   },
   {
@@ -79,8 +79,8 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     seedMaterialId: "cave_fern_spore",
     harvestMaterialId: "hearthsap",
     harvestAmount: 1,
-    stageDurationsMs: [10 * 60_000, 15 * 60_000, 15 * 60_000], // 40 min total (base)
-    herbloreXp: 20,
+    stageDurationsMs: [3 * 60_000, 3 * 60_000, 4 * 60_000], // 10 min total (base)
+    herbloreXp: 30,
     herbloreRequired: 1,
   },
   {
@@ -93,9 +93,9 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     harvestAmount: 3,
     secondaryMaterialId: "cave_fern_spore",
     secondaryAmount: 1,
-    stageDurationsMs: [30 * 60_000, 45 * 60_000, 45 * 60_000], // 2 hr total (base)
-    herbloreXp: 60,
-    herbloreRequired: 8,
+    stageDurationsMs: [8 * 60_000, 10 * 60_000, 12 * 60_000], // 30 min total (base)
+    herbloreXp: 100,
+    herbloreRequired: 4,
   },
   {
     id: "gemwood_tree",
@@ -112,9 +112,9 @@ export const PLANT_DEFINITIONS: PlantDefinition[] = [
     // top rung of the ladder. Placeholder amount, not balance-tested.
     secondaryMaterialId: "rough_amethyst",
     secondaryAmount: 1,
-    stageDurationsMs: [45 * 60_000, 60 * 60_000, 75 * 60_000], // 3 hr total (base)
-    herbloreXp: 100,
-    herbloreRequired: 15,
+    stageDurationsMs: [15 * 60_000, 20 * 60_000, 25 * 60_000], // 1 hr total (base)
+    herbloreXp: 180,
+    herbloreRequired: 8,
     // Distinct mature sprite (2026-07-03) - a full dramatic "shrine tree"
     // scene rather than a plant-in-a-planter-box like every other mature
     // sprite. Deliberate per design direction: gemwood is meant to stand
@@ -218,7 +218,7 @@ export interface GardenTickResult {
  * For now, base speed only. The slowness is intentional — patience is the idiom.
  */
 export function growthSpeedMultiplier(herbloreLevel: number, tendingRank: number = 0): number {
-  return 1 + Math.max(0, herbloreLevel - 1) * 0.01 + Math.max(0, tendingRank) * 0.03;
+  return 1 + Math.max(0, herbloreLevel - 1) * 0.03 + Math.max(0, tendingRank) * 0.04;
 }
 
 export function tickGarden(slots: PlanterSlot[], now: number, speedMultiplier: number = 1.0): GardenTickResult {

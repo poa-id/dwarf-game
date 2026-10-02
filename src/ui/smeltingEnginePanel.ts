@@ -87,21 +87,21 @@ export function renderSmeltingEnginePanel(
 
       container.insertAdjacentHTML("beforeend", `
         <div class="reserve-status"><strong>${def.name}</strong> T${tier} · ${tierDef.name}</div>
-        <div class="reserve-status">${ingotName}: ${spm.toFixed(1)}/min · output ${engineState.ingotBuffer}/${engineState.ingotBufferMax}</div>
+        <div class="reserve-status">${ingotName}: ${(spm / 60).toFixed(2)}/s · output ${engineState.ingotBuffer}/${engineState.ingotBufferMax}</div>
         <div class="reserve-status">Input: ${engineState.oreBuffer}/${engineState.oreBufferMax ?? 20} ore · ${fuelBuffer}/${engineState.coalBufferMax} ${MATERIALS[fuelId]?.name ?? fuelId}</div>
         ${outputRank < MAX_ENGINE_OUTPUT_RANK ? (() => {
           const cost = engineOutputUpgradeCost(def, outputRank);
           const affordable = canAffordCost(inv, cost);
           return `<div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-engine-output-upgrade="${def.id}">
             <div class="recipe-name">Tune Furnace — Rank ${outputRank + 1}</div>
-            <div class="recipe-status">${affordable ? costText(cost) : `Need: ${costText(cost)}`} — +20% cycles/min</div>
+            <div class="recipe-status">${affordable ? costText(cost) : `Need: ${costText(cost)}`} — +20% output rate</div>
           </div>`;
         })() : ""}
         ${nextTier ? (() => {
           const affordable = canAffordCost(inv, nextTier.upgradeCost);
           return `<div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-engine-upgrade="${def.id}">
             <div class="recipe-name">Upgrade: ${nextTier.name}</div>
-            <div class="recipe-status">${costText(nextTier.upgradeCost)} — ${(tierDef.ingotsPerCycle / tierDef.cycleMs * 60_000).toFixed(1)}→${(nextTier.ingotsPerCycle / nextTier.cycleMs * 60_000).toFixed(1)}/min</div>
+            <div class="recipe-status">${costText(nextTier.upgradeCost)} — ${(tierDef.ingotsPerCycle / tierDef.cycleMs * 1000).toFixed(2)}→${(nextTier.ingotsPerCycle / nextTier.cycleMs * 1000).toFixed(2)}/s</div>
           </div>`;
         })() : ""}
       `);

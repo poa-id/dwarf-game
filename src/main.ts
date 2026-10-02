@@ -59,7 +59,22 @@ app.innerHTML = `
         </div>
       </div>
 
-      <canvas id="game-canvas"></canvas>
+      <div class="game-stage">
+        <canvas id="game-canvas"></canvas>
+        <div class="mobile-controls" aria-label="Touch controls">
+          <div class="mobile-dpad">
+            <button data-move="up" aria-label="Move up">▲</button>
+            <button data-move="left" aria-label="Move left">◀</button>
+            <button data-move="down" aria-label="Move down">▼</button>
+            <button data-move="right" aria-label="Move right">▶</button>
+          </div>
+          <div class="mobile-actions">
+            <button data-game-action="gather">Gather</button>
+            <button data-game-action="use">Use</button>
+            <button data-game-action="torch">Torch</button>
+          </div>
+        </div>
+      </div>
 
       <!-- RIGHT PANEL: context only, no tabs -->
       <div class="stats-panel stats-panel-right">
@@ -162,6 +177,22 @@ if (loadResult.discardedIncompatibleSave) {
 
 render();
 startGameLoop();
+
+document.querySelectorAll<HTMLButtonElement>("[data-move]").forEach((button) => {
+  button.addEventListener("click", () => {
+    handlePlayerMove(button.dataset.move as "up" | "down" | "left" | "right");
+    render();
+  });
+});
+document.querySelector<HTMLButtonElement>('[data-game-action="gather"]')?.addEventListener("click", () => {
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+});
+document.querySelector<HTMLButtonElement>('[data-game-action="use"]')?.addEventListener("click", () => {
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "e" }));
+});
+document.querySelector<HTMLButtonElement>('[data-game-action="torch"]')?.addEventListener("click", () => {
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+});
 
 window.addEventListener("keydown", (e) => {
   // Repeat-guard covers every action/navigation key, not just F/E/R -

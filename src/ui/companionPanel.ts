@@ -67,7 +67,7 @@ export function renderCompanionPanel(state: GameState, container: HTMLElement, o
     <p class="reserve-status">Coal-beetle. Black-head. He stays.</p>
     <p class="reserve-status" style="color:#c87820;">${haulStatus}</p>
     <p class="reserve-status">${drillStatus}</p>
-    <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">${currentTier.name} (tier ${currentTier.tier}) · ${logisticsPerMin.toFixed(1)} resources/min · ${currentTier.haulAmountPerTrip}/trip · Next: ~${secsLeft}s</p>
+    <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">${currentTier.name} (tier ${currentTier.tier}) · ${(logisticsPerMin / 60).toFixed(2)} resources/s · ${currentTier.haulAmountPerTrip}/trip · Next: ~${secsLeft}s</p>
     ${upgradeRowHtml}
     ${trainingRow}
     <div class="recipe-row" data-action="cycle-logistics-mode">

@@ -505,7 +505,8 @@ export function updateActionHint(): void {
         w.consoleAwakened, w.roomStates["stockpile_room"] ?? "ruined",
         w.roomStates["trade_hall"] ?? "ruined", w.roomStates["deep_foundry"] ?? "ruined",
         w.roomStates["the_archive"] ?? "ruined", drillTiers, w.placedTorches, w.mineshaftDepth, w.gardenSlots,
-        w.sawmillBuilt, w.turbineBuilt, w.harvesters["garden_roots"]?.tier ?? 0, w.harvestCompanion.befriended);
+        w.sawmillBuilt, w.turbineBuilt, w.harvesters["garden_roots"]?.tier ?? 0,
+        w.harvestCompanion.befriended || (w.harvesters["garden_roots"]?.tier ?? 0) > 0);
       return cell.kind === "rock_wall" || cell.kind === "rubble";
     });
     if (adjacentWall) {
@@ -999,7 +1000,9 @@ function updateContextualPanel(): void {
   // The harvest companion's befriend/status panel — reachable whether
   // or not he's been befriended yet (mirrors Sawmill/Turbine's "panel
   // itself shows the gate" pattern).
-  if (isNearHarvestCompanion()) {
+  const hasMetGardenWatcher = state.world.harvestCompanion.befriended
+    || Object.values(state.world.harvesters).some((harvester) => harvester.tier > 0);
+  if (hasMetGardenWatcher && isNearHarvestCompanion()) {
     if (lastActivePanelKind !== "harvestCompanion") resetPanelHighlight();
     lastActivePanelKind = "harvestCompanion";
     renderHarvestCompanionPanel(state, refs.contextualPanel, () => {
