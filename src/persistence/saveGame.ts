@@ -72,6 +72,11 @@ function backfillMissingFields(state: any): any {
     }
     if (state.world.consoleAwakened === undefined) state.world.consoleAwakened = false;
     if (state.world.rekindleMultiplier === undefined) state.world.rekindleMultiplier = 0;
+    if (state.world.legacyRanks === undefined) {
+      const inheritedRank = Math.max(0, Math.round((state.world.rekindleMultiplier ?? 0) / 0.05));
+      state.world.legacyRanks = inheritedRank > 0 ? { inherited_hands: inheritedRank } : {};
+    }
+    if (state.world.remembranceBanked === undefined) state.world.remembranceBanked = 0;
     if (state.world.roomStates === undefined) state.world.roomStates = {};
     if (state.world.stockpileOre === undefined) state.world.stockpileOre = {};
     if (state.world.stockpileExpansionRank === undefined) state.world.stockpileExpansionRank = 0;

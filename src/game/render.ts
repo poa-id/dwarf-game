@@ -37,6 +37,7 @@ import {
   performHearthUpgrade,
   performSpendTrueMetalOnYield,
   performRekindle,
+  performBuyLegacy,
   STOKE_AMOUNT,
 } from "../ui/hearthPanel";
 import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "../ui/kilnPanel";
@@ -175,7 +176,8 @@ function updateStatsPanel(): void {
   }
 
   // Insight display + live rolling rate (falls back to idle estimate)
-  refs.statEls.insightDisplay.textContent = `Insight: ${Math.floor(insightBanked)}`;
+  const remembrance = world.remembranceBanked ?? 0;
+  refs.statEls.insightDisplay.textContent = `Insight: ${Math.floor(insightBanked)}${remembrance > 0 ? ` · Remembrance: ${remembrance}` : ""}`;
   recordInsightSample(insightBanked);
   const liveMin = insightPerMinFromSamples();
   const idleMin = estimatedInsightPerMin(world);
@@ -681,6 +683,10 @@ function updateContextualPanel(): void {
         // unreachable - this onRekindle callback is its first and only
         // real caller.
         narrate("wake_rekindled");
+        render();
+      },
+      (legacyId) => {
+        setState(performBuyLegacy(getState(), legacyId));
         render();
       }
     );

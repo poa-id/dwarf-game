@@ -19,11 +19,11 @@ import { createInitialNarratorState } from "../narration/narrator";
 export const REKINDLE_FUEL_THRESHOLD = COLOR_STAGES[1].fuelThreshold;
 
 /**
- * Insight earned at the moment of rekindling. Two multipliers stack:
+ * Remembrance earned at the moment of rekindling. Two factors stack:
  *
  * 1. Scaled by how far the dwarf got (skill levels) - a longer-lived
  *    dwarf leaves more behind for the one who follows him. Unchanged
- *    from the original v1 design: 5 Insight per total skill level.
+ *    each five levels beyond a fresh dwarf adds one Remembrance.
  *
  * 2. A DIMINISHING-RETURNS penalty based on how much hearth.lifetimeFuel
  *    has grown SINCE THE LAST rekindle, not just whether the current
@@ -40,15 +40,18 @@ export const REKINDLE_FUEL_THRESHOLD = COLOR_STAGES[1].fuelThreshold;
  *    gets the full multiplier, since there's no "last rekindle" to have
  *    rushed past.
  */
-export function calculateRekindleInsight(vessel: VesselState, world: WorldState): number {
+export function calculateRekindleRemembrance(vessel: VesselState, world: WorldState): number {
   const totalLevels = Object.values(vessel.skills).reduce((sum, s) => sum + s.level, 0);
-  const baseInsight = totalLevels * 5;
+  const baseRemembrance = Math.max(1, 1 + Math.floor((totalLevels - Object.keys(vessel.skills).length) / 5));
 
   const fuelGrowthSinceLastRekindle = world.hearth.lifetimeFuel - world.lifetimeFuelAtLastRekindle;
   const diminishingReturnsScale = Math.min(1, Math.max(0, fuelGrowthSinceLastRekindle / REKINDLE_FUEL_THRESHOLD));
 
-  return Math.round(baseInsight * diminishingReturnsScale);
+  return Math.round(baseRemembrance * diminishingReturnsScale);
 }
+
+/** @deprecated Rekindling now awards Remembrance, not Insight. */
+export const calculateRekindleInsight = calculateRekindleRemembrance;
 
 function freshSkill(id: SkillId): SkillState {
   return { id, level: 1, xp: 0 };
@@ -87,6 +90,8 @@ export function createInitialWorld(now: number): WorldState {
     unlockedMineDepth: 0,
     hearth: createInitialHearth(now),
     insightBanked: 0,
+    remembranceBanked: 0,
+    legacyRanks: {},
     dwarfCount: 0,
     loreFlags: [],
     exploredCells: {},
@@ -142,7 +147,7 @@ export function createInitialGameState(now: number): GameState {
 
 export interface RekindleResult {
   newState: GameState;
-  insightEarned: number;
+  remembranceEarned: number;
   isFirstRekindling: boolean;
   dwarfNumber: number; // the number of the NEW dwarf, e.g. 2nd, 3rd...
 }
@@ -161,29 +166,23 @@ export interface RekindleResult {
  * already governed by the Hearth system, not by this function.
  */
 export function rekindle(state: GameState): RekindleResult {
-  const insightEarned = calculateRekindleInsight(state.vessel, state.world);
+  const remembranceEarned = calculateRekindleRemembrance(state.vessel, state.world);
   const isFirstRekindling = state.world.dwarfCount === 0;
-
-  // Each life adds 5% to the permanent rekindle multiplier (capped at 50%).
-  // This is the idle "ladder climbing" effect — each run through the mountain
-  // is meaningfully faster than the last. The mountain remembers every dwarf.
-  const newRekindleMultiplier = Math.min(0.5, state.world.rekindleMultiplier + 0.05);
 
   const newState: GameState = {
     ...state,
     world: {
       ...state.world,
-      insightBanked: state.world.insightBanked + insightEarned,
+      remembranceBanked: (state.world.remembranceBanked ?? 0) + remembranceEarned,
       dwarfCount: state.world.dwarfCount + 1,
       lifetimeFuelAtLastRekindle: state.world.hearth.lifetimeFuel,
-      rekindleMultiplier: newRekindleMultiplier,
     },
     vessel: createFreshVessel(),
   };
 
   return {
     newState,
-    insightEarned,
+    remembranceEarned,
     isFirstRekindling,
     dwarfNumber: newState.world.dwarfCount + 1,
   };

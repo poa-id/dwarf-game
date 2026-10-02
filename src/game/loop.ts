@@ -6,7 +6,9 @@ import {
   isAutoTendingUnlocked,
   deductFuelValueFromReserve,
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
+  hearthfireBonus,
 } from "../engine/hearth";
+import { legacyHearthEfficiency, legacyXpBonus } from "../engine/legacies";
 import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
 import { tickDrill, drillDefinitionByVeinId, drillSpeedMultiplier } from "../engine/drill";
@@ -34,12 +36,12 @@ function gameTick(): void {
     const fuelAvailable = reserveFuelValue;
     const hasRekindledOnce = state.world.dwarfCount > 0;
     const restorationScore = getRestorationScore(state.world).total;
-    const result = tickHearth(state.world.hearth, now, fuelAvailable, hasRekindledOnce, restorationScore);
+    const result = tickHearth(state.world.hearth, now, fuelAvailable, hasRekindledOnce, restorationScore, state.world.hearthTier, legacyHearthEfficiency(state.world));
     if (result.fuelAbsorbed > 0) {
       const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
 
       const rawXp = result.fuelAbsorbed * HEARTHKEEPING_XP_PER_FUEL_VALUE;
-      const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk) + legacyXpBonus(state.world));
       const newHearthkeepingXp = state.vessel.skills.hearthkeeping.xp + multipliedXp;
       const newHearthkeeping = {
         ...state.vessel.skills.hearthkeeping,
@@ -78,7 +80,7 @@ function gameTick(): void {
   // Tick garden slots (passive plant growth)
   if (state.world.gardenSlots.length > 0) {
     const herbloreLevel = state.vessel.skills.herblore?.level ?? 1;
-    const speedMult = growthSpeedMultiplier(herbloreLevel, state.world.harvestCompanion.tendingRank ?? 0);
+    const speedMult = growthSpeedMultiplier(herbloreLevel, state.world.harvestCompanion.tendingRank ?? 0) * (1 + hearthfireBonus(state.world.hearth));
     const gardenResult = tickGarden(state.world.gardenSlots, now, speedMult);
     if (gardenResult.changed) {
       setState({ ...state, world: { ...state.world, gardenSlots: gardenResult.slots } });
@@ -99,7 +101,7 @@ function gameTick(): void {
       const def = SMELTING_ENGINE_DEFINITIONS.find((d) => d.id === engineId);
       if (!def || engineState.tier === 0) continue;
 
-      const engineSpeedMultiplier = state.world.turbineBuilt ? TURBINE_SMELT_SPEED_MULTIPLIER : 1;
+      const engineSpeedMultiplier = (state.world.turbineBuilt ? TURBINE_SMELT_SPEED_MULTIPLIER : 1) * (1 + hearthfireBonus(state.world.hearth));
       const result = tickSmeltingEngine(engineState, def, now, engineSpeedMultiplier);
       if (result.engine.lastCycleAt !== engineState.lastCycleAt) {
         newEngines = { ...newEngines, [engineId]: result.engine };
@@ -113,7 +115,7 @@ function gameTick(): void {
     }
 
     if (engineChanged) {
-      const multipliedXp = applyDwarfCountXpMultiplier(passiveSmithingRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const multipliedXp = applyDwarfCountXpMultiplier(passiveSmithingRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk) + legacyXpBonus(state.world));
       const smithingXp = state.vessel.skills.smithing.xp + multipliedXp;
       setState({
         ...state,
@@ -130,7 +132,7 @@ function gameTick(): void {
   if (drillEntries.length > 0) {
     let newDrills = { ...state.world.drills };
     let drillChanged = false;
-    const speedMultiplier = drillSpeedMultiplier(state.world.mineshaftDepth);
+    const speedMultiplier = drillSpeedMultiplier(state.world.mineshaftDepth) * (1 + hearthfireBonus(state.world.hearth));
     const gemDropChanceBonus = totalGemDropChanceBonus(state.world.gemcuttingTier, state.world.cutGemsSpentOnPerk);
     let passiveMiningRawXp = 0;
 
@@ -149,7 +151,7 @@ function gameTick(): void {
       }
     }
     if (drillChanged || passiveMiningRawXp > 0) {
-      const multipliedXp = applyDwarfCountXpMultiplier(passiveMiningRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const multipliedXp = applyDwarfCountXpMultiplier(passiveMiningRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk) + legacyXpBonus(state.world));
       const miningXp = state.vessel.skills.mining.xp + multipliedXp;
       const previousMiningLevel = state.vessel.skills.mining.level;
       const miningLevel = levelForXp(miningXp);
@@ -179,7 +181,7 @@ function gameTick(): void {
     for (const [nodeId, harvesterState] of harvesterEntries) {
       const def = harvesterDefinitionByNodeId(nodeId);
       if (!def) continue;
-      const result = tickHarvester(harvesterState, def, now);
+      const result = tickHarvester(harvesterState, def, now, 1 + hearthfireBonus(state.world.hearth));
       passiveWoodcraftRawXp += result.woodProduced * 7;
       if (result.ranCycle || result.harvester.lastCycleAt !== harvesterState.lastCycleAt) {
         newHarvesters = { ...newHarvesters, [nodeId]: result.harvester };
@@ -188,7 +190,7 @@ function gameTick(): void {
     }
 
     if (harvesterChanged || passiveWoodcraftRawXp > 0) {
-      const multipliedXp = applyDwarfCountXpMultiplier(passiveWoodcraftRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const multipliedXp = applyDwarfCountXpMultiplier(passiveWoodcraftRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk) + legacyXpBonus(state.world));
       const woodcraftXp = state.vessel.skills.woodcraft.xp + multipliedXp;
       const previousWoodcraftLevel = state.vessel.skills.woodcraft.level;
       const woodcraftLevel = levelForXp(woodcraftXp);
@@ -256,7 +258,7 @@ function gameTick(): void {
       stockpileCapacityPerMaterial(machineStockpileStage, state.world.stockpileExpansionRank ?? 0),
     );
     if (tended.lastTendAt !== state.world.harvestCompanion.lastHaulAt) {
-      const multipliedXp = applyDwarfCountXpMultiplier(tended.xp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const multipliedXp = applyDwarfCountXpMultiplier(tended.xp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk) + legacyXpBonus(state.world));
       const herbloreXp = state.vessel.skills.herblore.xp + multipliedXp;
       setState({
         ...state,

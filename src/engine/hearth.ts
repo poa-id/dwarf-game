@@ -47,8 +47,27 @@ export function totalHearthFuelValue(inventory: ResourceBag): number {
  * the reserve runs dry.
  */
 export function reserveBurnSecondsRemaining(fuelReserve: ResourceBag): number {
-  return totalHearthFuelValue(fuelReserve) / FUEL_ABSORPTION_RATE_PER_SEC;
+  return totalHearthFuelValue(fuelReserve) / HEARTH_HEAT_DECAY_PER_SEC;
 }
+
+export const HEARTH_MAX_HEAT = 1000;
+export const HEARTH_HEAT_DECAY_PER_SEC = 0.02;
+export type HearthfireStateId = "dying" | "kindled" | "warm" | "blazing" | "radiant";
+export interface HearthfireState { id: HearthfireStateId; name: string; minHeat: number; bonus: number; }
+export const HEARTHFIRE_STATES: HearthfireState[] = [
+  { id: "dying", name: "Dying", minHeat: 0, bonus: 0 },
+  { id: "kindled", name: "Kindled", minHeat: 50, bonus: 0 },
+  { id: "warm", name: "Warm", minHeat: 250, bonus: 0.1 },
+  { id: "blazing", name: "Blazing", minHeat: 600, bonus: 0.15 },
+  { id: "radiant", name: "Radiant", minHeat: 900, bonus: 0.2 },
+];
+export function hearthHeat(hearth: HearthState): number { return Math.max(0, Math.min(HEARTH_MAX_HEAT, hearth.heat ?? 0)); }
+export function hearthfireState(hearth: HearthState): HearthfireState {
+  const heat = hearthHeat(hearth);
+  return [...HEARTHFIRE_STATES].reverse().find((entry) => heat >= entry.minHeat) ?? HEARTHFIRE_STATES[0];
+}
+export function hearthfireBonus(hearth: HearthState): number { return hearthfireState(hearth).bonus; }
+export function hearthTierEfficiency(hearthTier: number): number { return hearthTier >= 2 ? 1.25 : 1; }
 
 // ---------------------------------------------------------------------------
 // Stoking - the EARLY, manual way to feed the Hearth, and ALSO the
@@ -87,7 +106,8 @@ export function stokeFireDirectly(
   amount: number,
   now: number,
   hasRekindledOnce: boolean,
-  restorationScore: number = 0
+  restorationScore: number = 0,
+  efficiency: number = 1
 ): StokeFireResult {
   if (!HEARTH_FUEL_MATERIALS.includes(materialId)) {
     throw new Error(`${materialId} cannot fuel the Hearth`);
@@ -109,6 +129,7 @@ export function stokeFireDirectly(
 
   const newHearth: HearthState = {
     fuel: hearth.fuel + fuelAdded,
+    heat: Math.min(HEARTH_MAX_HEAT, hearthHeat(hearth) + fuelAdded * efficiency),
     lifetimeFuel: newLifetimeFuel,
     colorStage: newColorStage,
     lastUpdated: now, // stoking also "counts" as tending - resets the tick clock so a subsequent tickHearth doesn't double-count this moment
@@ -217,20 +238,29 @@ export function tickHearth(
   now: number,
   bankedFuelAvailable: number,
   hasRekindledOnce: boolean,
-  restorationScore: number = 0
+  restorationScore: number = 0,
+  hearthTier?: number,
+  legacyEfficiency: number = 1
 ): HearthTickResult {
   const elapsedMs = Math.max(0, now - hearth.lastUpdated);
   const cappedMs = Math.min(elapsedMs, MAX_OFFLINE_CATCHUP_MS);
   const elapsedSec = cappedMs / 1000;
 
-  const desiredAbsorption = elapsedSec * FUEL_ABSORPTION_RATE_PER_SEC;
+  const modernHearthfire = hearthTier !== undefined;
+  const currentHeat = hearthHeat(hearth);
+  const decay = modernHearthfire ? elapsedSec * HEARTH_HEAT_DECAY_PER_SEC : 0;
+  const heatAfterDecay = Math.max(0, currentHeat - decay);
+  const efficiency = modernHearthfire ? hearthTierEfficiency(hearthTier) * legacyEfficiency : 1;
+  const autoTarget = hearthTier !== undefined && hearthTier >= 2 ? 900 : 650;
+  const desiredAbsorption = modernHearthfire
+    ? Math.max(0, autoTarget - heatAfterDecay) / efficiency
+    : elapsedSec * FUEL_ABSORPTION_RATE_PER_SEC;
   const fuelAbsorbed = Math.min(desiredAbsorption, bankedFuelAvailable);
 
   const newLifetimeFuel = hearth.lifetimeFuel + fuelAbsorbed;
   // Defensive, not strictly reachable today: tickHearth only ever runs
   // once isAutoTendingUnlocked(hearthTier >= 1) is true, which itself
-  // requires Insight, which ONLY comes from rekindle.ts's
-  // calculateRekindleInsight - so hasRekindledOnce is already always
+  // requires substantial Insight, so hasRekindledOnce is normally
   // true by the time this function can be called at all. Threaded
   // through anyway for explicitness, matching this engine's
   // established pattern of defensive invariants rather than relying
@@ -240,6 +270,9 @@ export function tickHearth(
 
   const newHearth: HearthState = {
     fuel: hearth.fuel + fuelAbsorbed,
+    heat: modernHearthfire
+      ? Math.min(HEARTH_MAX_HEAT, heatAfterDecay + fuelAbsorbed * efficiency)
+      : hearth.heat,
     lifetimeFuel: newLifetimeFuel,
     colorStage: newColorStage,
     lastUpdated: now,
@@ -334,9 +367,8 @@ export const HEARTH_UPGRADES: HearthUpgrade[] = [
     // This cost ALSO doubles as the discovery gate (see hearthPanel.ts) -
     // the upgrade row doesn't render at all below this threshold, so
     // reaching 250 Insight banked IS the moment the player first learns
-    // Narag-Bund exists. Insight only comes from rekindling (see
-    // rekindle.ts calculateRekindleInsight), so this is reachable only
-    // after real, sustained play - not a quick early trigger.
+    // Narag-Bund exists. Reaching it requires sustained work and
+    // accumulated Insight, not a quick early trigger.
     insightCost: 250,
     name: "Friend of Burden",
     description: "Narag-Bund - found in the dark, coal-backed, willing to carry what you can't.",

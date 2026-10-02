@@ -287,6 +287,8 @@ export interface ColorStage {
 export interface HearthState {
   /** Current banked fuel, consumed/spent over time, NOT the lifetime total. */
   fuel: number;
+  /** Live Hearthfire heat. Unlike lifetimeFuel, this rises and falls. */
+  heat?: number;
   /** Lifetime fuel ever absorbed — this is what ColorStage thresholds check against. Never decreases. */
   lifetimeFuel: number;
   /** Highest ColorStage.stage reached so far. 0 = still 2-bit, nothing unlocked yet. */
@@ -445,6 +447,10 @@ export interface WorldState {
   unlockedMineDepth: number;
   hearth: HearthState;
   insightBanked: number;
+  /** Prestige currency earned only by Rekindling. */
+  remembranceBanked?: number;
+  /** Purchased permanent memories, keyed by LegacyId. */
+  legacyRanks?: Record<string, number>;
   /** How many dwarves have lived and rekindled before the current one. */
   dwarfCount: number;
   loreFlags: string[];

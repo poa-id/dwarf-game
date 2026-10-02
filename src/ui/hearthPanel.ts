@@ -9,6 +9,9 @@ import {
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
   nextYieldPerkTier,
   trueMetalNeededForNextYieldPerkTier,
+  hearthHeat,
+  hearthfireState,
+  HEARTH_MAX_HEAT,
 } from "../engine/hearth";
 import { rekindle, REKINDLE_FUEL_THRESHOLD } from "../engine/rekindle";
 import type { RekindleResult } from "../engine/rekindle";
@@ -16,6 +19,7 @@ import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
 import { xpPerkBonus } from "../engine/smelter";
 import { applyDwarfCountXpMultiplier, levelForXp, insightFromXp } from "../engine/xpCurve";
+import { LEGACIES, buyLegacy, legacyCost, legacyHearthEfficiency, legacyRank, type LegacyId } from "../engine/legacies";
 
 export const STOKE_AMOUNT = 1; // fixed burst size for now - see DESIGN.md's x1/x5/x10/MAX open item for the eventual bulk-action upgrade
 
@@ -61,8 +65,17 @@ export function renderHearthPanel(
   onStoke: (materialId: MaterialId, target: StokeTarget, times?: number) => void,
   onUpgrade: () => void,
   onSpendTrueMetalOnYield: () => void,
-  onRekindle: () => void
+  onRekindle: () => void,
+  onBuyLegacy: (id: LegacyId) => void
 ): void {
+  const heat = hearthHeat(state.world.hearth);
+  const fireState = hearthfireState(state.world.hearth);
+  const hearthfire = `
+    <div class="burn-gauge-row hearthfire-gauge">
+      <div class="burn-gauge-label">Hearthfire: ${fireState.name}</div>
+      <div class="burn-gauge-track"><div class="burn-gauge-fill" style="width:${(heat / HEARTH_MAX_HEAT) * 100}%"></div></div>
+      <div class="burn-gauge-seconds">${Math.floor(heat)}/${HEARTH_MAX_HEAT}${fireState.bonus > 0 ? ` · +${Math.round(fireState.bonus * 100)}% speed` : ""}</div>
+    </div>`;
   // Only render a fuel row for materials the player actually holds -
   // per explicit project direction (2026-06-23, playtesting feedback:
   // "show what interacts with what the player has, not all options").
@@ -196,14 +209,29 @@ export function renderHearthPanel(
     `
     : "";
 
+  const remembrance = state.world.remembranceBanked ?? 0;
+  const legacySection = state.world.dwarfCount > 0 || remembrance > 0
+    ? `<h2>legacies <span class="recipe-status">${remembrance} Remembrance</span></h2>${LEGACIES.map((legacy) => {
+        const rank = legacyRank(state.world, legacy.id);
+        const cost = legacyCost(state.world, legacy.id);
+        const affordable = cost !== null && remembrance >= cost;
+        return `<div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-legacy="${legacy.id}">
+          <div class="recipe-name">${legacy.name} ${rank}/${legacy.maxRank}</div>
+          <div class="recipe-status">${legacy.description} · ${cost === null ? "Complete" : `${cost} Remembrance`}</div>
+        </div>`;
+      }).join("")}`
+    : "";
+
   container.innerHTML = `
     <h2>the hearth</h2>
+    ${hearthfire}
     ${fuelRows}
     <p class="reserve-status">Reserve: ${reserveText}</p>
     ${burnGauge}
     <div class="stoke-flash ${stokeFlashActive ? "stoke-flash-active" : ""}" id="stoke-flash"></div>
     ${upgradeSection}
     ${yieldPerkSection}
+    ${legacySection}
     ${rekindleSection}
   `;
 
@@ -248,6 +276,9 @@ export function renderHearthPanel(
   rekindleEl?.addEventListener("click", () => {
     openRekindleRite(state, onRekindle);
   });
+  container.querySelectorAll<HTMLElement>("[data-legacy]").forEach((row) => row.addEventListener("click", () => {
+    if (!row.classList.contains("recipe-row-disabled")) onBuyLegacy(row.dataset.legacy as LegacyId);
+  }));
 }
 
 /** A world-native confirmation rite instead of the browser's system dialog. */
@@ -255,7 +286,7 @@ export function openRekindleRite(state: GameState, onConfirm: () => void): void 
   document.querySelector(".rite-overlay")?.remove();
   const overlay = document.createElement("div");
   overlay.className = "rite-overlay";
-  const nextBonus = Math.min(50, Math.round((state.world.rekindleMultiplier + 0.05) * 100));
+  const remembrance = calculateRiteRemembrance(state);
   const carried = Object.values(state.vessel.inventory).reduce<number>((sum, amount) => sum + (amount ?? 0), 0);
   overlay.innerHTML = `
     <section class="rite-modal" role="dialog" aria-modal="true" aria-labelledby="rekindle-title">
@@ -265,7 +296,7 @@ export function openRekindleRite(state: GameState, onConfirm: () => void): void 
       <div class="rite-ledger">
         <div><span>THE MOUNTAIN KEEPS</span><strong>rooms, machines, stockpile, tools, companions, garden</strong></div>
         <div><span>THE FLAME TAKES</span><strong>personal skills and ${carried} carried item${carried === 1 ? "" : "s"}</strong></div>
-        <div><span>THE NEXT DWARF INHERITS</span><strong>+${nextBonus}% permanent yield and faster learning</strong></div>
+        <div><span>THE FLAME LEAVES</span><strong>${remembrance} Remembrance to invest in a Legacy of your choice</strong></div>
       </div>
       ${carried > 0 ? `<p class="rite-warning">Deposit carried materials first if you want the mountain to keep them.</p>` : ""}
       <div class="rite-actions">
@@ -304,7 +335,8 @@ export function performStoke(state: GameState, materialId: MaterialId, target: S
       STOKE_AMOUNT,
       Date.now(),
       hasRekindledOnce,
-      restorationScore
+      restorationScore,
+      legacyHearthEfficiency(state.world)
     );
 
     // Direct stoking grants Hearthkeeping XP immediately, scaled by the
@@ -392,6 +424,15 @@ export function performRekindle(state: GameState): RekindleResult | null {
   if (state.world.hearth.lifetimeFuel < REKINDLE_FUEL_THRESHOLD) return null;
   return rekindle(state);
 }
+
+function calculateRiteRemembrance(state: GameState): number {
+  const levels = Object.values(state.vessel.skills).reduce((sum, skill) => sum + skill.level, 0);
+  const base = Math.max(1, 1 + Math.floor((levels - Object.keys(state.vessel.skills).length) / 5));
+  const growth = state.world.hearth.lifetimeFuel - state.world.lifetimeFuelAtLastRekindle;
+  return Math.round(base * Math.min(1, Math.max(0, growth / REKINDLE_FUEL_THRESHOLD)));
+}
+
+export function performBuyLegacy(state: GameState, id: LegacyId): GameState { return buyLegacy(state, id); }
 
 /**
  * Spends True-metal toward the Hearth's yield-perk tree's next tier.
