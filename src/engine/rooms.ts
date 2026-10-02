@@ -232,11 +232,12 @@ export const ROOM_DEFINITIONS: RoomDefinition[] = [
  */
 export const STOCKPILE_BASE_CAPACITY_PER_MATERIAL = 200;
 
-export function stockpileCapacityPerMaterial(stockpileRoomStage: RoomStage): number {
+export function stockpileCapacityPerMaterial(stockpileRoomStage: RoomStage, expansionRank: number = 0): number {
+  const expansionMultiplier = 1 + Math.max(0, expansionRank) * 0.25;
   switch (stockpileRoomStage) {
-    case "cleared": return STOCKPILE_BASE_CAPACITY_PER_MATERIAL;
-    case "restored": return STOCKPILE_BASE_CAPACITY_PER_MATERIAL * 3;
-    case "masterwork": return STOCKPILE_BASE_CAPACITY_PER_MATERIAL * 10;
+    case "cleared": return Math.floor(STOCKPILE_BASE_CAPACITY_PER_MATERIAL * expansionMultiplier);
+    case "restored": return Math.floor(STOCKPILE_BASE_CAPACITY_PER_MATERIAL * 3 * expansionMultiplier);
+    case "masterwork": return Math.floor(STOCKPILE_BASE_CAPACITY_PER_MATERIAL * 10 * expansionMultiplier);
     default: return 0;
   }
 }

@@ -217,9 +217,8 @@ export interface GardenTickResult {
  *   - Kiln proximity (warmth): +10% for planters near kiln
  * For now, base speed only. The slowness is intentional — patience is the idiom.
  */
-export function growthSpeedMultiplier(_herbloreLevel: number): number {
-  // TODO: implement tool bonuses when garden tools are added
-  return 1.0;
+export function growthSpeedMultiplier(herbloreLevel: number, tendingRank: number = 0): number {
+  return 1 + Math.max(0, herbloreLevel - 1) * 0.01 + Math.max(0, tendingRank) * 0.03;
 }
 
 export function tickGarden(slots: PlanterSlot[], now: number, speedMultiplier: number = 1.0): GardenTickResult {

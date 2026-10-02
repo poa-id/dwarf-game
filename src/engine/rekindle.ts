@@ -83,7 +83,7 @@ export function createInitialWorld(now: number): WorldState {
     forgeTier: 0,
     hearthTier: 0,
     fuelReserve: {},
-    companion: { befriended: false, lastHaulAt: now, tier: 1, trainingRank: 0, lastMachineHaulAt: now },
+    companion: { befriended: false, lastHaulAt: now, tier: 1, trainingRank: 0, lastMachineHaulAt: now, logisticsMode: "balanced" },
     unlockedMineDepth: 0,
     hearth: createInitialHearth(now),
     insightBanked: 0,
@@ -101,6 +101,7 @@ export function createInitialWorld(now: number): WorldState {
     rekindleMultiplier: 0,
     roomStates: {},
     stockpileOre: {},
+    stockpileExpansionRank: 0,
     lastMerchantAt: 0,
     gardenSlots: [
       createFreshPlanterSlot(true),   // slot 0 — always unlocked
@@ -118,7 +119,7 @@ export function createInitialWorld(now: number): WorldState {
     turbineBuilt: false,
     harvesters: {},
     sawmillWoodBuffer: 0,
-    harvestCompanion: { befriended: false, lastHaulAt: now },
+    harvestCompanion: { befriended: false, lastHaulAt: now, tendingRank: 0 },
     ironPurifyingUnlocked: false,
     ironSmelterTier: 0,
     trueMetalSpentOnXpPerk: 0,

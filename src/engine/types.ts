@@ -103,6 +103,11 @@ export const MATERIALS: Record<MaterialId, MaterialDefinition> = {
   cut_garnet: { id: "cut_garnet", name: "Cut Garnet", category: "gem", tier: 2 },
   rough_amethyst: { id: "rough_amethyst", name: "Rough Amethyst", category: "gem", tier: 3 },
   cut_amethyst: { id: "cut_amethyst", name: "Cut Amethyst", category: "gem", tier: 3 },
+  // Echo gems are the lapidary equivalent of True Metals: very rare
+  // perfect cuts whose facets hold a trace of the mountain's memory.
+  echo_quartz: { id: "echo_quartz", name: "Echo Quartz", category: "gem", tier: 4 },
+  echo_garnet: { id: "echo_garnet", name: "Echo Garnet", category: "gem", tier: 5 },
+  echo_amethyst: { id: "echo_amethyst", name: "Echo Amethyst", category: "gem", tier: 6 },
 
   // ── Tier 3: Deepstone ─────────────────────────────────────────────────────
   // Mined from the Deepstone Seam at Mining lvl 20. Dense, dark, holds heat
@@ -401,6 +406,8 @@ export interface CompanionState {
   trainingRank?: number;
   /** Separate route clock for machine buffers -> central stockpile. */
   lastMachineHaulAt?: number;
+  /** Player-selected ordering for the single shared logistics queue. */
+  logisticsMode?: "balanced" | "fuel_first" | "outputs_first";
 }
 
 // ---------------------------------------------------------------------------
@@ -510,6 +517,8 @@ export interface WorldState {
   gardenSlots: import("./garden").PlanterSlot[];
   /** Central material stockpile fed by Narag-Bund's logistics routes. */
   stockpileOre: Record<string, number>;
+  /** Repeatable shelving/bin expansion beyond the named room stages. */
+  stockpileExpansionRank?: number;
   /** Timestamp of last merchant visit to the Trade Hall. 0 = never. */
   lastMerchantAt: number;
   /** Narag-Bund's own state - see CompanionState above. */
@@ -572,7 +581,7 @@ export interface WorldState {
    * might not end up being an Oxen" - deliberately not named after the
    * animal anywhere in code, only in the placeholder asset filename.
    */
-  harvestCompanion: { befriended: boolean; lastHaulAt: number };
+  harvestCompanion: { befriended: boolean; lastHaulAt: number; tendingRank?: number };
   /** Unlocked via Insight spend (500) once iron ingots are in inventory.
    *  Separate from smelterTier — each metal has its own tier track. */
   ironPurifyingUnlocked: boolean;

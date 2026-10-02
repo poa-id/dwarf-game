@@ -1,5 +1,6 @@
 import type { ResourceBag, WorldState } from "./types";
 import { canAffordMaterials, deductMaterials } from "./types";
+import { plantDefById, type PlanterSlot } from "./garden";
 
 /**
  * The harvest companion - a second, separate companion from Narag-Bund
@@ -19,6 +20,77 @@ export const HARVEST_COMPANION_BEFRIEND_INSIGHT_COST = 400;
 export const HARVEST_COMPANION_BEFRIEND_COST: ResourceBag = {
   wood_planks: 10,
 };
+
+export const MAX_GARDEN_TENDING_RANK = 100;
+
+export function gardenTendingUpgradeCost(rank: number): ResourceBag {
+  const next = Math.max(1, rank + 1);
+  const cost: ResourceBag = {
+    wood_planks: Math.ceil(5 * Math.pow(1.34, next - 1)),
+    hearthsap: Math.ceil(Math.pow(1.2, next - 1)),
+  };
+  if (next >= 15) cost[next >= 35 ? "echo_amethyst" : next >= 25 ? "echo_garnet" : "echo_quartz"] = Math.ceil((next - 14) / 7);
+  return cost;
+}
+
+export function canAffordGardenTendingUpgrade(rank: number, inventory: ResourceBag): boolean {
+  return rank < MAX_GARDEN_TENDING_RANK && canAffordMaterials(inventory, gardenTendingUpgradeCost(rank));
+}
+
+export interface GardenTendingResult {
+  slots: PlanterSlot[];
+  stockpile: Record<string, number>;
+  lastTendAt: number;
+  harvested: number;
+  xp: number;
+}
+
+/** Siginhakhd harvests mature planters and replants from stockpiled seed. */
+export function advanceGardenTending(
+  slots: PlanterSlot[],
+  stockpile: Record<string, number>,
+  lastTendAt: number,
+  now: number,
+  rank: number,
+  capacityPerMaterial: number,
+): GardenTendingResult {
+  const interval = Math.max(3_000, Math.round(30_000 / (1 + Math.max(0, rank) * 0.1)));
+  const trips = Math.floor(Math.max(0, now - lastTendAt) / interval);
+  if (trips <= 0) return { slots, stockpile, lastTendAt, harvested: 0, xp: 0 };
+
+  let actions = trips * (1 + Math.floor(Math.max(0, rank) / 5));
+  let harvested = 0;
+  let xp = 0;
+  const nextSlots = [...slots];
+  const nextStockpile = { ...stockpile };
+
+  for (let i = 0; i < nextSlots.length && actions > 0; i++) {
+    const slot = nextSlots[i];
+    if (!slot.unlocked || !slot.plantId || slot.stage < 3) continue;
+    const def = plantDefById(slot.plantId);
+    if (!def) continue;
+    const primaryStored = nextStockpile[def.harvestMaterialId] ?? 0;
+    if (primaryStored + def.harvestAmount > capacityPerMaterial) continue;
+    if (def.secondaryMaterialId && def.secondaryAmount && (nextStockpile[def.secondaryMaterialId] ?? 0) + def.secondaryAmount > capacityPerMaterial) continue;
+
+    nextStockpile[def.harvestMaterialId] = primaryStored + def.harvestAmount;
+    if (def.secondaryMaterialId && def.secondaryAmount) {
+      nextStockpile[def.secondaryMaterialId] = (nextStockpile[def.secondaryMaterialId] ?? 0) + def.secondaryAmount;
+    }
+    const hasSeed = (nextStockpile[def.seedMaterialId] ?? 0) > 0;
+    if (hasSeed) {
+      nextStockpile[def.seedMaterialId] -= 1;
+      nextSlots[i] = { ...slot, stage: 0, stageStartedAt: now };
+    } else {
+      nextSlots[i] = { ...slot, plantId: null, stage: 0, stageStartedAt: 0 };
+    }
+    harvested += def.harvestAmount + (def.secondaryAmount ?? 0);
+    xp += Math.round(def.herbloreXp * 1.5);
+    actions--;
+  }
+
+  return { slots: nextSlots, stockpile: nextStockpile, lastTendAt: lastTendAt + trips * interval, harvested, xp };
+}
 
 export function canAffordBefriendHarvestCompanion(
   world: Pick<WorldState, "harvesters" | "insightBanked">,

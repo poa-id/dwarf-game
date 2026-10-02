@@ -27,6 +27,7 @@ import {
   smelterStageName,
 } from "../engine/production";
 import { applyCompanionTraining, companionHaulTierDef } from "../engine/companion";
+import { stockpileCapacityPerMaterial } from "../engine/rooms";
 
 export function renderConsolePanel(
   state: GameState,
@@ -62,6 +63,7 @@ export function renderConsolePanel(
     state.world.companion.trainingRank ?? 0,
   );
   const logisticsPerMin = haulTier.haulAmountPerTrip * (60_000 / haulTier.haulIntervalMs);
+  const logisticsMode = state.world.companion.logisticsMode ?? "balanced";
 
   const colorStageName = ["The Dark", "First Ember", "Hearthlight", "True Color"][hearth.colorStage] ?? "Unknown";
 
@@ -103,7 +105,7 @@ export function renderConsolePanel(
       <div class="reserve-status"><strong>Production</strong></div>
       <div class="reserve-status">${oreMin > 0 ? `${oreMin.toFixed(1)} ore/min` : "No idle production"} · ${insightMin > 0 ? `~${insightMin.toFixed(1)} insight/min` : "mine manually for insight"}</div>
       ${rekindleBonus > 0 ? `<div class="reserve-status" style="color: #8accd8;">Mountain memory: +${rekindleBonus}% yield (${state.world.dwarfCount} lives)</div>` : ""}
-      ${state.world.companion.befriended ? `<div class="reserve-status" style="color: #c6a15b;">Narag-Bund logistics: ${logisticsPerMin.toFixed(1)} resources/min · harness rank ${state.world.companion.trainingRank ?? 0}</div>` : ""}
+      ${state.world.companion.befriended ? `<div class="reserve-status" style="color: #c6a15b;">Narag-Bund logistics: ${logisticsPerMin.toFixed(1)} resources/min · harness rank ${state.world.companion.trainingRank ?? 0} · ${logisticsMode.replace("_", " ")}</div>` : ""}
     </div>
 
     <div style="margin-bottom: 12px;">
@@ -126,12 +128,13 @@ export function renderConsolePanel(
       const stockpileStage = state.world.roomStates["stockpile_room"] ?? "ruined";
       if (stockpileStage === "ruined") return "";
       const entries = Object.entries(state.world.stockpileOre).filter(([, v]) => v > 0);
+      const capacity = stockpileCapacityPerMaterial(stockpileStage, state.world.stockpileExpansionRank ?? 0);
       const contents = entries.length > 0
         ? entries.map(([mat, amt]) => `${amt} ${mat.replace("_ore","").replace("_"," ")}`).join(", ")
         : "empty";
       return `
         <div style="margin-bottom: 4px;">
-          <div class="reserve-status"><strong>Stockpile</strong> (${stockpileStage})</div>
+          <div class="reserve-status"><strong>Stockpile</strong> (${stockpileStage}) · ${capacity}/material · expansion rank ${state.world.stockpileExpansionRank ?? 0}</div>
           <div class="reserve-status">${contents}</div>
         </div>
       `;

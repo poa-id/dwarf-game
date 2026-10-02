@@ -31,7 +31,7 @@ import {
 } from "./proximity";
 import { renderSmithingPanel, performSmith, performForgeTool, performForgeUpgrade, renderForgeRepairPanel, performForgeRepair } from "../ui/smithingPanel";
 import { canAffordSmithRecipe } from "../engine/smithing";
-import { renderSmeltingEnginePanel, performBuildEngine, performUpgradeEngine } from "../ui/smeltingEnginePanel";
+import { renderSmeltingEnginePanel, performBuildEngine, performUpgradeEngine, performUpgradeEngineOutput } from "../ui/smeltingEnginePanel";
 import {
   renderHearthPanel,
   performStoke,
@@ -44,7 +44,7 @@ import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "..
 import { canAffordCharcoalBurn } from "../engine/kiln";
 import { renderSawmillPanel, performSawmillBuild, performSawPlanks } from "../ui/sawmillPanel";
 import { renderTurbinePanel, performTurbineBuild } from "../ui/turbinePanel";
-import { renderCompanionPanel, performCompanionUpgrade, performCompanionTraining } from "../ui/companionPanel";
+import { renderCompanionPanel, performCompanionUpgrade, performCompanionTraining, performCycleLogisticsMode } from "../ui/companionPanel";
 import { canAffordPlankSaw } from "../engine/sawmill";
 import {
   renderSmelterPanel,
@@ -66,9 +66,9 @@ import {
 import { canAffordCutGem } from "../engine/gemcutting";
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer, performUpgradeDrillOutput } from "../ui/drillPanel";
 import { renderHarvesterPanel, performBuildHarvester, performRefuelHarvester, performCollectHarvesterWood, performUpgradeHarvester, performUpgradeHarvesterOutput } from "../ui/harvesterPanel";
-import { renderHarvestCompanionPanel, performBefriendHarvestCompanion } from "../ui/harvestCompanionPanel";
+import { renderHarvestCompanionPanel, performBefriendHarvestCompanion, performUpgradeGardenTending } from "../ui/harvestCompanionPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
-import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
+import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, performDepositStockpile, performExpandStockpile, isNearStockpile } from "../ui/stockpilePanel";
 import { renderGardenPanel, performPlantSeed, performHarvestSlot, performUnlockPlanter } from "../ui/gardenPanel";
 import { renderTradeHallPanel, performAdvanceTradeHall, performTrade, isNearTradeHall } from "../ui/tradeHallPanel";
 import { renderRoomPanel, performAdvanceRoom, isNearDeepFoundry, isNearArchive } from "../ui/roomPanel";
@@ -552,6 +552,10 @@ function updateContextualPanel(): void {
         setState(performCompanionTraining(getState()));
         render();
       },
+      () => {
+        setState(performCycleLogisticsMode(getState()));
+        render();
+      },
     );
     reapplyPanelHighlight(refs.contextualPanel);
     return;
@@ -626,7 +630,8 @@ function updateContextualPanel(): void {
       state,
       refs.contextualPanel,
       (id) => { setState(performBuildEngine(getState(), id)); render(); },
-      (id) => { setState(performUpgradeEngine(getState(), id)); render(); }
+      (id) => { setState(performUpgradeEngine(getState(), id)); render(); },
+      (id) => { setState(performUpgradeEngineOutput(getState(), id)); render(); }
     );
     // Smelter appended in the same forge context (2026-07-07) - direct
     // instruction: "if a structure is an addon of another main
@@ -894,17 +899,10 @@ function updateContextualPanel(): void {
     renderStockpilePanel(
       state,
       refs.contextualPanel,
-      () => {
-        const s = getState();
-        const currentStage = s.world.roomStates["stockpile_room"] ?? "ruined";
-        const hasOre = Object.values(s.world.stockpileOre).some(v => (v as number) > 0);
-        if (hasOre && currentStage !== "ruined") {
-          setState(performCollectStockpile(s));
-        } else {
-          setState(performAdvanceStockpileRoom(s));
-        }
-        render();
-      }
+      () => { setState(performAdvanceStockpileRoom(getState())); render(); },
+      () => { setState(performCollectStockpile(getState())); render(); },
+      () => { setState(performDepositStockpile(getState())); render(); },
+      () => { setState(performExpandStockpile(getState())); render(); },
     );
     reapplyPanelHighlight(refs.contextualPanel);
     return;
@@ -1006,6 +1004,9 @@ function updateContextualPanel(): void {
     lastActivePanelKind = "harvestCompanion";
     renderHarvestCompanionPanel(state, refs.contextualPanel, () => {
       setState(performBefriendHarvestCompanion(getState()));
+      render();
+    }, () => {
+      setState(performUpgradeGardenTending(getState()));
       render();
     });
     reapplyPanelHighlight(refs.contextualPanel);

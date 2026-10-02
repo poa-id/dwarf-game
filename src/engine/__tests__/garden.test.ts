@@ -92,9 +92,10 @@ describe("PLANTER_UNLOCK_COSTS", () => {
 });
 
 describe("growthSpeedMultiplier", () => {
-  it("is a flat 1.0 for now - tool/level bonuses not yet implemented", () => {
+  it("keeps the base rhythm but scales with knowledge and tending investment", () => {
     expect(growthSpeedMultiplier(1)).toBe(1.0);
-    expect(growthSpeedMultiplier(50)).toBe(1.0);
+    expect(growthSpeedMultiplier(50)).toBeGreaterThan(1.0);
+    expect(growthSpeedMultiplier(50, 10)).toBeGreaterThan(growthSpeedMultiplier(50));
   });
 });
 

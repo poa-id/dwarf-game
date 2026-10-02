@@ -8,7 +8,6 @@ import {
   canAffordCompanionTraining,
   MAX_COMPANION_TRAINING_RANK,
 } from "../engine/companion";
-import { nextHaulMaterial } from "../engine/hearth";
 import { MATERIALS, deductMaterials } from "../engine/types";
 import type { GameState } from "../engine/types";
 
@@ -21,22 +20,20 @@ import type { GameState } from "../engine/types";
  * separate things). Same "gate the row, show cost, disable if
  * unaffordable" pattern as every other build-gated station.
  */
-export function renderCompanionPanel(state: GameState, container: HTMLElement, onUpgrade: () => void, onTrain: () => void): void {
+export function renderCompanionPanel(state: GameState, container: HTMLElement, onUpgrade: () => void, onTrain: () => void, onMode?: () => void): void {
   const world = state.world;
   const trainingRank = world.companion.trainingRank ?? 0;
   const currentTier = applyCompanionTraining(companionHaulTierDef(world.companion.tier), trainingRank);
   const nextTier = nextCompanionHaulTier(world.companion.tier);
 
-  const haulTarget = nextHaulMaterial(state.vessel.inventory);
-  const haulLabel = haulTarget ? (MATERIALS[haulTarget]?.name ?? haulTarget) : null;
-  const secsLeft = Math.max(0, Math.ceil((currentTier.haulIntervalMs - Math.max(0, Date.now() - world.companion.lastHaulAt)) / 1000));
-  const haulStatus = haulLabel
-    ? `Hauling ${haulLabel} to the reserve in ~${secsLeft}s`
-    : "Nothing to haul — carry some fuel";
+  const secsLeft = Math.max(0, Math.ceil((currentTier.haulIntervalMs - Math.max(0, Date.now() - (world.companion.lastMachineHaulAt ?? Date.now()))) / 1000));
+  const haulStatus = "One route network: refuel machines, feed the Hearth, clear outputs, and supply processors.";
   const drillStatus = world.hearthTier >= 2
     ? `Supplying drills and hauling machine output to the stockpile`
     : "Will supply drills at Hearth tier 2; stockpile routes unlock when the room is cleared";
   const logisticsPerMin = currentTier.haulAmountPerTrip * (60_000 / currentTier.haulIntervalMs);
+  const logisticsMode = world.companion.logisticsMode ?? "balanced";
+  const modeLabel = logisticsMode === "fuel_first" ? "Keep machines fed" : logisticsMode === "outputs_first" ? "Clear outputs first" : "Balanced";
 
   let upgradeRowHtml = "";
   if (nextTier) {
@@ -73,6 +70,10 @@ export function renderCompanionPanel(state: GameState, container: HTMLElement, o
     <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">${currentTier.name} (tier ${currentTier.tier}) · ${logisticsPerMin.toFixed(1)} resources/min · ${currentTier.haulAmountPerTrip}/trip · Next: ~${secsLeft}s</p>
     ${upgradeRowHtml}
     ${trainingRow}
+    <div class="recipe-row" data-action="cycle-logistics-mode">
+      <div class="recipe-name">Logistics Priority</div>
+      <div class="recipe-status">${modeLabel} — select next policy</div>
+    </div>
   `;
 
   container.querySelectorAll<HTMLDivElement>(".recipe-row[data-action]").forEach((row) => {
@@ -80,8 +81,15 @@ export function renderCompanionPanel(state: GameState, container: HTMLElement, o
       if (row.classList.contains("recipe-row-disabled")) return;
       if (row.dataset.action === "upgrade-companion") onUpgrade();
       else if (row.dataset.action === "train-companion") onTrain();
+      else if (row.dataset.action === "cycle-logistics-mode") onMode?.();
     });
   });
+}
+
+export function performCycleLogisticsMode(state: GameState): GameState {
+  const current = state.world.companion.logisticsMode ?? "balanced";
+  const next = current === "balanced" ? "fuel_first" : current === "fuel_first" ? "outputs_first" : "balanced";
+  return { ...state, world: { ...state.world, companion: { ...state.world.companion, logisticsMode: next } } };
 }
 
 export function performCompanionTraining(state: GameState): GameState {

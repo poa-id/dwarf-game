@@ -96,6 +96,12 @@ const CUT_GEM_BY_ROUGH: Record<string, MaterialId> = {
   rough_amethyst: "cut_amethyst",
 };
 
+const ECHO_GEM_BY_ROUGH: Record<string, MaterialId> = {
+  rough_quartz: "echo_quartz",
+  rough_garnet: "echo_garnet",
+  rough_amethyst: "echo_amethyst",
+};
+
 /**
  * Tinkering level required to cut each rough gem tier. Added
  * 2026-07-04 - previously there was NO level gate on cutting at all,
@@ -131,6 +137,7 @@ export interface CutGemResult {
   xpGained: number;
   newLevel: number;
   leveledUp: boolean;
+  echoGemGained: MaterialId | null;
 }
 
 export function attemptCutGem(
@@ -177,11 +184,13 @@ export function attemptCutGem(
       xpGained: 0,
       newLevel: oldLevel,
       leveledUp: false,
+      echoGemGained: null,
     };
   }
 
   const newXp = tinkeringSkill.xp + CUTTING_BASE_XP;
   const newLevel = levelForXp(newXp);
+  const echoChance = Math.min(0.05, 0.0025 + gemcuttingTier * 0.0025 + cutGemsSpentOnPerk * 0.0005);
 
   return {
     roughMaterialId,
@@ -190,6 +199,7 @@ export function attemptCutGem(
     xpGained: CUTTING_BASE_XP,
     newLevel,
     leveledUp: newLevel > oldLevel,
+    echoGemGained: roll < echoChance ? ECHO_GEM_BY_ROUGH[roughMaterialId] ?? null : null,
   };
 }
 
@@ -197,6 +207,7 @@ export function applyCutGemResult(inventory: ResourceBag, result: CutGemResult):
   let updated = deductMaterials(inventory, { [result.roughMaterialId]: 1 });
   if (result.success) {
     updated = addMaterial(updated, result.cutMaterialId, 1);
+    if (result.echoGemGained) updated = addMaterial(updated, result.echoGemGained, 1);
   }
   return updated;
 }

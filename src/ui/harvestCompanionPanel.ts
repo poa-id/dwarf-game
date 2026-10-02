@@ -3,8 +3,11 @@ import {
   applyBefriendHarvestCompanion,
   HARVEST_COMPANION_BEFRIEND_INSIGHT_COST,
   HARVEST_COMPANION_BEFRIEND_COST,
+  MAX_GARDEN_TENDING_RANK,
+  gardenTendingUpgradeCost,
+  canAffordGardenTendingUpgrade,
 } from "../engine/harvestCompanion";
-import { MATERIALS } from "../engine/types";
+import { MATERIALS, deductMaterials } from "../engine/types";
 import type { GameState } from "../engine/types";
 
 /**
@@ -15,7 +18,7 @@ import type { GameState } from "../engine/types";
  * met him yet, so revealing his name only after befriending is the
  * natural story beat, not an oversight.
  */
-export function renderHarvestCompanionPanel(state: GameState, container: HTMLElement, onBefriend: () => void): void {
+export function renderHarvestCompanionPanel(state: GameState, container: HTMLElement, onBefriend: () => void, onUpgrade?: () => void): void {
   const world = state.world;
 
   if (!world.harvestCompanion.befriended) {
@@ -40,10 +43,18 @@ export function renderHarvestCompanionPanel(state: GameState, container: HTMLEle
       </div>
     `;
   } else {
+    const rank = world.harvestCompanion.tendingRank ?? 0;
+    const cost = gardenTendingUpgradeCost(rank);
+    const affordable = canAffordGardenTendingUpgrade(rank, state.vessel.inventory);
+    const costText = Object.entries(cost).map(([id, amount]) => `${amount} ${MATERIALS[id]?.name ?? id}`).join(", ");
     container.innerHTML = `
       <h2>Siginhakhd</h2>
-      <p class="reserve-status">Hauls wood from Harvesters to the Sawmill.</p>
-      <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">Haul every 10s, 3 wood/trip.</p>
+      <p class="reserve-status">Tends the Garden: harvests mature planters into the Stockpile and replants from stored seed.</p>
+      <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">Tending rank ${rank} · a patient rhythm that accelerates with experience.</p>
+      ${rank < MAX_GARDEN_TENDING_RANK ? `<div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-action="upgrade-garden-tending">
+        <div class="recipe-name">Deepen the Garden Rhythm — Rank ${rank + 1}</div>
+        <div class="recipe-status">${affordable ? costText : `Need: ${costText}`} — faster tending</div>
+      </div>` : ""}
     `;
   }
 
@@ -51,8 +62,19 @@ export function renderHarvestCompanionPanel(state: GameState, container: HTMLEle
     row.addEventListener("click", () => {
       if (row.classList.contains("recipe-row-disabled")) return;
       if (row.dataset.action === "befriend-harvest-companion") onBefriend();
+      else if (row.dataset.action === "upgrade-garden-tending") onUpgrade?.();
     });
   });
+}
+
+export function performUpgradeGardenTending(state: GameState): GameState {
+  const rank = state.world.harvestCompanion.tendingRank ?? 0;
+  if (!canAffordGardenTendingUpgrade(rank, state.vessel.inventory)) return state;
+  return {
+    ...state,
+    world: { ...state.world, harvestCompanion: { ...state.world.harvestCompanion, tendingRank: rank + 1 } },
+    vessel: { ...state.vessel, inventory: deductMaterials(state.vessel.inventory, gardenTendingUpgradeCost(rank)) },
+  };
 }
 
 export function performBefriendHarvestCompanion(state: GameState): GameState {

@@ -39,6 +39,8 @@ export interface DrillState {
   bufferTier: number;
   /** Repeatable throughput upgrades; each rank accelerates the cycle. */
   outputRank?: number;
+  /** Rare secondary drops wait here for the same logistics route as ore. */
+  bonusBuffer?: ResourceBag;
 }
 
 export const DRILL_COAL_BUFFER_MAX = 20;
@@ -77,7 +79,7 @@ export function nextBufferUpgrade(drillId: string, currentBufferTier: number): D
 }
 
 export function createFreshDrillState(): DrillState {
-  return { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: DRILL_COAL_BUFFER_MAX, oreBufferMax: DRILL_ORE_BUFFER_MAX, bufferTier: 0, outputRank: 0 };
+  return { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: DRILL_COAL_BUFFER_MAX, oreBufferMax: DRILL_ORE_BUFFER_MAX, bufferTier: 0, outputRank: 0, bonusBuffer: {} };
 }
 
 export const MAX_DRILL_OUTPUT_RANK = 100;
@@ -399,6 +401,10 @@ export function tickDrill(
     coalBuffer: coalLeft,
     oreBuffer: oreLeft,
     lastCycleAt: drill.lastCycleAt + cyclesRun * effectiveCycleMs,
+    bonusBuffer: Object.entries(gemsGained).reduce<ResourceBag>(
+      (bag, [id, amount]) => addMaterial(bag, id, amount),
+      { ...(drill.bonusBuffer ?? {}) },
+    ),
   };
 
   return {
@@ -456,11 +462,17 @@ export function collectDrillOre(
   def: DrillDefinition
 ): DrillCollectResult {
   const ore = drill.oreBuffer;
-  if (ore === 0) return { inventory, drill, oreCollected: 0 };
+  const bonuses = drill.bonusBuffer ?? {};
+  if (ore === 0 && Object.values(bonuses).every((amount) => (amount ?? 0) <= 0)) return { inventory, drill, oreCollected: 0 };
+
+  let collectedInventory = addMaterial(inventory, def.oreMaterialId, ore);
+  for (const [id, amount] of Object.entries(bonuses)) {
+    if ((amount ?? 0) > 0) collectedInventory = addMaterial(collectedInventory, id, amount ?? 0);
+  }
 
   return {
-    inventory: addMaterial(inventory, def.oreMaterialId, ore),
-    drill: { ...drill, oreBuffer: 0 },
+    inventory: collectedInventory,
+    drill: { ...drill, oreBuffer: 0, bonusBuffer: {} },
     oreCollected: ore,
   };
 }

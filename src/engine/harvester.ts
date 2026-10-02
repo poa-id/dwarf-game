@@ -9,12 +9,9 @@ import { canAffordMaterials, deductMaterials, addMaterial } from "./types";
  * applied to a wood node instead of an ore vein. One harvester per
  * wood node (currently just the Garden Room's root tangle).
  *
- * Unlike ore (which auto-drains into the shared stockpile once that
- * room is cleared), harvested wood is hauled by a SEPARATE, new
- * companion (placeholder sprite: oxen.png - "he might not end up
- * being an Oxen," per direct note, so nothing here is named after the
- * animal) to the Sawmill's own local wood buffer, not to a shared
- * stockpile. Sawing planks from that buffer STAYS a manual action for
+ * Harvested wood waits in a local buffer until Narag-Bund carries it
+ * to the shared Stockpile using the same finite budget as ore, fuel,
+ * and forge logistics. Sawing planks STAYS a manual action for
  * now ("player triggers sawing until an upgrade is made like in the
  * smelting engines" - that upgrade doesn't exist yet, this is just the
  * design so it isn't accidentally auto-built ahead of that decision).
@@ -25,7 +22,7 @@ export interface HarvesterState {
   tier: number;
   /** Coal buffer - harvester draws from this each cycle, same as a drill. */
   coalBuffer: number;
-  /** Wood buffer - accumulates here until the hauler empties it into the Sawmill. */
+  /** Wood buffer - accumulates here until Narag-Bund empties it into the Stockpile. */
   woodBuffer: number;
   /** Timestamp (ms) of last completed cycle. 0 = never run. */
   lastCycleAt: number;

@@ -10,14 +10,17 @@
 
 import type { GameState } from "../engine/types";
 import { ROOM_DEFINITIONS, canAdvanceRoom, stageDef, nextStage, stockpileCapacityPerMaterial } from "../engine/rooms";
-import { deductMaterials, MATERIALS } from "../engine/types";
+import { deductMaterials, MATERIALS, canAffordMaterials, type ResourceBag } from "../engine/types";
 
 const ROOM = ROOM_DEFINITIONS.find((r) => r.id === "stockpile_room")!;
 
 export function renderStockpilePanel(
   state: GameState,
   container: HTMLElement,
-  onAdvance: () => void
+  onAdvance: () => void,
+  onCollect?: () => void,
+  onDeposit?: () => void,
+  onExpand?: () => void,
 ): void {
   container.innerHTML = "";
   const currentStage = state.world.roomStates["stockpile_room"] ?? "ruined";
@@ -35,7 +38,8 @@ export function renderStockpilePanel(
   // Ore contents (shown when cleared+)
   const isOpen = currentStage !== "ruined";
   const stockpile = state.world.stockpileOre;
-  const capacity = stockpileCapacityPerMaterial(currentStage);
+  const expansionRank = state.world.stockpileExpansionRank ?? 0;
+  const capacity = stockpileCapacityPerMaterial(currentStage, expansionRank);
   const oreEntries = Object.entries(stockpile).filter(([, amt]) => amt > 0);
   const oreList = oreEntries.length > 0
     ? oreEntries.map(([mat, amt]) => {
@@ -51,6 +55,13 @@ export function renderStockpilePanel(
     html += `
       <p class="reserve-status" style="color:#c8a830;">Stockpile: ${oreList}</p>
     `;
+    const expansionCost = stockpileExpansionCost(expansionRank);
+    const canExpand = canAffordMaterials(state.vessel.inventory, expansionCost);
+    const expansionCostText = Object.entries(expansionCost).map(([id, amount]) => `${amount} ${MATERIALS[id]?.name ?? id}`).join(", ");
+    html += `<div class="recipe-row ${canExpand ? "" : "recipe-row-disabled"}" data-action="expand-stockpile">
+      <div class="recipe-name">Expand Bins — Rank ${expansionRank + 1}</div>
+      <div class="recipe-status">${canExpand ? expansionCostText : `Need: ${expansionCostText}`} — +25% capacity</div>
+    </div>`;
 
     // Collect from stockpile button
     if (oreEntries.length > 0) {
@@ -58,6 +69,14 @@ export function renderStockpilePanel(
         <div class="recipe-row" data-action="collect-stockpile">
           <div class="recipe-name">Collect All</div>
           <div class="recipe-status">Move stored materials to inventory</div>
+        </div>
+      `;
+    }
+    if (Object.values(state.vessel.inventory).some((amount) => (amount ?? 0) > 0)) {
+      html += `
+        <div class="recipe-row" data-action="deposit-stockpile">
+          <div class="recipe-name">Deposit Materials</div>
+          <div class="recipe-status">Store carried resources up to each bin's capacity</div>
         </div>
       `;
     }
@@ -98,7 +117,52 @@ export function renderStockpilePanel(
     ?.addEventListener("click", () => { if (canAdvance) onAdvance(); });
 
   container.querySelector<HTMLDivElement>("[data-action='collect-stockpile']")
-    ?.addEventListener("click", () => onAdvance()); // reuse callback, handled in render.ts
+    ?.addEventListener("click", () => onCollect?.());
+  container.querySelector<HTMLDivElement>("[data-action='deposit-stockpile']")
+    ?.addEventListener("click", () => onDeposit?.());
+  container.querySelector<HTMLDivElement>("[data-action='expand-stockpile']")
+    ?.addEventListener("click", (event) => {
+      if (!(event.currentTarget as HTMLElement).classList.contains("recipe-row-disabled")) onExpand?.();
+    });
+}
+
+export function stockpileExpansionCost(rank: number): ResourceBag {
+  const next = Math.max(1, rank + 1);
+  const cost: ResourceBag = {
+    wood_planks: Math.ceil(8 * Math.pow(1.36, next - 1)),
+    iron_ingot: Math.ceil(3 * Math.pow(1.3, next - 1)),
+  };
+  if (next >= 20) cost[next >= 40 ? "echo_amethyst" : "echo_garnet"] = Math.ceil((next - 19) / 8);
+  return cost;
+}
+
+export function performExpandStockpile(state: GameState): GameState {
+  const rank = state.world.stockpileExpansionRank ?? 0;
+  const cost = stockpileExpansionCost(rank);
+  if (!canAffordMaterials(state.vessel.inventory, cost)) return state;
+  return {
+    ...state,
+    world: { ...state.world, stockpileExpansionRank: rank + 1 },
+    vessel: { ...state.vessel, inventory: deductMaterials(state.vessel.inventory, cost) },
+  };
+}
+
+export function performDepositStockpile(state: GameState): GameState {
+  const stage = state.world.roomStates["stockpile_room"] ?? "ruined";
+  const capacity = stockpileCapacityPerMaterial(stage, state.world.stockpileExpansionRank ?? 0);
+  if (capacity <= 0) return state;
+  const stockpile = { ...state.world.stockpileOre };
+  const inventory = { ...state.vessel.inventory };
+  for (const [materialId, held] of Object.entries(inventory)) {
+    const amount = held ?? 0;
+    if (amount <= 0) continue;
+    const space = Math.max(0, capacity - (stockpile[materialId] ?? 0));
+    const moved = Math.min(amount, space);
+    if (moved <= 0) continue;
+    stockpile[materialId] = (stockpile[materialId] ?? 0) + moved;
+    inventory[materialId] = amount - moved;
+  }
+  return { ...state, world: { ...state.world, stockpileOre: stockpile }, vessel: { ...state.vessel, inventory } };
 }
 
 // ---------------------------------------------------------------------------

@@ -7,20 +7,13 @@
  *
  * Design philosophy:
  * - One engine per ore type. Each is built, upgraded, and runs independently.
- * - Consumes from stockpileOre (not the player's bag) — so the idle chain
- *   becomes: drill → stockpile → smelting engine → player's inventory.
+ * - Narag-Bund fills local ore/fuel buffers from the Stockpile and removes
+ *   finished ingots through the same finite logistics budget.
  * - Coal consumption mirrors the drill: the same fuel reserve that feeds
  *   the Hearth and drills also feeds the forge engines. Narag-Bund hauls
  *   coal to them at Hearth tier 2.
- * - Ingots flow straight to the player's inventory each tick, same as ore
- *   auto-draining to the stockpile - NOT held in a capped buffer awaiting
- *   manual "Collect" clicks (that was the design through 2026-07-05;
- *   removed 2026-07-06 as one of three concrete inconsistencies flagged
- *   directly: ore moved automatically, ingots didn't, and the buffer cap
- *   never scaled with the Turbine's speed multiplier, so a 3x-faster
- *   engine just stalled 3x more often waiting to be manually emptied).
- *   ingotBuffer/ingotBufferMax remain on SmeltingEngineState only for
- *   save-compatibility with old saves; nothing writes to them anymore.
+ * - Finished ingots wait in a capped output buffer. A faster furnace can
+ *   therefore expose weak hauling or insufficient Stockpile capacity.
  *
  * Unlock gates:
  *   Copper engine:    Forge tier 1 + Smelter built (you need the smelter
@@ -36,6 +29,9 @@ export interface SmeltingEngineDef {
   ingotMaterialId: string;
   orePerCycle: number;
   coalPerCycle: number;
+  /** Non-coal engines declare their real fuel explicitly. */
+  fuelMaterialId?: string;
+  fuelPerCycle?: number;
   /** Build cost: what it costs to install in the forge */
   buildCost: Record<string, number>;
   tiers: SmeltingEngineTier[];
@@ -87,6 +83,8 @@ export const SMELTING_ENGINE_DEFINITIONS: SmeltingEngineDef[] = [
     ingotMaterialId: "deepstone_ingot",
     orePerCycle: 4,
     coalPerCycle: 0,   // uses hearthsap instead
+    fuelMaterialId: "hearthsap",
+    fuelPerCycle: 1,
     buildCost: { deepstone_ingot: 10, iron_ingot: 20, ironwood: 5 },
     tiers: [
       { tier: 1, name: "Deep Crucible",     cycleMs: 120_000, ingotsPerCycle: 1, upgradeCost: {} },
@@ -104,7 +102,9 @@ export interface SmeltingEngineState {
   hearthsapBuffer: number; // for deepstone engine
   lastCycleAt: number;
   coalBufferMax: number;
+  oreBufferMax: number;
   ingotBufferMax: number;
+  outputRank?: number;
 }
 
 export const INGOT_BUFFER_DEFAULT = 20;
@@ -119,8 +119,20 @@ export function createFreshEngineState(): SmeltingEngineState {
     hearthsapBuffer: 0,
     lastCycleAt: 0,
     coalBufferMax: COAL_BUFFER_DEFAULT,
+    oreBufferMax: 20,
     ingotBufferMax: INGOT_BUFFER_DEFAULT,
+    outputRank: 0,
   };
+}
+
+export const MAX_ENGINE_OUTPUT_RANK = 100;
+
+export function engineOutputMultiplier(rank: number): number {
+  return 1 + Math.max(0, rank) * 0.2;
+}
+
+export function engineOutputUpgradeCost(def: SmeltingEngineDef, rank: number): Record<string, number> {
+  return { [def.ingotMaterialId]: Math.ceil(10 * Math.pow(1.4, Math.max(0, rank))) };
 }
 
 export function engineDefById(id: string): SmeltingEngineDef | undefined {
@@ -142,11 +154,13 @@ export function tickSmeltingEngine(
   engine: SmeltingEngineState,
   def: SmeltingEngineDef,
   now: number,
-  stockpileOre: number,
-  fuelAvailable: number,  // coal for copper/iron, hearthsap for deepstone
   speedMultiplier: number = 1
 ): EngineTickResult {
   if (engine.tier === 0) return { engine, ingotsProduced: 0, oreConsumed: 0, ranCycle: false };
+
+  if (engine.lastCycleAt === 0) {
+    return { engine: { ...engine, lastCycleAt: now }, ingotsProduced: 0, oreConsumed: 0, ranCycle: false };
+  }
 
   const tierDef = engineTierDef(def, engine.tier);
   // Turbine speed multiplier (2026-07-06) shrinks the effective cycle
@@ -157,29 +171,41 @@ export function tickSmeltingEngine(
   // dynamic (see turbine.ts's doc comment) - a flat ingots-per-cycle
   // bonus would produce more ingots for free from the same ore/fuel,
   // which is the opposite of that.
-  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / speedMultiplier));
+  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / (speedMultiplier * engineOutputMultiplier(engine.outputRank ?? 0))));
   const elapsed = now - engine.lastCycleAt;
   if (elapsed < effectiveCycleMs) return { engine, ingotsProduced: 0, oreConsumed: 0, ranCycle: false };
 
   const cycles = Math.floor(elapsed / effectiveCycleMs);
   let totalIngots = 0;
   let totalOre = 0;
+  let totalFuel = 0;
   let ran = false;
+  const fuelPerCycle = def.fuelPerCycle ?? def.coalPerCycle;
+  const initialFuel = def.fuelMaterialId === "hearthsap" ? engine.hearthsapBuffer : engine.coalBuffer;
 
   for (let i = 0; i < cycles; i++) {
     const oreNeeded = def.orePerCycle;
-    const oreAvail = stockpileOre - totalOre;
+    const oreAvail = engine.oreBuffer - totalOre;
 
     if (oreAvail < oreNeeded) break;
-    if (fuelAvailable <= 0) break; // fuel check: loop.ts handles exact deduction
+    if (initialFuel - totalFuel < fuelPerCycle) break;
+    if (engine.ingotBuffer + totalIngots + tierDef.ingotsPerCycle > engine.ingotBufferMax) break;
 
     totalOre    += oreNeeded;
+    totalFuel   += fuelPerCycle;
     totalIngots += tierDef.ingotsPerCycle;
     ran = true;
   }
 
   const newEngine: SmeltingEngineState = ran
-    ? { ...engine, lastCycleAt: engine.lastCycleAt + cycles * effectiveCycleMs }
+    ? {
+        ...engine,
+        oreBuffer: engine.oreBuffer - totalOre,
+        ingotBuffer: engine.ingotBuffer + totalIngots,
+        coalBuffer: def.fuelMaterialId === "hearthsap" ? engine.coalBuffer : engine.coalBuffer - totalFuel,
+        hearthsapBuffer: def.fuelMaterialId === "hearthsap" ? engine.hearthsapBuffer - totalFuel : engine.hearthsapBuffer,
+        lastCycleAt: engine.lastCycleAt + Math.min(cycles, Math.floor(totalOre / def.orePerCycle)) * effectiveCycleMs,
+      }
     : engine;
 
   return { engine: newEngine, ingotsProduced: totalIngots, oreConsumed: totalOre, ranCycle: ran };

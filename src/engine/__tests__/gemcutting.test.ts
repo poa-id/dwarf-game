@@ -113,6 +113,14 @@ describe("attemptCutGem", () => {
     expect(result.cutMaterialId).toBe("cut_garnet");
   });
 
+  it("can reveal a rare Echo Gem on an exceptional successful cut", () => {
+    const inv = inventoryWith({ rough_amethyst: 1 });
+    const result = attemptCutGem("rough_amethyst", tinkeringLvl15, inv, 3, 6, 0.001);
+    expect(result.success).toBe(true);
+    expect(result.echoGemGained).toBe("echo_amethyst");
+    expect(applyCutGemResult(inv, result).echo_amethyst).toBe(1);
+  });
+
   describe("tier level requirements (2026-07-04)", () => {
     it("quartz (tier 1) is cuttable from level 1", () => {
       expect(cutGemRequiredLevel("rough_quartz")).toBe(1);

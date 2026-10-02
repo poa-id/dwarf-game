@@ -68,11 +68,13 @@ function backfillMissingFields(state: any): any {
       if (d.oreBufferMax === undefined) d.oreBufferMax = 20;
       if (d.bufferTier === undefined) d.bufferTier = 0;
       if (d.outputRank === undefined) d.outputRank = 0;
+      if (d.bonusBuffer === undefined) d.bonusBuffer = {};
     }
     if (state.world.consoleAwakened === undefined) state.world.consoleAwakened = false;
     if (state.world.rekindleMultiplier === undefined) state.world.rekindleMultiplier = 0;
     if (state.world.roomStates === undefined) state.world.roomStates = {};
     if (state.world.stockpileOre === undefined) state.world.stockpileOre = {};
+    if (state.world.stockpileExpansionRank === undefined) state.world.stockpileExpansionRank = 0;
     if (state.world.lastMerchantAt === undefined) state.world.lastMerchantAt = 0;
     if (state.world.gardenSlots === undefined || state.world.gardenSlots.length === 0) {
       // Migration: old gardenSlots used a different format; replace with 6 fresh planter slots
@@ -105,6 +107,7 @@ function backfillMissingFields(state: any): any {
       state.world.companion.tier = 1;
     }
     if (state.world.companion.trainingRank === undefined) state.world.companion.trainingRank = 0;
+    if (state.world.companion.logisticsMode === undefined) state.world.companion.logisticsMode = "balanced";
     if (state.world.companion.lastMachineHaulAt === undefined) state.world.companion.lastMachineHaulAt = Date.now();
     if (state.world.toolsForged === undefined) {
       // Old saves predate smithed tools entirely - backfill at 0/0
@@ -166,12 +169,17 @@ function backfillMissingFields(state: any): any {
     for (const harvester of Object.values(state.world.harvesters) as any[]) {
       if (harvester.outputRank === undefined) harvester.outputRank = 0;
     }
+    for (const engine of Object.values(state.world.smeltingEngines) as any[]) {
+      if (engine.oreBufferMax === undefined) engine.oreBufferMax = 20;
+      if (engine.outputRank === undefined) engine.outputRank = 0;
+    }
     if (state.world.sawmillWoodBuffer === undefined) {
       state.world.sawmillWoodBuffer = 0;
     }
     if (state.world.harvestCompanion === undefined) {
       state.world.harvestCompanion = { befriended: false, lastHaulAt: Date.now() };
     }
+    if (state.world.harvestCompanion.tendingRank === undefined) state.world.harvestCompanion.tendingRank = 0;
   }
   if (state.vessel?.skills && state.vessel.skills.woodcraft === undefined) {
     state.vessel.skills.woodcraft = { id: "woodcraft", level: 1, xp: 0 };

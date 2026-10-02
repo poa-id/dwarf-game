@@ -5,8 +5,6 @@ import {
   totalHearthFuelValue,
   isAutoTendingUnlocked,
   deductFuelValueFromReserve,
-  advanceCompanionHauling,
-  advanceDrillHauling,
   HEARTHKEEPING_XP_PER_FUEL_VALUE,
 } from "../engine/hearth";
 import { xpPerkBonus } from "../engine/smelter";
@@ -17,11 +15,12 @@ import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
 import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
 import { stockpileCapacityPerMaterial, type RoomStage } from "../engine/rooms";
-import { companionHaulTierDef, applyCompanionTraining, advanceMachineHauling } from "../engine/companion";
+import { companionHaulTierDef, applyCompanionTraining, advanceUnifiedLogistics } from "../engine/companion";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
 import { harvesterDefinitionByNodeId, tickHarvester } from "../engine/harvester";
 import { ORE_VEINS } from "../engine/hubMap";
 import { ROCK_NODES } from "../engine/mining";
+import { advanceGardenTending } from "../engine/harvestCompanion";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -32,14 +31,12 @@ function gameTick(): void {
 
   if (isAutoTendingUnlocked(state.world.hearthTier)) {
     const reserveFuelValue = totalHearthFuelValue(state.world.fuelReserve);
-    const fuelAvailable = reserveFuelValue + totalHearthFuelValue(state.world.stockpileOre);
+    const fuelAvailable = reserveFuelValue;
     const hasRekindledOnce = state.world.dwarfCount > 0;
     const restorationScore = getRestorationScore(state.world).total;
     const result = tickHearth(state.world.hearth, now, fuelAvailable, hasRekindledOnce, restorationScore);
     if (result.fuelAbsorbed > 0) {
-      const absorbedFromReserve = Math.min(result.fuelAbsorbed, reserveFuelValue);
-      const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, absorbedFromReserve);
-      const newStockpile = deductFuelValueFromReserve(state.world.stockpileOre, result.fuelAbsorbed - absorbedFromReserve) as Record<string, number>;
+      const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
 
       const rawXp = result.fuelAbsorbed * HEARTHKEEPING_XP_PER_FUEL_VALUE;
       const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
@@ -59,7 +56,7 @@ function gameTick(): void {
 
       setState({
         ...state,
-        world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve, stockpileOre: newStockpile, insightBanked: newInsightBanked },
+        world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve, insightBanked: newInsightBanked },
         vessel: { ...state.vessel, skills: { ...state.vessel.skills, hearthkeeping: newHearthkeeping } },
       });
       state = getState();
@@ -78,54 +75,10 @@ function gameTick(): void {
     }
   }
 
-  if (state.world.companion.befriended) {
-    const haul = advanceCompanionHauling(
-      state.vessel.inventory,
-      state.world.fuelReserve,
-      state.world.companion.lastHaulAt,
-      now,
-      applyCompanionTraining(companionHaulTierDef(state.world.companion.tier), state.world.companion.trainingRank ?? 0)
-    );
-    if (haul.lastHaulAt !== state.world.companion.lastHaulAt) {
-      setState({
-        ...state,
-        world: {
-          ...state.world,
-          fuelReserve: haul.fuelReserve,
-          companion: { ...state.world.companion, lastHaulAt: haul.lastHaulAt },
-        },
-        vessel: { ...state.vessel, inventory: haul.inventory },
-      });
-      changed = true;
-    }
-  }
-
-  // Narag-Bund distributes coal from the central stockpile to drills.
-  if (state.world.companion.befriended && state.world.hearthTier >= 2) {
-    const drillHaul = advanceDrillHauling(
-      state.world.stockpileOre,
-      state.world.drills,
-      state.world.hearthTier,
-      applyCompanionTraining(companionHaulTierDef(state.world.companion.tier), state.world.companion.trainingRank ?? 0)
-    );
-    if (drillHaul.hauled) {
-      setState({
-        ...state,
-        world: {
-          ...state.world,
-          stockpileOre: drillHaul.fuelReserve as Record<string, number>,
-          drills: drillHaul.drills,
-        },
-      });
-      state = getState();
-      changed = true;
-    }
-  }
-
   // Tick garden slots (passive plant growth)
   if (state.world.gardenSlots.length > 0) {
     const herbloreLevel = state.vessel.skills.herblore?.level ?? 1;
-    const speedMult = growthSpeedMultiplier(herbloreLevel);
+    const speedMult = growthSpeedMultiplier(herbloreLevel, state.world.harvestCompanion.tendingRank ?? 0);
     const gardenResult = tickGarden(state.world.gardenSlots, now, speedMult);
     if (gardenResult.changed) {
       setState({ ...state, world: { ...state.world, gardenSlots: gardenResult.slots } });
@@ -134,68 +87,38 @@ function gameTick(): void {
     }
   }
 
-  // Tick smelting engines — consume stockpile ore, produce ingots
-  // straight into the player's inventory (2026-07-06 - previously
-  // accumulated in a capped buffer requiring a manual "Collect" click
-  // per engine, inconsistent with ore's own automatic stockpile drain
-  // and flagged directly as one of three concrete bugs to fix).
+  // Tick smelting engines. Inputs and outputs remain in physical local
+  // buffers; Narag-Bund moves both sides through the shared logistics queue.
   const engineEntries = Object.entries(state.world.smeltingEngines);
   if (engineEntries.length > 0) {
     let newEngines = { ...state.world.smeltingEngines };
-    let newStockpile = { ...state.world.stockpileOre };
-    let newFuelReserve = { ...state.world.fuelReserve };
-    let newInventory = { ...state.vessel.inventory };
     let engineChanged = false;
+    let passiveSmithingRawXp = 0;
 
     for (const [engineId, engineState] of engineEntries) {
       const def = SMELTING_ENGINE_DEFINITIONS.find((d) => d.id === engineId);
       if (!def || engineState.tier === 0) continue;
 
-      const stockpileOre = (newStockpile[def.oreMaterialId] as number | undefined) ?? 0;
-      const fuelAvail = def.id === "deepstone_engine"
-        ? ((newFuelReserve["hearthsap"] as number | undefined) ?? 0)
-        : ((newStockpile["coal"] as number | undefined) ?? 0);
-
       const engineSpeedMultiplier = state.world.turbineBuilt ? TURBINE_SMELT_SPEED_MULTIPLIER : 1;
-      const result = tickSmeltingEngine(engineState, def, now, stockpileOre, fuelAvail, engineSpeedMultiplier);
+      const result = tickSmeltingEngine(engineState, def, now, engineSpeedMultiplier);
+      if (result.engine.lastCycleAt !== engineState.lastCycleAt) {
+        newEngines = { ...newEngines, [engineId]: result.engine };
+        engineChanged = true;
+      }
       if (result.ranCycle) {
         newEngines = { ...newEngines, [engineId]: result.engine };
-        newStockpile = {
-          ...newStockpile,
-          [def.oreMaterialId]: Math.max(0, stockpileOre - result.oreConsumed),
-        };
-        // Deposit produced ingots straight to inventory - no more
-        // per-engine "Collect" step.
-        if (result.ingotsProduced > 0) {
-          newInventory = {
-            ...newInventory,
-            [def.ingotMaterialId]: ((newInventory[def.ingotMaterialId] as number | undefined) ?? 0) + result.ingotsProduced,
-          };
-        }
-        // Deduct fuel - scaled by how many cycles actually ran this
-        // tick (derived from oreConsumed / orePerCycle), not a flat
-        // single-cycle amount. Fixed 2026-07-06: the old flat
-        // deduction under-charged fuel whenever multiple cycles ran
-        // in one tick (large time gaps, or the Turbine's 3x speed
-        // making multi-cycle ticks routine) - directly undermining the
-        // Turbine's whole point of scaling fuel consumption alongside
-        // output.
-        const cyclesRan = def.orePerCycle > 0 ? Math.round(result.oreConsumed / def.orePerCycle) : 0;
-        const fuelConsumed = def.coalPerCycle * cyclesRan;
-        if (def.id === "deepstone_engine") {
-          newFuelReserve = { ...newFuelReserve, hearthsap: Math.max(0, ((newFuelReserve["hearthsap"] as number | undefined) ?? 0) - fuelConsumed) };
-        } else {
-          newStockpile = { ...newStockpile, coal: Math.max(0, ((newStockpile["coal"] as number | undefined) ?? 0) - fuelConsumed) };
-        }
+        passiveSmithingRawXp += result.ingotsProduced * 10;
         engineChanged = true;
       }
     }
 
     if (engineChanged) {
+      const multipliedXp = applyDwarfCountXpMultiplier(passiveSmithingRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const smithingXp = state.vessel.skills.smithing.xp + multipliedXp;
       setState({
         ...state,
-        world: { ...state.world, smeltingEngines: newEngines, stockpileOre: newStockpile, fuelReserve: newFuelReserve },
-        vessel: { ...state.vessel, inventory: newInventory },
+        world: { ...state.world, smeltingEngines: newEngines, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
+        vessel: { ...state.vessel, skills: { ...state.vessel.skills, smithing: { ...state.vessel.skills.smithing, xp: smithingXp, level: levelForXp(smithingXp) } } },
       });
       state = getState();
       changed = true;
@@ -206,12 +129,9 @@ function gameTick(): void {
   const drillEntries = Object.entries(state.world.drills);
   if (drillEntries.length > 0) {
     let newDrills = { ...state.world.drills };
-    let newStockpile = { ...state.world.stockpileOre };
     let drillChanged = false;
     const speedMultiplier = drillSpeedMultiplier(state.world.mineshaftDepth);
     const gemDropChanceBonus = totalGemDropChanceBonus(state.world.gemcuttingTier, state.world.cutGemsSpentOnPerk);
-    let newInventoryForGems = { ...state.vessel.inventory };
-    let gemsChanged = false;
     let passiveMiningRawXp = 0;
 
     for (const [veinId, drillState] of drillEntries) {
@@ -223,34 +143,20 @@ function gameTick(): void {
         const node = vein ? ROCK_NODES.find((entry) => entry.id === vein.rockNodeId) : undefined;
         passiveMiningRawXp += result.oreProduced * (node?.baseXp ?? 5);
       }
-      // Gem drops (2026-07-06) - deposited straight to inventory, same
-      // as a manual strike's bonus gem would be. See drill.ts's
-      // DrillTickResult.gemsGained doc comment: automation shouldn't
-      // silently skip a real part of the loot economy manual mining
-      // always had.
-      for (const [gemId, amount] of Object.entries(result.gemsGained)) {
-        if (amount > 0) {
-          newInventoryForGems = {
-            ...newInventoryForGems,
-            [gemId]: ((newInventoryForGems[gemId] as number | undefined) ?? 0) + amount,
-          };
-          gemsChanged = true;
-        }
-      }
       if (result.ranCycle || result.drill.lastCycleAt !== drillState.lastCycleAt) {
         newDrills = { ...newDrills, [veinId]: result.drill };
         drillChanged = true;
       }
     }
-    if (drillChanged || gemsChanged || passiveMiningRawXp > 0) {
+    if (drillChanged || passiveMiningRawXp > 0) {
       const multipliedXp = applyDwarfCountXpMultiplier(passiveMiningRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
       const miningXp = state.vessel.skills.mining.xp + multipliedXp;
       const previousMiningLevel = state.vessel.skills.mining.level;
       const miningLevel = levelForXp(miningXp);
       setState({
         ...state,
-        world: { ...state.world, drills: newDrills, stockpileOre: newStockpile, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
-        vessel: { ...state.vessel, inventory: newInventoryForGems, skills: { ...state.vessel.skills, mining: { ...state.vessel.skills.mining, xp: miningXp, level: miningLevel } } },
+        world: { ...state.world, drills: newDrills, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
+        vessel: { ...state.vessel, skills: { ...state.vessel.skills, mining: { ...state.vessel.skills.mining, xp: miningXp, level: miningLevel } } },
       });
       state = getState();
       changed = true;
@@ -300,23 +206,25 @@ function gameTick(): void {
     }
   }
 
-  // Narag-Bund is the mountain's universal logistics layer: automated
-  // extractors fill local buffers; he moves their output into the
-  // central stockpile, whose consumers draw from it independently.
+  // Narag-Bund is one shared logistics layer. Extraction, refueling,
+  // engine inputs, and finished outputs all compete for this budget.
   const machineStockpileStage = (state.world.roomStates["stockpile_room"] ?? "ruined") as RoomStage;
   if (state.world.companion.befriended && machineStockpileStage !== "ruined") {
     const trainedTier = applyCompanionTraining(
       companionHaulTierDef(state.world.companion.tier),
       state.world.companion.trainingRank ?? 0,
     );
-    const haul = advanceMachineHauling(
+    const haul = advanceUnifiedLogistics(
       state.world.stockpileOre,
+      state.world.fuelReserve,
       state.world.drills,
       state.world.harvesters,
+      state.world.smeltingEngines,
       state.world.companion.lastMachineHaulAt ?? now,
       now,
       trainedTier,
-      stockpileCapacityPerMaterial(machineStockpileStage),
+      stockpileCapacityPerMaterial(machineStockpileStage, state.world.stockpileExpansionRank ?? 0),
+      state.world.companion.logisticsMode ?? "balanced",
     );
     if (haul.lastHaulAt !== (state.world.companion.lastMachineHaulAt ?? now)) {
       setState({
@@ -324,51 +232,45 @@ function gameTick(): void {
         world: {
           ...state.world,
           stockpileOre: haul.stockpile,
+          fuelReserve: haul.fuelReserve,
           drills: haul.drills,
           harvesters: haul.harvesters,
+          smeltingEngines: haul.engines,
           companion: { ...state.world.companion, lastMachineHaulAt: haul.lastHaulAt },
         },
       });
       state = getState();
-      if (haul.hauled > 0) changed = true;
+      if (haul.moved > 0) changed = true;
     }
   }
 
-  // The harvest companion hauls wood from Harvesters into the
-  // Sawmill's own local wood buffer (2026-07-06) - a separate hauler
-  // from Narag-Bund, "related to the garden, harvesting" rather than
-  // fuel/ore. Fixed 10s interval for now (no upgrade tiers yet, unlike
-  // Narag-Bund's own ladder - not asked for on this one).
-  const HARVEST_HAUL_INTERVAL_MS = 10_000;
-  const HARVEST_HAUL_AMOUNT_PER_TRIP = 3;
-  if (state.world.harvestCompanion.befriended) {
-    const elapsedMs = Math.max(0, now - state.world.harvestCompanion.lastHaulAt);
-    const tripsElapsed = Math.floor(elapsedMs / HARVEST_HAUL_INTERVAL_MS);
-    if (tripsElapsed > 0) {
-      let newHarvesters = { ...state.world.harvesters };
-      let newSawmillWoodBuffer = state.world.sawmillWoodBuffer;
-      let hauledAny = false;
-
-      for (const [nodeId, harvesterState] of Object.entries(newHarvesters)) {
-        if (harvesterState.woodBuffer <= 0) continue;
-        const toHaul = Math.min(harvesterState.woodBuffer, tripsElapsed * HARVEST_HAUL_AMOUNT_PER_TRIP);
-        if (toHaul <= 0) continue;
-        newHarvesters = { ...newHarvesters, [nodeId]: { ...harvesterState, woodBuffer: harvesterState.woodBuffer - toHaul } };
-        newSawmillWoodBuffer += toHaul;
-        hauledAny = true;
-      }
-
+  // Siginhakhd owns the Garden rhythm: mature crops are harvested into
+  // the Stockpile and replanted only when stored seed is available.
+  if (state.world.harvestCompanion.befriended && machineStockpileStage !== "ruined") {
+    const tended = advanceGardenTending(
+      state.world.gardenSlots,
+      state.world.stockpileOre,
+      state.world.harvestCompanion.lastHaulAt,
+      now,
+      state.world.harvestCompanion.tendingRank ?? 0,
+      stockpileCapacityPerMaterial(machineStockpileStage, state.world.stockpileExpansionRank ?? 0),
+    );
+    if (tended.lastTendAt !== state.world.harvestCompanion.lastHaulAt) {
+      const multipliedXp = applyDwarfCountXpMultiplier(tended.xp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const herbloreXp = state.vessel.skills.herblore.xp + multipliedXp;
       setState({
         ...state,
         world: {
           ...state.world,
-          harvesters: newHarvesters,
-          sawmillWoodBuffer: newSawmillWoodBuffer,
-          harvestCompanion: { ...state.world.harvestCompanion, lastHaulAt: state.world.harvestCompanion.lastHaulAt + tripsElapsed * HARVEST_HAUL_INTERVAL_MS },
+          gardenSlots: tended.slots,
+          stockpileOre: tended.stockpile,
+          harvestCompanion: { ...state.world.harvestCompanion, lastHaulAt: tended.lastTendAt },
+          insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates),
         },
+        vessel: { ...state.vessel, skills: { ...state.vessel.skills, herblore: { ...state.vessel.skills.herblore, xp: herbloreXp, level: levelForXp(herbloreXp) } } },
       });
       state = getState();
-      if (hauledAny) changed = true;
+      if (tended.harvested > 0) changed = true;
     }
   }
 

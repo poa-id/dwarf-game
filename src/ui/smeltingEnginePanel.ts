@@ -11,6 +11,9 @@ import {
   createFreshEngineState,
   engineTierDef,
   type SmeltingEngineDef,
+  MAX_ENGINE_OUTPUT_RANK,
+  engineOutputMultiplier,
+  engineOutputUpgradeCost,
 } from "../engine/smeltingEngine";
 
 function canAffordCost(inventory: Record<string, number>, cost: Record<string, number>): boolean {
@@ -35,7 +38,8 @@ export function renderSmeltingEnginePanel(
   state: GameState,
   container: HTMLElement,
   onBuild: (engineId: string) => void,
-  onUpgrade: (engineId: string) => void
+  onUpgrade: (engineId: string) => void,
+  onOutputUpgrade?: (engineId: string) => void,
 ): void {
   const unlockedDefs = SMELTING_ENGINE_DEFINITIONS.filter(d => isEngineUnlocked(d, state));
   if (unlockedDefs.length === 0) return;
@@ -76,11 +80,23 @@ export function renderSmeltingEnginePanel(
       const tierDef = engineTierDef(def, tier);
       const nextTier = def.tiers.find(t => t.tier === tier + 1);
       const ingotName = MATERIALS[def.ingotMaterialId]?.name ?? def.ingotMaterialId;
-      const spm = (tierDef.ingotsPerCycle / tierDef.cycleMs) * 60_000;
+      const outputRank = engineState.outputRank ?? 0;
+      const spm = (tierDef.ingotsPerCycle / tierDef.cycleMs) * 60_000 * (state.world.turbineBuilt ? 3 : 1) * engineOutputMultiplier(outputRank);
+      const fuelId = def.fuelMaterialId ?? "coal";
+      const fuelBuffer = fuelId === "hearthsap" ? engineState.hearthsapBuffer : engineState.coalBuffer;
 
       container.insertAdjacentHTML("beforeend", `
         <div class="reserve-status"><strong>${def.name}</strong> T${tier} · ${tierDef.name}</div>
-        <div class="reserve-status">${ingotName}: ${spm.toFixed(1)}/min, straight to inventory</div>
+        <div class="reserve-status">${ingotName}: ${spm.toFixed(1)}/min · output ${engineState.ingotBuffer}/${engineState.ingotBufferMax}</div>
+        <div class="reserve-status">Input: ${engineState.oreBuffer}/${engineState.oreBufferMax ?? 20} ore · ${fuelBuffer}/${engineState.coalBufferMax} ${MATERIALS[fuelId]?.name ?? fuelId}</div>
+        ${outputRank < MAX_ENGINE_OUTPUT_RANK ? (() => {
+          const cost = engineOutputUpgradeCost(def, outputRank);
+          const affordable = canAffordCost(inv, cost);
+          return `<div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-engine-output-upgrade="${def.id}">
+            <div class="recipe-name">Tune Furnace — Rank ${outputRank + 1}</div>
+            <div class="recipe-status">${affordable ? costText(cost) : `Need: ${costText(cost)}`} — +20% cycles/min</div>
+          </div>`;
+        })() : ""}
         ${nextTier ? (() => {
           const affordable = canAffordCost(inv, nextTier.upgradeCost);
           return `<div class="recipe-row ${affordable ? "" : "recipe-row-disabled"}" data-engine-upgrade="${def.id}">
@@ -103,6 +119,26 @@ export function renderSmeltingEnginePanel(
       if (!el.classList.contains("recipe-row-disabled")) onUpgrade(el.dataset.engineUpgrade!);
     });
   });
+  container.querySelectorAll<HTMLElement>("[data-engine-output-upgrade]").forEach(el => {
+    el.addEventListener("click", () => {
+      if (!el.classList.contains("recipe-row-disabled")) onOutputUpgrade?.(el.dataset.engineOutputUpgrade!);
+    });
+  });
+}
+
+export function performUpgradeEngineOutput(state: GameState, engineId: string): GameState {
+  const engine = state.world.smeltingEngines[engineId];
+  const def = SMELTING_ENGINE_DEFINITIONS.find((entry) => entry.id === engineId);
+  if (!engine || !def) return state;
+  const rank = engine.outputRank ?? 0;
+  if (rank >= MAX_ENGINE_OUTPUT_RANK) return state;
+  const cost = engineOutputUpgradeCost(def, rank);
+  if (!canAffordCost(state.vessel.inventory as Record<string, number>, cost)) return state;
+  return {
+    ...state,
+    world: { ...state.world, smeltingEngines: { ...state.world.smeltingEngines, [engineId]: { ...engine, outputRank: rank + 1 } } },
+    vessel: { ...state.vessel, inventory: deductMaterials(state.vessel.inventory, cost) },
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import type { ResourceBag } from "./types";
 import { canAffordMaterials, deductMaterials } from "./types";
 import { drillDefinitionByVeinId, type DrillState } from "./drill";
 import type { HarvesterState } from "./harvester";
+import { SMELTING_ENGINE_DEFINITIONS, type SmeltingEngineState } from "./smeltingEngine";
 
 /**
  * Narag-Bund's own haul-speed/capacity upgrade track (2026-07-06).
@@ -51,10 +52,15 @@ export const MAX_COMPANION_TRAINING_RANK = 100;
 
 export function companionTrainingCost(rank: number): ResourceBag {
   const nextRank = Math.max(1, rank + 1);
-  return {
+  const cost: ResourceBag = {
     coal: Math.ceil(20 * Math.pow(1.42, nextRank - 1)),
     copper_ingot: Math.ceil(2 * Math.pow(1.32, nextRank - 1)),
   };
+  if (nextRank >= 10) {
+    const echoId = nextRank >= 30 ? "echo_amethyst" : nextRank >= 20 ? "echo_garnet" : "echo_quartz";
+    cost[echoId] = Math.ceil((nextRank - 9) / 5);
+  }
+  return cost;
 }
 
 /** Each repeatable rank adds 25% to carrying capacity. */
@@ -77,6 +83,177 @@ export interface MachineHaulResult {
   harvesters: Record<string, HarvesterState>;
   lastHaulAt: number;
   hauled: number;
+}
+
+export type LogisticsMode = "balanced" | "fuel_first" | "outputs_first";
+
+export interface UnifiedLogisticsResult {
+  stockpile: Record<string, number>;
+  fuelReserve: ResourceBag;
+  drills: Record<string, DrillState>;
+  harvesters: Record<string, HarvesterState>;
+  engines: Record<string, SmeltingEngineState>;
+  lastHaulAt: number;
+  moved: number;
+}
+
+/**
+ * Narag-Bund's single logistics budget. Every unit picked up from an
+ * extractor, delivered as fuel, fed into a smelting engine, or removed
+ * as finished ingots competes for the same carrying capacity.
+ */
+export function advanceUnifiedLogistics(
+  stockpile: Record<string, number>,
+  fuelReserve: ResourceBag,
+  drills: Record<string, DrillState>,
+  harvesters: Record<string, HarvesterState>,
+  engines: Record<string, SmeltingEngineState>,
+  lastHaulAt: number,
+  now: number,
+  tier: CompanionHaulTier,
+  capacityPerMaterial: number,
+  mode: LogisticsMode = "balanced",
+): UnifiedLogisticsResult {
+  const trips = Math.floor(Math.max(0, now - lastHaulAt) / tier.haulIntervalMs);
+  if (trips <= 0) return { stockpile, fuelReserve, drills, harvesters, engines, lastHaulAt, moved: 0 };
+
+  let budget = trips * tier.haulAmountPerTrip;
+  let moved = 0;
+  const nextStockpile = { ...stockpile };
+  const nextFuelReserve = { ...fuelReserve };
+  const nextDrills = { ...drills };
+  const nextHarvesters = { ...harvesters };
+  const nextEngines = { ...engines };
+
+  const transfer = (available: number, space: number): number => {
+    const amount = Math.min(Math.max(0, available), Math.max(0, space), budget);
+    budget -= amount;
+    moved += amount;
+    return amount;
+  };
+
+  const collectOutputs = () => {
+    for (const [veinId, drill] of Object.entries(nextDrills)) {
+      if (budget <= 0) return;
+      const def = drillDefinitionByVeinId(veinId);
+      if (!def) continue;
+      const stored = nextStockpile[def.oreMaterialId] ?? 0;
+      const amount = transfer(drill.oreBuffer, capacityPerMaterial - stored);
+      if (amount > 0) {
+        nextDrills[veinId] = { ...drill, oreBuffer: drill.oreBuffer - amount };
+        nextStockpile[def.oreMaterialId] = stored + amount;
+      }
+      for (const [bonusId, bonusAmount] of Object.entries(drill.bonusBuffer ?? {})) {
+        if (budget <= 0) return;
+        const bonusStored = nextStockpile[bonusId] ?? 0;
+        const bonusMoved = transfer(bonusAmount ?? 0, capacityPerMaterial - bonusStored);
+        if (bonusMoved > 0) {
+          const current = nextDrills[veinId];
+          nextDrills[veinId] = { ...current, bonusBuffer: { ...(current.bonusBuffer ?? {}), [bonusId]: (current.bonusBuffer?.[bonusId] ?? 0) - bonusMoved } };
+          nextStockpile[bonusId] = bonusStored + bonusMoved;
+        }
+      }
+    }
+    for (const [nodeId, harvester] of Object.entries(nextHarvesters)) {
+      if (budget <= 0) return;
+      const stored = nextStockpile.wood ?? 0;
+      const amount = transfer(harvester.woodBuffer, capacityPerMaterial - stored);
+      if (amount > 0) {
+        nextHarvesters[nodeId] = { ...harvester, woodBuffer: harvester.woodBuffer - amount };
+        nextStockpile.wood = stored + amount;
+      }
+    }
+    for (const def of SMELTING_ENGINE_DEFINITIONS) {
+      if (budget <= 0) return;
+      const engine = nextEngines[def.id];
+      if (!engine) continue;
+      const stored = nextStockpile[def.ingotMaterialId] ?? 0;
+      const amount = transfer(engine.ingotBuffer, capacityPerMaterial - stored);
+      if (amount > 0) {
+        nextEngines[def.id] = { ...engine, ingotBuffer: engine.ingotBuffer - amount };
+        nextStockpile[def.ingotMaterialId] = stored + amount;
+      }
+    }
+  };
+
+  const fuelExtractors = () => {
+    for (const [veinId, drill] of Object.entries(nextDrills)) {
+      if (budget <= 0) return;
+      const def = drillDefinitionByVeinId(veinId);
+      if (!def || def.coalPerCycle <= 0) continue;
+      const target = drill.coalBufferMax ?? 20;
+      const amount = transfer(nextStockpile.coal ?? 0, target - drill.coalBuffer);
+      if (amount > 0) {
+        nextStockpile.coal = (nextStockpile.coal ?? 0) - amount;
+        nextDrills[veinId] = { ...drill, coalBuffer: drill.coalBuffer + amount };
+      }
+    }
+    for (const [nodeId, harvester] of Object.entries(nextHarvesters)) {
+      if (budget <= 0) return;
+      const target = harvester.coalBufferMax ?? 20;
+      const amount = transfer(nextStockpile.coal ?? 0, target - harvester.coalBuffer);
+      if (amount > 0) {
+        nextStockpile.coal = (nextStockpile.coal ?? 0) - amount;
+        nextHarvesters[nodeId] = { ...harvester, coalBuffer: harvester.coalBuffer + amount };
+      }
+    }
+  };
+
+  const feedEngines = () => {
+    for (const def of SMELTING_ENGINE_DEFINITIONS) {
+      if (budget <= 0) return;
+      let engine = nextEngines[def.id];
+      if (!engine) continue;
+      let amount = transfer(nextStockpile[def.oreMaterialId] ?? 0, (engine.oreBufferMax ?? 20) - engine.oreBuffer);
+      if (amount > 0) {
+        nextStockpile[def.oreMaterialId] = (nextStockpile[def.oreMaterialId] ?? 0) - amount;
+        engine = { ...engine, oreBuffer: engine.oreBuffer + amount };
+      }
+      const fuelId = def.fuelMaterialId ?? "coal";
+      const fuelBuffer = fuelId === "hearthsap" ? engine.hearthsapBuffer : engine.coalBuffer;
+      amount = transfer(nextStockpile[fuelId] ?? 0, engine.coalBufferMax - fuelBuffer);
+      if (amount > 0) {
+        nextStockpile[fuelId] = (nextStockpile[fuelId] ?? 0) - amount;
+        engine = fuelId === "hearthsap"
+          ? { ...engine, hearthsapBuffer: engine.hearthsapBuffer + amount }
+          : { ...engine, coalBuffer: engine.coalBuffer + amount };
+      }
+      nextEngines[def.id] = engine;
+    }
+  };
+
+  const feedHearth = () => {
+    const fuels = ["coal", "charcoal", "wood"];
+    const reserveTarget = 50 + tier.tier * 25;
+    let reserveUnits = fuels.reduce((sum, id) => sum + (nextFuelReserve[id] ?? 0), 0);
+    for (const fuelId of fuels) {
+      if (budget <= 0 || reserveUnits >= reserveTarget) return;
+      const amount = transfer(nextStockpile[fuelId] ?? 0, reserveTarget - reserveUnits);
+      if (amount > 0) {
+        nextStockpile[fuelId] = (nextStockpile[fuelId] ?? 0) - amount;
+        nextFuelReserve[fuelId] = (nextFuelReserve[fuelId] ?? 0) + amount;
+        reserveUnits += amount;
+      }
+    }
+  };
+
+  if (mode === "outputs_first") {
+    collectOutputs(); fuelExtractors(); feedEngines(); feedHearth();
+  } else if (mode === "fuel_first") {
+    fuelExtractors(); feedEngines(); feedHearth(); collectOutputs();
+  } else {
+    fuelExtractors(); collectOutputs(); feedEngines(); feedHearth();
+  }
+
+  return {
+    stockpile: nextStockpile,
+    fuelReserve: nextFuelReserve,
+    drills: nextDrills,
+    harvesters: nextHarvesters,
+    engines: nextEngines,
+    lastHaulAt: lastHaulAt + trips * tier.haulIntervalMs,
+    moved,
+  };
 }
 
 /**

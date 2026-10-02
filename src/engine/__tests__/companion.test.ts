@@ -7,9 +7,11 @@ import {
   applyCompanionUpgrade,
   advanceMachineHauling,
   applyCompanionTraining,
+  advanceUnifiedLogistics,
 } from "../companion";
 import { createFreshDrillState } from "../drill";
 import { createFreshHarvesterState } from "../harvester";
+import { createFreshEngineState } from "../smeltingEngine";
 
 describe("companionHaulTierDef / nextCompanionHaulTier", () => {
   it("tier 1 is his original base rate - not a locked/unupgraded state", () => {
@@ -76,6 +78,40 @@ describe("advanceMachineHauling", () => {
     );
     expect(result.stockpile.copper_ore).toBe(10);
     expect(result.drills.mine_copper.oreBuffer).toBe(19);
+  });
+});
+
+describe("advanceUnifiedLogistics", () => {
+  it("shares one budget between refueling and collecting outputs", () => {
+    const tier = companionHaulTierDef(1); // 2 units per trip
+    const drill = { ...createFreshDrillState(), coalBuffer: 0, oreBuffer: 5 };
+    const result = advanceUnifiedLogistics(
+      { coal: 10 }, {}, { mine_copper: drill }, {}, {}, 1, 1 + tier.haulIntervalMs, tier, 100, "balanced",
+    );
+    expect(result.moved).toBe(2);
+    expect(result.drills.mine_copper.coalBuffer).toBe(2);
+    expect(result.drills.mine_copper.oreBuffer).toBe(5);
+  });
+
+  it("automatically refuels the Wood Harvester", () => {
+    const tier = applyCompanionTraining(companionHaulTierDef(1), 10);
+    const harvester = { ...createFreshHarvesterState(), coalBuffer: 0 };
+    const result = advanceUnifiedLogistics(
+      { coal: 20 }, {}, {}, { garden_roots: harvester }, {}, 1, 1 + tier.haulIntervalMs, tier, 100, "fuel_first",
+    );
+    expect(result.harvesters.garden_roots.coalBuffer).toBeGreaterThan(0);
+    expect(result.stockpile.coal).toBeLessThan(20);
+  });
+
+  it("feeds engine inputs and returns finished ingots through the same budget", () => {
+    const tier = applyCompanionTraining(companionHaulTierDef(1), 30);
+    const engine = { ...createFreshEngineState(), ingotBuffer: 2 };
+    const result = advanceUnifiedLogistics(
+      { copper_ore: 20, coal: 20 }, {}, {}, {}, { copper_engine: engine }, 1, 1 + tier.haulIntervalMs, tier, 100, "outputs_first",
+    );
+    expect(result.stockpile.copper_ingot).toBe(2);
+    expect(result.engines.copper_engine.ingotBuffer).toBe(0);
+    expect(result.engines.copper_engine.oreBuffer).toBeGreaterThan(0);
   });
 });
 
