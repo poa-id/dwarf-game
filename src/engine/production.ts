@@ -170,7 +170,9 @@ export function getRestorationScore(world: WorldState): RestorationBreakdown {
   else if (tradeHallStage === "restored") structureScore += 900;
   else if (tradeHallStage === "masterwork") structureScore += 2000;
 
-  const torchScore = Object.values(world.litTorches).filter(Boolean).length * 100;
+  // Hub torches are retired from the current loop. Old save data remains
+  // readable, but it no longer grants restoration for a removed mechanic.
+  const torchScore = 0;
 
   let drillScore = 0;
   for (const [_veinId, drillState] of Object.entries(world.drills)) {

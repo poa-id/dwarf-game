@@ -5,8 +5,7 @@ import { initGameState, getState } from "./game/gameState";
 import { initRenderRefs, render } from "./game/render";
 import { startGameLoop } from "./game/loop";
 import { handlePlayerMove, KEY_TO_DIRECTION } from "./game/movement";
-import { handleMineStrike, handleWoodGather, handleTorchRepair, handlePlaceTorch, handleLightPlacedTorch } from "./game/actions";
-import { hubCellAt } from "./render/hubContent";
+import { handleMineStrike, handleWoodGather } from "./game/actions";
 import { nearestOreVein, nearestWoodNode } from "./game/proximity";
 import { movePanelHighlight, confirmPanelHighlight } from "./game/panelNavigation";
 import { getLastSavedAt } from "./persistence/saveGame";
@@ -26,7 +25,7 @@ app.innerHTML = `
         <span id="stat-insight-rate" class="topbar-rate"></span>
       </div>
     </div>
-    <p class="subtitle">WASD move &middot; F gather &middot; E repair/light &middot; T place torch</p>
+    <p class="subtitle">WASD move &middot; F gather &middot; arrows + Enter navigate actions</p>
     <div class="game-area">
 
       <!-- LEFT PANEL: tabbed Skills/Bag/Production. Restoration + Insight
@@ -70,8 +69,6 @@ app.innerHTML = `
           </div>
           <div class="mobile-actions">
             <button data-game-action="gather">Gather</button>
-            <button data-game-action="use">Use</button>
-            <button data-game-action="torch">Torch</button>
           </div>
         </div>
       </div>
@@ -187,13 +184,6 @@ document.querySelectorAll<HTMLButtonElement>("[data-move]").forEach((button) => 
 document.querySelector<HTMLButtonElement>('[data-game-action="gather"]')?.addEventListener("click", () => {
   window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
 });
-document.querySelector<HTMLButtonElement>('[data-game-action="use"]')?.addEventListener("click", () => {
-  window.dispatchEvent(new KeyboardEvent("keydown", { key: "e" }));
-});
-document.querySelector<HTMLButtonElement>('[data-game-action="torch"]')?.addEventListener("click", () => {
-  window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
-});
-
 window.addEventListener("keydown", (e) => {
   // Repeat-guard covers every action/navigation key, not just F/E/R -
   // extended 2026-06-23 to include arrow keys and Space, since holding
@@ -215,46 +205,8 @@ window.addEventListener("keydown", (e) => {
     return;
   }
 
-  if (e.key === "e" || e.key === "E") {
-    handleTorchRepair(actionHint);
-    // Check for nearby placed torches (lit OR unlit)
-    const world = getState().world;
-    const pos = getState().vessel.position;
-    for (const [key] of Object.entries(world.placedTorches)) {
-      const [tc, tr] = key.split(",").map(Number);
-      if (Math.abs(tc - pos.col) <= 1 && Math.abs(tr - pos.row) <= 1) {
-        handleLightPlacedTorch(tc, tr, actionHint);
-        break;
-      }
-    }
-    render();
-    return;
-  }
-
   // Swallow Space entirely — it has no game action and causes page scroll
   if (e.key === " ") { e.preventDefault(); return; }
-
-  if (e.key === "t" || e.key === "T") {
-    const state = getState();
-    const world = state.world;
-    const drillTiers = Object.fromEntries(Object.entries(world.drills).map(([id, d]) => [id, d.tier]));
-    const isWallCell = (col: number, row: number): boolean => {
-      const cell = hubCellAt(col, row,
-        world.litTorches, world.veinDepletion, world.woodDepletion, world.forgeTier,
-        world.smelterBuilt, world.gemcuttingBuilt, world.companion.befriended,
-        world.consoleAwakened,
-        world.roomStates["stockpile_room"] ?? "ruined",
-        world.roomStates["trade_hall"] ?? "ruined",
-        world.roomStates["deep_foundry"] ?? "ruined",
-        world.roomStates["the_archive"] ?? "ruined",
-        drillTiers, world.placedTorches
-      );
-      return cell.kind === "rock_wall" || cell.kind === "rubble";
-    };
-    handlePlaceTorch(actionHint, isWallCell);
-    render();
-    return;
-  }
 
   // Arrow keys are fully reserved for contextual-panel navigation now
   // (2026-06-23, explicit direction) - they no longer move the dwarf

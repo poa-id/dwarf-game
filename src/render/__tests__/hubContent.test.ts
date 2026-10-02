@@ -74,12 +74,28 @@ describe("Sealed rooms have a real rubble interior, not void (2026-07-06 regress
     expect(grid[8 * HUB_WIDTH + 36].kind).toBe("rubble");
   });
 
-  it("each sealed room's approach corridor stays open (not swallowed by the full-room rubble fill)", async () => {
+  it("each sealed room has an open threshold but no corridor tunnelling through its interior", async () => {
     const { getHubGrid } = await import("../hubContent");
     const { HUB_WIDTH } = await import("../../engine/hubMap");
     const grid = getHubGrid();
     // Stockpile's approach corridor at col 50, row 25 (within cols 49-51)
     expect(grid[25 * HUB_WIDTH + 50].kind).toBe("rock_floor");
+    expect(grid[25 * HUB_WIDTH + 52].kind).toBe("rubble");
+    expect(grid[12 * HUB_WIDTH + 40].kind).toBe("rubble"); // Archive threshold
+    expect(grid[38 * HUB_WIDTH + 40].kind).toBe("rubble"); // Trade threshold
+    expect(grid[10 * HUB_WIDTH + 18].kind).toBe("rubble"); // Foundry threshold
+  });
+});
+
+describe("Retired Hub torches", () => {
+  it("ignores player-placed torch records from legacy saves", () => {
+    const cell = hubCellAt(
+      32, 16,
+      {}, {}, {}, 0, false, false, false, false,
+      "ruined", "ruined", "ruined", "ruined", {}, { "32,16": true }
+    );
+    expect(cell.kind).not.toBe("torch_lit");
+    expect(cell.kind).not.toBe("torch_broken");
   });
 });
 

@@ -10,7 +10,6 @@ import { PICKAXE_ICONS, AXE_ICONS } from "../render/toolIconManifest";
 import { bestAvailableAxe } from "../engine/woodcraft";
 import { getState, setState, narrate, persist } from "./gameState";
 import {
-  nearestUnrepairedTorch,
   nearestOreVein,
   nearestAnyVein,
   nearestWoodNode,
@@ -418,15 +417,6 @@ export function updateActionHint(): void {
     return;
   }
 
-  const torch = nearestUnrepairedTorch();
-  if (torch) {
-    const costText = Object.entries(torch.repairCost)
-      .map(([res, amt]) => `${amt} ${res}`)
-      .join(", ");
-    refs.actionHint.textContent = `Press E to repair ${torch.name} (${costText})`;
-    return;
-  }
-
   const vein = nearestOreVein();
   if (vein) {
     const rockNode = ROCK_NODES.find((n) => n.id === vein.rockNodeId);
@@ -467,52 +457,6 @@ export function updateActionHint(): void {
     return;
   }
 
-  // Check for nearby placed torches
-  const nearbyPlacedTorch = (() => {
-    const { position } = getState().vessel;
-    const torches = world.placedTorches;
-    for (const [key, isLit] of Object.entries(torches)) {
-      const [tc, tr] = key.split(",").map(Number);
-      if (Math.abs(tc - position.col) <= 1 && Math.abs(tr - position.row) <= 1) {
-        return { key, isLit };
-      }
-    }
-    return null;
-  })();
-
-  if (nearbyPlacedTorch) {
-    refs.actionHint.textContent = nearbyPlacedTorch.isLit
-      ? "E — remove torch (+1 Wood)"
-      : "E — light torch (1 Copper Ingot)";
-    return;
-  }
-
-  // Show torch placement hint only when adjacent to a wall and carrying materials
-  const { inventory } = getState().vessel;
-  if ((inventory["wood"] ?? 0) >= 1 && (inventory["coal"] ?? 0) >= 1) {
-    const pos = getState().vessel.position;
-    const s = getState();
-    const w = s.world;
-    const drillTiers = Object.fromEntries(Object.entries(w.drills).map(([id, d]) => [id, d.tier]));
-    const adjacentWall = [
-      { col: pos.col, row: pos.row - 1 },
-      { col: pos.col, row: pos.row + 1 },
-      { col: pos.col - 1, row: pos.row },
-      { col: pos.col + 1, row: pos.row },
-    ].some(c => {
-      const cell = hubCellAt(c.col, c.row, w.litTorches, w.veinDepletion, w.woodDepletion,
-        w.forgeTier, w.smelterBuilt, w.gemcuttingBuilt, w.companion.befriended,
-        w.consoleAwakened, w.roomStates["stockpile_room"] ?? "ruined",
-        w.roomStates["trade_hall"] ?? "ruined", w.roomStates["deep_foundry"] ?? "ruined",
-        w.roomStates["the_archive"] ?? "ruined", drillTiers, w.placedTorches, w.mineshaftDepth, w.gardenSlots,
-        w.sawmillBuilt, w.turbineBuilt, w.harvesters["garden_roots"]?.tier ?? 0,
-        w.harvestCompanion.befriended || (w.harvesters["garden_roots"]?.tier ?? 0) > 0);
-      return cell.kind === "rock_wall" || cell.kind === "rubble";
-    });
-    if (adjacentWall) {
-      refs.actionHint.textContent = "T — place torch on nearby wall";
-    }
-  }
 }
 
 /**

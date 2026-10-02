@@ -111,22 +111,25 @@ function buildHubContent(): GridCell[] {
   //   Top edge cols 39-41   = row 17 → exit starts row 16 (upward)
   //   Bottom edge cols 39-41= row 33 → exit starts row 34 (downward)
 
-  // N stub (to sealed rubble face)
-  fill(39, 5, 41, 17, "rock_floor");
+  // N threshold: stop at the Archive's south wall (room begins row 12).
+  // The old fill continued through the full sealed room and split its
+  // rubble into two visually broken halves.
+  fill(39, 13, 41, 17, "rock_floor");
 
   // NE: vert leg cols 49-51, rows 9-22; horiz leg rows 9-11 rightward
   fill(49,  9, 51, 22, "rock_floor"); // NE vert
   fill(49,  9, 63, 11, "rock_floor"); // NE horiz (enters Forge Room top)
 
-  // E stub (to sealed rubble face)
-  fill(49, 23, 63, 25, "rock_floor");
+  // E threshold: the Stockpile begins at col 52 and remains a single
+  // sealed volume until restored.
+  fill(49, 23, 51, 25, "rock_floor");
 
   // SE: vert leg cols 49-51, rows 27-37; horiz leg rows 35-37 rightward
   fill(49, 27, 51, 37, "rock_floor"); // SE vert
   fill(49, 35, 63, 37, "rock_floor"); // SE horiz (enters Tinkering Room top)
 
-  // S stub (to sealed rubble face)
-  fill(39, 33, 41, 45, "rock_floor");
+  // S threshold: stop immediately north of the Trade Hall (row 38).
+  fill(39, 33, 41, 37, "rock_floor");
 
   // SW: vert leg cols 29-31, rows 27-44; horiz leg rows 42-44 leftward
   fill(29, 27, 31, 44, "rock_floor"); // SW vert
@@ -135,9 +138,10 @@ function buildHubContent(): GridCell[] {
   // W: straight left, rows 23-25
   fill( 6, 23, 31, 25, "rock_floor");
 
-  // NW stub: vert cols 29-31, rows 9-22; horiz rows 9-11 leftward
+  // NW threshold: the horizontal leg ends at the Deep Foundry's east
+  // wall instead of tunnelling through its sealed interior.
   fill(29,  9, 31, 22, "rock_floor"); // NW vert
-  fill( 6,  9, 31, 11, "rock_floor"); // NW horiz
+  fill(19,  9, 31, 11, "rock_floor"); // NW horiz
 
   // ── 5. Hearth 6×6 — the heart of the mountain ────────────────────────
   const { originCol: hc, originRow: hr } = HEARTH_FOOTPRINT;
@@ -315,7 +319,7 @@ export function hubCellAt(
   deepFoundryStage: string = "ruined",
   archiveStage: string = "ruined",
   drillTiers: Record<string, number> = {},
-  placedTorches: Record<string, boolean> = {},
+  _placedTorches: Record<string, boolean> = {},
   mineshaftDepth: number = 0,
   gardenSlots: PlanterSlot[] = [],
   sawmillBuilt: boolean = false,
@@ -327,11 +331,9 @@ export function hubCellAt(
     return { kind: "void" };
   }
 
-  // Placed torches — player-mounted on wall cells. Override the wall with a torch sprite.
-  const torchKey = `${col},${row}`;
-  if (placedTorches[torchKey] !== undefined) {
-    return { kind: placedTorches[torchKey] ? "torch_lit" : "torch_broken" };
-  }
+  // Player-placed torches are retained in old saves for compatibility,
+  // but are no longer part of the Hub loop. They may return as an
+  // expedition supply later; they do not alter Hub architecture now.
 
   // Garden planters — each 3×3 slot shows its growth stage dynamically
   for (let i = 0; i < PLANTER_POSITIONS.length; i++) {
