@@ -17,9 +17,11 @@ import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
 import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
 import { stockpileCapacityPerMaterial, type RoomStage } from "../engine/rooms";
-import { companionHaulTierDef } from "../engine/companion";
+import { companionHaulTierDef, applyCompanionTraining } from "../engine/companion";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
 import { harvesterDefinitionByNodeId, tickHarvester } from "../engine/harvester";
+import { ORE_VEINS } from "../engine/hubMap";
+import { ROCK_NODES } from "../engine/mining";
 
 export const TICK_INTERVAL_MS = 1000;
 
@@ -79,7 +81,7 @@ function gameTick(): void {
       state.world.fuelReserve,
       state.world.companion.lastHaulAt,
       now,
-      companionHaulTierDef(state.world.companion.tier)
+      applyCompanionTraining(companionHaulTierDef(state.world.companion.tier), state.world.companion.trainingRank ?? 0)
     );
     if (haul.lastHaulAt !== state.world.companion.lastHaulAt) {
       setState({
@@ -101,7 +103,7 @@ function gameTick(): void {
       state.world.fuelReserve,
       state.world.drills,
       state.world.hearthTier,
-      companionHaulTierDef(state.world.companion.tier)
+      applyCompanionTraining(companionHaulTierDef(state.world.companion.tier), state.world.companion.trainingRank ?? 0)
     );
     if (drillHaul.hauled) {
       setState({
@@ -212,11 +214,17 @@ function gameTick(): void {
     const gemDropChanceBonus = totalGemDropChanceBonus(state.world.gemcuttingTier, state.world.cutGemsSpentOnPerk);
     let newInventoryForGems = { ...state.vessel.inventory };
     let gemsChanged = false;
+    let passiveMiningRawXp = 0;
 
     for (const [veinId, drillState] of drillEntries) {
       const def = drillDefinitionByVeinId(veinId);
       if (!def) continue;
       const result = tickDrill(drillState, def, now, speedMultiplier, gemDropChanceBonus);
+      if (result.oreProduced > 0) {
+        const vein = ORE_VEINS.find((entry) => entry.id === def.veinId);
+        const node = vein ? ROCK_NODES.find((entry) => entry.id === vein.rockNodeId) : undefined;
+        passiveMiningRawXp += result.oreProduced * (node?.baseXp ?? 5);
+      }
       // Gem drops (2026-07-06) - deposited straight to inventory, same
       // as a manual strike's bonus gem would be. See drill.ts's
       // DrillTickResult.gemsGained doc comment: automation shouldn't
@@ -261,14 +269,22 @@ function gameTick(): void {
         drillChanged = true;
       }
     }
-    if (drillChanged || gemsChanged) {
+    if (drillChanged || gemsChanged || passiveMiningRawXp > 0) {
+      const multipliedXp = applyDwarfCountXpMultiplier(passiveMiningRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const miningXp = state.vessel.skills.mining.xp + multipliedXp;
+      const previousMiningLevel = state.vessel.skills.mining.level;
+      const miningLevel = levelForXp(miningXp);
       setState({
         ...state,
-        world: { ...state.world, drills: newDrills, stockpileOre: newStockpile },
-        vessel: { ...state.vessel, inventory: newInventoryForGems },
+        world: { ...state.world, drills: newDrills, stockpileOre: newStockpile, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
+        vessel: { ...state.vessel, inventory: newInventoryForGems, skills: { ...state.vessel.skills, mining: { ...state.vessel.skills.mining, xp: miningXp, level: miningLevel } } },
       });
       state = getState();
       changed = true;
+      if (miningLevel > previousMiningLevel) {
+        narrate("level_up");
+        state = getState();
+      }
     }
   }
 
@@ -279,21 +295,35 @@ function gameTick(): void {
   if (harvesterEntries.length > 0) {
     let newHarvesters = { ...state.world.harvesters };
     let harvesterChanged = false;
+    let passiveWoodcraftRawXp = 0;
 
     for (const [nodeId, harvesterState] of harvesterEntries) {
       const def = harvesterDefinitionByNodeId(nodeId);
       if (!def) continue;
       const result = tickHarvester(harvesterState, def, now);
+      passiveWoodcraftRawXp += result.woodProduced * 7;
       if (result.ranCycle || result.harvester.lastCycleAt !== harvesterState.lastCycleAt) {
         newHarvesters = { ...newHarvesters, [nodeId]: result.harvester };
         harvesterChanged = true;
       }
     }
 
-    if (harvesterChanged) {
-      setState({ ...state, world: { ...state.world, harvesters: newHarvesters } });
+    if (harvesterChanged || passiveWoodcraftRawXp > 0) {
+      const multipliedXp = applyDwarfCountXpMultiplier(passiveWoodcraftRawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
+      const woodcraftXp = state.vessel.skills.woodcraft.xp + multipliedXp;
+      const previousWoodcraftLevel = state.vessel.skills.woodcraft.level;
+      const woodcraftLevel = levelForXp(woodcraftXp);
+      setState({
+        ...state,
+        world: { ...state.world, harvesters: newHarvesters, insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates) },
+        vessel: { ...state.vessel, skills: { ...state.vessel.skills, woodcraft: { ...state.vessel.skills.woodcraft, xp: woodcraftXp, level: woodcraftLevel } } },
+      });
       state = getState();
       changed = true;
+      if (woodcraftLevel > previousWoodcraftLevel) {
+        narrate("level_up");
+        state = getState();
+      }
     }
   }
 

@@ -83,7 +83,7 @@ export function createInitialWorld(now: number): WorldState {
     forgeTier: 0,
     hearthTier: 0,
     fuelReserve: {},
-    companion: { befriended: false, lastHaulAt: now, tier: 1 },
+    companion: { befriended: false, lastHaulAt: now, tier: 1, trainingRank: 0 },
     unlockedMineDepth: 0,
     hearth: createInitialHearth(now),
     insightBanked: 0,

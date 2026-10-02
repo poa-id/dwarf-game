@@ -37,6 +37,8 @@ export interface DrillState {
   oreBufferMax: number;
   /** Which buffer upgrade tier has been purchased (0 = none, 1/2/3 = upgraded) */
   bufferTier: number;
+  /** Repeatable throughput upgrades; each rank accelerates the cycle. */
+  outputRank?: number;
 }
 
 export const DRILL_COAL_BUFFER_MAX = 20;
@@ -75,7 +77,25 @@ export function nextBufferUpgrade(drillId: string, currentBufferTier: number): D
 }
 
 export function createFreshDrillState(): DrillState {
-  return { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: DRILL_COAL_BUFFER_MAX, oreBufferMax: DRILL_ORE_BUFFER_MAX, bufferTier: 0 };
+  return { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: DRILL_COAL_BUFFER_MAX, oreBufferMax: DRILL_ORE_BUFFER_MAX, bufferTier: 0, outputRank: 0 };
+}
+
+export const MAX_DRILL_OUTPUT_RANK = 30;
+
+export function drillOutputMultiplier(rank: number): number {
+  return 1 + Math.max(0, rank) * 0.25;
+}
+
+export function drillOutputUpgradeCost(def: DrillDefinition, rank: number): ResourceBag {
+  const nextRank = Math.max(1, rank + 1);
+  const amount = Math.ceil(8 * Math.pow(1.38, nextRank - 1));
+  const material = def.id === "iron_drill" ? "deepstone_ingot" : def.id === "coal_drill" ? "iron_ingot" : "copper_ingot";
+  return { [material]: amount };
+}
+
+export function canAffordDrillOutputUpgrade(def: DrillDefinition, drill: DrillState, inventory: ResourceBag): boolean {
+  const rank = drill.outputRank ?? 0;
+  return rank < MAX_DRILL_OUTPUT_RANK && canAffordMaterials(inventory, drillOutputUpgradeCost(def, rank));
 }
 
 // ---------------------------------------------------------------------------
@@ -324,7 +344,7 @@ export function tickDrill(
   // Speed multiplier shrinks the effective cycle time (>1 = faster).
   // Rounded to the nearest ms so cyclesElapsed math below stays exact
   // integer division rather than drifting on repeated fractional ticks.
-  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / speedMultiplier));
+  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / (speedMultiplier * drillOutputMultiplier(drill.outputRank ?? 0))));
   const elapsedMs = Math.max(0, now - drill.lastCycleAt);
 
   if (drill.lastCycleAt === 0) {

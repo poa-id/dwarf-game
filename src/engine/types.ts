@@ -397,6 +397,8 @@ export interface CompanionState {
    * design language), independent of the Forge's own automation.
    */
   tier: number;
+  /** Repeatable resource-sink upgrades layered on top of the named tiers. */
+  trainingRank?: number;
 }
 
 // ---------------------------------------------------------------------------

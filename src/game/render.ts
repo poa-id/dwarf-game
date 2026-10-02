@@ -44,7 +44,7 @@ import { renderKilnPanel, performCharcoalBurn, performRenderHearthsap } from "..
 import { canAffordCharcoalBurn } from "../engine/kiln";
 import { renderSawmillPanel, performSawmillBuild, performSawPlanks } from "../ui/sawmillPanel";
 import { renderTurbinePanel, performTurbineBuild } from "../ui/turbinePanel";
-import { renderCompanionPanel, performCompanionUpgrade } from "../ui/companionPanel";
+import { renderCompanionPanel, performCompanionUpgrade, performCompanionTraining } from "../ui/companionPanel";
 import { canAffordPlankSaw } from "../engine/sawmill";
 import {
   renderSmelterPanel,
@@ -64,7 +64,7 @@ import {
   performSpendCutGemOnPerk,
 } from "../ui/gemcuttingPanel";
 import { canAffordCutGem } from "../engine/gemcutting";
-import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer } from "../ui/drillPanel";
+import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer, performUpgradeDrillOutput } from "../ui/drillPanel";
 import { renderHarvesterPanel, performBuildHarvester, performRefuelHarvester, performCollectHarvesterWood, performUpgradeHarvester } from "../ui/harvesterPanel";
 import { renderHarvestCompanionPanel, performBefriendHarvestCompanion } from "../ui/harvestCompanionPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
@@ -541,10 +541,18 @@ function updateContextualPanel(): void {
   if (isNearCompanion()) {
     if (lastActivePanelKind !== "companion") resetPanelHighlight();
     lastActivePanelKind = "companion";
-    renderCompanionPanel(state, refs.contextualPanel, () => {
-      setState(performCompanionUpgrade(getState()));
-      render();
-    });
+    renderCompanionPanel(
+      state,
+      refs.contextualPanel,
+      () => {
+        setState(performCompanionUpgrade(getState()));
+        render();
+      },
+      () => {
+        setState(performCompanionTraining(getState()));
+        render();
+      },
+    );
     reapplyPanelHighlight(refs.contextualPanel);
     return;
   }
@@ -958,7 +966,8 @@ function updateContextualPanel(): void {
       () => { setState(performRefuelDrill(getState(), nearVein.id)); render(); },
       () => { setState(performCollectDrillOre(getState(), nearVein.id)); render(); },
       () => { setState(performUpgradeDrill(getState(), nearVein.id)); render(); },
-      () => { setState(performUpgradeDrillBuffer(getState(), nearVein.id)); render(); }
+      () => { setState(performUpgradeDrillBuffer(getState(), nearVein.id)); render(); },
+      () => { setState(performUpgradeDrillOutput(getState(), nearVein.id)); render(); }
     );
     if (refs.contextualPanel.innerHTML) reapplyPanelHighlight(refs.contextualPanel);
     return;

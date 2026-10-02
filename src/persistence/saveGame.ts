@@ -67,6 +67,7 @@ function backfillMissingFields(state: any): any {
       if (d.coalBufferMax === undefined) d.coalBufferMax = 20;
       if (d.oreBufferMax === undefined) d.oreBufferMax = 20;
       if (d.bufferTier === undefined) d.bufferTier = 0;
+      if (d.outputRank === undefined) d.outputRank = 0;
     }
     if (state.world.consoleAwakened === undefined) state.world.consoleAwakened = false;
     if (state.world.rekindleMultiplier === undefined) state.world.rekindleMultiplier = 0;
@@ -103,6 +104,7 @@ function backfillMissingFields(state: any): any {
       // base rate, not "not upgraded" (tier 0 doesn't exist).
       state.world.companion.tier = 1;
     }
+    if (state.world.companion.trainingRank === undefined) state.world.companion.trainingRank = 0;
     if (state.world.toolsForged === undefined) {
       // Old saves predate smithed tools entirely - backfill at 0/0
       // (bare hands for both slots), same as a brand new world. This

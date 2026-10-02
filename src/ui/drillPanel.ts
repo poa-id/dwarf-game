@@ -11,6 +11,10 @@ import {
   DRILL_COAL_BUFFER_MAX,
   DRILL_ORE_BUFFER_MAX,
   type DrillState,
+  drillOutputMultiplier,
+  drillOutputUpgradeCost,
+  canAffordDrillOutputUpgrade,
+  MAX_DRILL_OUTPUT_RANK,
 } from "../engine/drill";
 import { getMaterialAmount, MATERIALS, deductMaterials } from "../engine/types";
 import type { GameState } from "../engine/types";
@@ -32,7 +36,8 @@ export function renderDrillSection(
   onRefuel: () => void,
   onCollect: () => void,
   onUpgrade: () => void,
-  onBufferUpgrade?: () => void
+  onBufferUpgrade?: () => void,
+  onOutputUpgrade?: () => void
 ): void {
   const def = drillDefinitionByVeinId(veinId);
   if (!def) return; // no drill for this vein type yet
@@ -65,14 +70,17 @@ export function renderDrillSection(
     }
   } else {
     const tierDef = drillTierDefinition(def, drillState.tier);
-    const orePct = Math.round((drillState.oreBuffer / DRILL_ORE_BUFFER_MAX) * 100);
-    const cyclesSec = tierDef.cycleMs / 1000;
+    const orePct = Math.round((drillState.oreBuffer / (drillState.oreBufferMax ?? DRILL_ORE_BUFFER_MAX)) * 100);
+    const outputRank = drillState.outputRank ?? 0;
+    const outputMultiplier = drillOutputMultiplier(outputRank);
+    const cyclesSec = tierDef.cycleMs / outputMultiplier / 1000;
+    const orePerMin = tierDef.orePerCycle * 60 / (tierDef.cycleMs / outputMultiplier / 1000);
 
     const needsFuel = def.coalPerCycle > 0;
     const isRunning = (!needsFuel || drillState.coalBuffer >= def.coalPerCycle) &&
-                      drillState.oreBuffer < DRILL_ORE_BUFFER_MAX;
+                      drillState.oreBuffer < (drillState.oreBufferMax ?? DRILL_ORE_BUFFER_MAX);
     const statusLine = isRunning
-      ? `Running — ${tierDef.orePerCycle} ore every ${cyclesSec}s`
+      ? `Running — ${tierDef.orePerCycle} ore every ${cyclesSec.toFixed(1)}s · ${orePerMin.toFixed(1)}/min`
       : needsFuel && drillState.coalBuffer < def.coalPerCycle
         ? "Stopped — out of coal"
         : "Stopped — ore buffer full";
@@ -83,18 +91,18 @@ export function renderDrillSection(
     // drill offering a "Refuel" action that does nothing would just be
     // confusing, not a harmless extra option.
     const coalHeld = getMaterialAmount(state.vessel.inventory, "coal");
-    const coalSpace = DRILL_COAL_BUFFER_MAX - drillState.coalBuffer;
+    const coalSpace = (drillState.coalBufferMax ?? DRILL_COAL_BUFFER_MAX) - drillState.coalBuffer;
     const canRefuel = needsFuel && coalHeld > 0 && coalSpace > 0;
     const refuelRow = !needsFuel
       ? ""
       : canRefuel
       ? `<div class="recipe-row" data-drill-action="refuel">
            <div class="recipe-name">Refuel</div>
-           <div class="recipe-status">Add coal (${drillState.coalBuffer}/${DRILL_COAL_BUFFER_MAX})</div>
+           <div class="recipe-status">Add coal (${drillState.coalBuffer}/${drillState.coalBufferMax ?? DRILL_COAL_BUFFER_MAX})</div>
          </div>`
       : `<div class="recipe-row recipe-row-disabled">
            <div class="recipe-name">Refuel</div>
-           <div class="recipe-status">${drillState.coalBuffer}/${DRILL_COAL_BUFFER_MAX} coal${coalHeld === 0 ? " — carry coal to refuel" : " — buffer full"}</div>
+           <div class="recipe-status">${drillState.coalBuffer}/${drillState.coalBufferMax ?? DRILL_COAL_BUFFER_MAX} coal${coalHeld === 0 ? " — carry coal to refuel" : " — buffer full"}</div>
          </div>`;
 
     // Collect row
@@ -133,6 +141,16 @@ export function renderDrillSection(
            </div>`
         : "";
 
+    const outputCost = drillOutputUpgradeCost(def, outputRank);
+    const canOutputUpgrade = canAffordDrillOutputUpgrade(def, drillState, state.vessel.inventory);
+    const outputCostText = Object.entries(outputCost).map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`).join(", ");
+    const outputRow = outputRank < MAX_DRILL_OUTPUT_RANK
+      ? `<div class="recipe-row ${canOutputUpgrade ? "" : "recipe-row-disabled"}" data-drill-action="output-upgrade">
+           <div class="recipe-name">Tune Output — Rank ${outputRank + 1}</div>
+           <div class="recipe-status">${canOutputUpgrade ? outputCostText : `Need: ${outputCostText}`} — +25% cycles/min</div>
+         </div>`
+      : "";
+
     html = `
       <h2>${def.name} — Tier ${drillState.tier}: ${tierDef.name}</h2>
       <p class="reserve-status">${statusLine}</p>
@@ -140,6 +158,7 @@ export function renderDrillSection(
       ${refuelRow}
       ${collectRow}
       ${upgradeRow}
+      ${outputRow}
       ${bufferRow}
     `;
   }
@@ -158,8 +177,22 @@ export function renderDrillSection(
       else if (action === "collect") onCollect();
       else if (action === "upgrade") onUpgrade();
       else if (action === "buffer-upgrade") onBufferUpgrade?.();
+      else if (action === "output-upgrade") onOutputUpgrade?.();
     });
   });
+}
+
+export function performUpgradeDrillOutput(state: GameState, veinId: string): GameState {
+  const drillState = state.world.drills[veinId];
+  const def = drillDefinitionByVeinId(veinId);
+  if (!drillState || !def || !canAffordDrillOutputUpgrade(def, drillState, state.vessel.inventory)) return state;
+  const rank = drillState.outputRank ?? 0;
+  const cost = drillOutputUpgradeCost(def, rank);
+  return {
+    ...state,
+    world: { ...state.world, drills: { ...state.world.drills, [veinId]: { ...drillState, outputRank: rank + 1 } } },
+    vessel: { ...state.vessel, inventory: deductMaterials(state.vessel.inventory, cost) },
+  };
 }
 
 // ---------------------------------------------------------------------------

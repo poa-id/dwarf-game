@@ -12,6 +12,8 @@ import {
   collectDrillOre,
   drillSpeedMultiplier,
   MINESHAFT_DEPTH1_DRILL_SPEED_BONUS,
+  drillOutputMultiplier,
+  drillOutputUpgradeCost,
   type DrillState,
 } from "../drill";
 import type { ResourceBag } from "../types";
@@ -45,6 +47,28 @@ describe("DRILL_DEFINITIONS", () => {
       expect(def.tiers.length).toBeGreaterThan(0);
       def.tiers.forEach((t, i) => expect(t.tier).toBe(i + 1));
     }
+  });
+});
+
+describe("repeatable drill output upgrades", () => {
+  it("adds 25% throughput per rank", () => {
+    expect(drillOutputMultiplier(0)).toBe(1);
+    expect(drillOutputMultiplier(4)).toBe(2);
+  });
+
+  it("uses increasingly expensive processed resources as a sink", () => {
+    const first = drillOutputUpgradeCost(copperDrillDef, 0).copper_ingot ?? 0;
+    const fifth = drillOutputUpgradeCost(copperDrillDef, 4).copper_ingot ?? 0;
+    expect(fifth).toBeGreaterThan(first);
+    expect(drillOutputUpgradeCost(coalDrillDef, 0).iron_ingot).toBeGreaterThan(0);
+  });
+
+  it("actually shortens cycle time through tickDrill", () => {
+    const base = { ...createFreshDrillState(), lastCycleAt: 1, coalBuffer: 20, oreBufferMax: 100 };
+    const tuned = { ...base, outputRank: 4 };
+    const elapsed = drillTierDefinition(copperDrillDef, 1).cycleMs;
+    expect(tickDrill(tuned, copperDrillDef, 1 + elapsed).oreProduced)
+      .toBeGreaterThan(tickDrill(base, copperDrillDef, 1 + elapsed).oreProduced);
   });
 });
 

@@ -38,12 +38,36 @@ export interface CompanionHaulTier {
 }
 
 export const COMPANION_HAUL_TIERS: CompanionHaulTier[] = [
-  { tier: 1, name: "Coal-Beetle", haulIntervalMs: 10_000, haulAmountPerTrip: 1, drillHaulCap: 5, upgradeCost: {}, upgradeInsightCost: 0 },
-  { tier: 2, name: "Laden Beetle", haulIntervalMs: 6_000, haulAmountPerTrip: 3, drillHaulCap: 12, upgradeCost: { iron_ingot: 20, copper_ingot: 10 }, upgradeInsightCost: 500 },
+  { tier: 1, name: "Coal-Beetle", haulIntervalMs: 5_000, haulAmountPerTrip: 2, drillHaulCap: 8, upgradeCost: {}, upgradeInsightCost: 0 },
+  { tier: 2, name: "Laden Beetle", haulIntervalMs: 4_000, haulAmountPerTrip: 5, drillHaulCap: 16, upgradeCost: { iron_ingot: 20, copper_ingot: 10 }, upgradeInsightCost: 500 },
   { tier: 3, name: "Armored Hauler", haulIntervalMs: 3_500, haulAmountPerTrip: 8, drillHaulCap: 25, upgradeCost: { iron_ingot: 40, deepstone_ingot: 10 }, upgradeInsightCost: 1_500 },
   { tier: 4, name: "Tireless Hauler", haulIntervalMs: 2_000, haulAmountPerTrip: 20, drillHaulCap: 60, upgradeCost: { deepstone_ingot: 30, true_iron: 5 }, upgradeInsightCost: 4_000 },
   { tier: 5, name: "Unburdened Beast", haulIntervalMs: 1_000, haulAmountPerTrip: 50, drillHaulCap: 150, upgradeCost: { true_iron: 10, true_copper: 10 }, upgradeInsightCost: 10_000 },
 ];
+
+export const MAX_COMPANION_TRAINING_RANK = 25;
+
+export function companionTrainingCost(rank: number): ResourceBag {
+  const nextRank = Math.max(1, rank + 1);
+  return {
+    coal: Math.ceil(20 * Math.pow(1.42, nextRank - 1)),
+    copper_ingot: Math.ceil(2 * Math.pow(1.32, nextRank - 1)),
+  };
+}
+
+/** Each repeatable rank adds 25% to carrying capacity. */
+export function applyCompanionTraining(tier: CompanionHaulTier, rank: number): CompanionHaulTier {
+  const multiplier = 1 + Math.max(0, rank) * 0.25;
+  return {
+    ...tier,
+    haulAmountPerTrip: Math.max(1, Math.round(tier.haulAmountPerTrip * multiplier)),
+    drillHaulCap: Math.max(1, Math.round(tier.drillHaulCap * multiplier)),
+  };
+}
+
+export function canAffordCompanionTraining(rank: number, inventory: ResourceBag): boolean {
+  return rank < MAX_COMPANION_TRAINING_RANK && canAffordMaterials(inventory, companionTrainingCost(rank));
+}
 
 export function companionHaulTierDef(tier: number): CompanionHaulTier {
   return COMPANION_HAUL_TIERS.find((t) => t.tier === tier) ?? COMPANION_HAUL_TIERS[0];

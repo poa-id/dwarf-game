@@ -436,8 +436,8 @@ export function isAutoTendingUnlocked(hearthTier: number): boolean {
 // outsider's.
 // ---------------------------------------------------------------------------
 
-export const HAUL_INTERVAL_MS = 10_000;
-export const HAUL_AMOUNT_PER_TRIP = 1;
+export const HAUL_INTERVAL_MS = 5_000;
+export const HAUL_AMOUNT_PER_TRIP = 2;
 
 /**
  * Narag-Bund's haul interval/amount now come from his OWN upgrade tier

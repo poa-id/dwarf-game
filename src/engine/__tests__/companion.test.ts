@@ -10,9 +10,9 @@ import {
 describe("companionHaulTierDef / nextCompanionHaulTier", () => {
   it("tier 1 is his original base rate - not a locked/unupgraded state", () => {
     const tier1 = companionHaulTierDef(1);
-    expect(tier1.haulIntervalMs).toBe(10_000);
-    expect(tier1.haulAmountPerTrip).toBe(1);
-    expect(tier1.drillHaulCap).toBe(5);
+    expect(tier1.haulIntervalMs).toBe(5_000);
+    expect(tier1.haulAmountPerTrip).toBe(2);
+    expect(tier1.drillHaulCap).toBe(8);
     expect(tier1.upgradeInsightCost).toBe(0);
   });
 
