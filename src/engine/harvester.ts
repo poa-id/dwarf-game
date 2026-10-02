@@ -31,6 +31,8 @@ export interface HarvesterState {
   lastCycleAt: number;
   coalBufferMax: number;
   woodBufferMax: number;
+  /** Repeatable throughput upgrades; each rank accelerates the cycle. */
+  outputRank?: number;
 }
 
 export const HARVESTER_COAL_BUFFER_MAX = 20;
@@ -44,7 +46,24 @@ export function createFreshHarvesterState(): HarvesterState {
     lastCycleAt: 0,
     coalBufferMax: HARVESTER_COAL_BUFFER_MAX,
     woodBufferMax: HARVESTER_WOOD_BUFFER_MAX,
+    outputRank: 0,
   };
+}
+
+export const MAX_HARVESTER_OUTPUT_RANK = 100;
+
+export function harvesterOutputMultiplier(rank: number): number {
+  return 1 + Math.max(0, rank) * 0.25;
+}
+
+export function harvesterOutputUpgradeCost(rank: number): ResourceBag {
+  const nextRank = Math.max(1, rank + 1);
+  return { wood_planks: Math.ceil(6 * Math.pow(1.38, nextRank - 1)) };
+}
+
+export function canAffordHarvesterOutputUpgrade(harvester: HarvesterState, inventory: ResourceBag): boolean {
+  const rank = harvester.outputRank ?? 0;
+  return rank < MAX_HARVESTER_OUTPUT_RANK && canAffordMaterials(inventory, harvesterOutputUpgradeCost(rank));
 }
 
 export interface HarvesterTier {
@@ -135,7 +154,7 @@ export function tickHarvester(
   }
 
   const tierDef = harvesterTierDefinition(def, harvester.tier);
-  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / speedMultiplier));
+  const effectiveCycleMs = Math.max(1, Math.round(tierDef.cycleMs / (speedMultiplier * harvesterOutputMultiplier(harvester.outputRank ?? 0))));
   const elapsedMs = Math.max(0, now - harvester.lastCycleAt);
 
   if (harvester.lastCycleAt === 0) {

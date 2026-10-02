@@ -49,7 +49,8 @@ export function renderSawmillPanel(
   } else {
     const { woodcraft } = state.vessel.skills;
     const meetsLevel = woodcraft.level >= PLANK_RECIPE.requiredLevel;
-    const affordable = canAffordPlankSaw(state.vessel.inventory, state.world.sawmillWoodBuffer);
+    const availableAutomatedWood = state.world.sawmillWoodBuffer + (state.world.stockpileOre.wood ?? 0);
+    const affordable = canAffordPlankSaw(state.vessel.inventory, availableAutomatedWood);
     const canSaw = meetsLevel && affordable;
     const costText = `${PLANK_RECIPE.woodCost} ${MATERIALS.wood?.name ?? "wood"}`;
     let status = costText;
@@ -107,11 +108,13 @@ export function performSawPlanks(state: GameState): SawmillOutcome {
     state.vessel.inventory,
     Math.random(),
     yieldPerkBonus(state.world.trueMetalSpentOnYieldPerk) + state.world.rekindleMultiplier,
-    state.world.sawmillWoodBuffer
+    state.world.sawmillWoodBuffer + (state.world.stockpileOre.wood ?? 0)
   );
   const newInventory = applySawPlanksResult(state.vessel.inventory, result);
   // The buffer portion isn't inventory - deduct it from WorldState directly.
-  const newSawmillWoodBuffer = state.world.sawmillWoodBuffer - result.woodSpentFromBuffer;
+  const spentFromLegacyBuffer = Math.min(state.world.sawmillWoodBuffer, result.woodSpentFromBuffer);
+  const spentFromStockpile = result.woodSpentFromBuffer - spentFromLegacyBuffer;
+  const newSawmillWoodBuffer = state.world.sawmillWoodBuffer - spentFromLegacyBuffer;
 
   const oldLevel = state.vessel.skills.woodcraft.level;
   const multipliedXp = applyDwarfCountXpMultiplier(result.xpGained, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
@@ -124,6 +127,10 @@ export function performSawPlanks(state: GameState): SawmillOutcome {
       ...state.world,
       insightBanked: state.world.insightBanked + insightFromXp(multipliedXp) * archiveInsightBonus(state.world.roomStates),
       sawmillWoodBuffer: newSawmillWoodBuffer,
+      stockpileOre: {
+        ...state.world.stockpileOre,
+        wood: Math.max(0, (state.world.stockpileOre.wood ?? 0) - spentFromStockpile),
+      },
     },
     vessel: {
       ...state.vessel,

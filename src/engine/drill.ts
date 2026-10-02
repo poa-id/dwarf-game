@@ -80,7 +80,7 @@ export function createFreshDrillState(): DrillState {
   return { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: DRILL_COAL_BUFFER_MAX, oreBufferMax: DRILL_ORE_BUFFER_MAX, bufferTier: 0, outputRank: 0 };
 }
 
-export const MAX_DRILL_OUTPUT_RANK = 30;
+export const MAX_DRILL_OUTPUT_RANK = 100;
 
 export function drillOutputMultiplier(rank: number): number {
   return 1 + Math.max(0, rank) * 0.25;

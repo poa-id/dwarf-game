@@ -5,7 +5,11 @@ import {
   nextCompanionHaulTier,
   canAffordCompanionUpgrade,
   applyCompanionUpgrade,
+  advanceMachineHauling,
+  applyCompanionTraining,
 } from "../companion";
+import { createFreshDrillState } from "../drill";
+import { createFreshHarvesterState } from "../harvester";
 
 describe("companionHaulTierDef / nextCompanionHaulTier", () => {
   it("tier 1 is his original base rate - not a locked/unupgraded state", () => {
@@ -34,6 +38,44 @@ describe("companionHaulTierDef / nextCompanionHaulTier", () => {
       expect(next.haulAmountPerTrip).toBeGreaterThan(cur.haulAmountPerTrip);
       expect(next.drillHaulCap).toBeGreaterThan(cur.drillHaulCap);
     }
+  });
+});
+
+describe("advanceMachineHauling", () => {
+  it("shares one hauling budget across ore and wood buffers", () => {
+    const tier = applyCompanionTraining(companionHaulTierDef(1), 0);
+    const drill = { ...createFreshDrillState(), oreBuffer: 3 };
+    const harvester = { ...createFreshHarvesterState(), woodBuffer: 3 };
+    const result = advanceMachineHauling(
+      {},
+      { mine_copper: drill },
+      { garden_roots: harvester },
+      1,
+      1 + tier.haulIntervalMs * 2,
+      tier,
+      100,
+    );
+    expect(result.hauled).toBe(4);
+    expect(result.stockpile.copper_ore).toBe(3);
+    expect(result.stockpile.wood).toBe(1);
+    expect(result.drills.mine_copper.oreBuffer).toBe(0);
+    expect(result.harvesters.garden_roots.woodBuffer).toBe(2);
+  });
+
+  it("respects per-resource stockpile capacity", () => {
+    const tier = applyCompanionTraining(companionHaulTierDef(1), 10);
+    const drill = { ...createFreshDrillState(), oreBuffer: 20 };
+    const result = advanceMachineHauling(
+      { copper_ore: 9 },
+      { mine_copper: drill },
+      {},
+      1,
+      1 + tier.haulIntervalMs,
+      tier,
+      10,
+    );
+    expect(result.stockpile.copper_ore).toBe(10);
+    expect(result.drills.mine_copper.oreBuffer).toBe(19);
   });
 });
 

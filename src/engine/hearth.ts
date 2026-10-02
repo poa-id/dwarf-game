@@ -571,7 +571,7 @@ export function advanceDrillHauling(
   }
 
   const drillEntries = Object.entries(drills)
-    .filter(([veinId, d]) => d.tier > 0 && d.coalBuffer < DRILL_COAL_BUFFER_MAX / 2 &&
+    .filter(([veinId, d]) => d.tier > 0 && d.coalBuffer < (d.coalBufferMax ?? DRILL_COAL_BUFFER_MAX) / 2 &&
       (drillDefinitionByVeinId(veinId)?.coalPerCycle ?? 1) > 0)
     .sort(([, a], [, b]) => a.coalBuffer - b.coalBuffer);
 
@@ -584,7 +584,7 @@ export function advanceDrillHauling(
   let hauled = false;
 
   for (const [veinId, drillState] of drillEntries) {
-    const space = DRILL_COAL_BUFFER_MAX - drillState.coalBuffer;
+    const space = (drillState.coalBufferMax ?? DRILL_COAL_BUFFER_MAX) - drillState.coalBuffer;
     const available = getMaterialAmount(newFuelReserve, "coal");
     const perTripCap = companionTier.drillHaulCap;
     const toHaul = Math.min(space, available, perTripCap);

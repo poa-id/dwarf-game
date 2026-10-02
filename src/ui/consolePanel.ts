@@ -26,6 +26,7 @@ import {
   forgeStageName,
   smelterStageName,
 } from "../engine/production";
+import { applyCompanionTraining, companionHaulTierDef } from "../engine/companion";
 
 export function renderConsolePanel(
   state: GameState,
@@ -56,6 +57,11 @@ export function renderConsolePanel(
   const oreMin = totalOrePerMin(state.world);
   const insightMin = estimatedInsightPerMin(state.world);
   const rekindleBonus = Math.round(state.world.rekindleMultiplier * 100);
+  const haulTier = applyCompanionTraining(
+    companionHaulTierDef(state.world.companion.tier),
+    state.world.companion.trainingRank ?? 0,
+  );
+  const logisticsPerMin = haulTier.haulAmountPerTrip * (60_000 / haulTier.haulIntervalMs);
 
   const colorStageName = ["The Dark", "First Ember", "Hearthlight", "True Color"][hearth.colorStage] ?? "Unknown";
 
@@ -66,8 +72,8 @@ export function renderConsolePanel(
         <div class="recipe-row ${d.isRunning ? "" : "recipe-row-disabled"}">
           <div class="recipe-name">${d.name} — ${d.tierName}</div>
           <div class="recipe-status">${d.isRunning
-            ? `${d.orePerMin.toFixed(1)} ore/min · coal ${d.coalBuffer}/20`
-            : `Stopped · ore ${d.oreBuffer}/20 · coal ${d.coalBuffer}/20`
+            ? `${d.orePerMin.toFixed(1)} ore/min · output rank ${d.outputRank} · coal ${d.coalBuffer}/${d.coalBufferMax}`
+            : `Stopped · ore ${d.oreBuffer}/${d.oreBufferMax} · coal ${d.coalBuffer}/${d.coalBufferMax}`
           }</div>
         </div>
       `).join("");
@@ -97,6 +103,7 @@ export function renderConsolePanel(
       <div class="reserve-status"><strong>Production</strong></div>
       <div class="reserve-status">${oreMin > 0 ? `${oreMin.toFixed(1)} ore/min` : "No idle production"} · ${insightMin > 0 ? `~${insightMin.toFixed(1)} insight/min` : "mine manually for insight"}</div>
       ${rekindleBonus > 0 ? `<div class="reserve-status" style="color: #8accd8;">Mountain memory: +${rekindleBonus}% yield (${state.world.dwarfCount} lives)</div>` : ""}
+      ${state.world.companion.befriended ? `<div class="reserve-status" style="color: #c6a15b;">Narag-Bund logistics: ${logisticsPerMin.toFixed(1)} resources/min · harness rank ${state.world.companion.trainingRank ?? 0}</div>` : ""}
     </div>
 
     <div style="margin-bottom: 12px;">

@@ -105,6 +105,7 @@ function backfillMissingFields(state: any): any {
       state.world.companion.tier = 1;
     }
     if (state.world.companion.trainingRank === undefined) state.world.companion.trainingRank = 0;
+    if (state.world.companion.lastMachineHaulAt === undefined) state.world.companion.lastMachineHaulAt = Date.now();
     if (state.world.toolsForged === undefined) {
       // Old saves predate smithed tools entirely - backfill at 0/0
       // (bare hands for both slots), same as a brand new world. This
@@ -161,6 +162,9 @@ function backfillMissingFields(state: any): any {
       // Old saves predate the Wood Harvester entirely - same backfill
       // pattern as `drills` before it.
       state.world.harvesters = {};
+    }
+    for (const harvester of Object.values(state.world.harvesters) as any[]) {
+      if (harvester.outputRank === undefined) harvester.outputRank = 0;
     }
     if (state.world.sawmillWoodBuffer === undefined) {
       state.world.sawmillWoodBuffer = 0;

@@ -9,6 +9,10 @@ import {
   collectHarvesterWood,
   HARVESTER_COAL_BUFFER_MAX,
   HARVESTER_WOOD_BUFFER_MAX,
+  harvesterOutputMultiplier,
+  harvesterOutputUpgradeCost,
+  canAffordHarvesterOutputUpgrade,
+  MAX_HARVESTER_OUTPUT_RANK,
   type HarvesterState,
 } from "../engine/harvester";
 import { getMaterialAmount, MATERIALS, deductMaterials } from "../engine/types";
@@ -27,7 +31,8 @@ export function renderHarvesterPanel(
   onBuild: () => void,
   onRefuel: () => void,
   onCollect: () => void,
-  onUpgrade: () => void
+  onUpgrade: () => void,
+  onOutputUpgrade?: () => void
 ): void {
   const def = harvesterDefinitionByNodeId(nodeId);
   if (!def) return;
@@ -51,28 +56,33 @@ export function renderHarvesterPanel(
     `;
   } else {
     const tierDef = harvesterTierDefinition(def, harvesterState.tier);
-    const woodPct = Math.round((harvesterState.woodBuffer / HARVESTER_WOOD_BUFFER_MAX) * 100);
-    const cyclesSec = tierDef.cycleMs / 1000;
+    const woodMax = harvesterState.woodBufferMax ?? HARVESTER_WOOD_BUFFER_MAX;
+    const coalMax = harvesterState.coalBufferMax ?? HARVESTER_COAL_BUFFER_MAX;
+    const woodPct = Math.round((harvesterState.woodBuffer / woodMax) * 100);
+    const outputRank = harvesterState.outputRank ?? 0;
+    const outputMultiplier = harvesterOutputMultiplier(outputRank);
+    const cyclesSec = tierDef.cycleMs / outputMultiplier / 1000;
+    const woodPerMin = tierDef.woodPerCycle * 60 / cyclesSec;
 
     const isRunning = harvesterState.coalBuffer >= def.coalPerCycle &&
-                      harvesterState.woodBuffer < HARVESTER_WOOD_BUFFER_MAX;
+                      harvesterState.woodBuffer < woodMax;
     const statusLine = isRunning
-      ? `Running — ${tierDef.woodPerCycle} wood every ${cyclesSec}s`
+      ? `Running — ${tierDef.woodPerCycle} wood every ${cyclesSec.toFixed(1)}s · ${woodPerMin.toFixed(1)}/min`
       : harvesterState.coalBuffer < def.coalPerCycle
         ? "Stopped — out of coal"
         : "Stopped — wood buffer full";
 
     const coalHeld = getMaterialAmount(state.vessel.inventory, "coal");
-    const coalSpace = HARVESTER_COAL_BUFFER_MAX - harvesterState.coalBuffer;
+    const coalSpace = coalMax - harvesterState.coalBuffer;
     const canRefuel = coalHeld > 0 && coalSpace > 0;
     const refuelRow = canRefuel
       ? `<div class="recipe-row" data-harvester-action="refuel">
            <div class="recipe-name">Refuel</div>
-           <div class="recipe-status">Add coal (${harvesterState.coalBuffer}/${HARVESTER_COAL_BUFFER_MAX})</div>
+           <div class="recipe-status">Add coal (${harvesterState.coalBuffer}/${coalMax})</div>
          </div>`
       : `<div class="recipe-row recipe-row-disabled">
            <div class="recipe-name">Refuel</div>
-           <div class="recipe-status">${harvesterState.coalBuffer}/${HARVESTER_COAL_BUFFER_MAX} coal${coalHeld === 0 ? " — carry coal to refuel" : " — buffer full"}</div>
+           <div class="recipe-status">${harvesterState.coalBuffer}/${coalMax} coal${coalHeld === 0 ? " — carry coal to refuel" : " — buffer full"}</div>
          </div>`;
 
     // Manual collect - a fallback before the harvest companion is
@@ -95,6 +105,16 @@ export function renderHarvesterPanel(
          </div>`
       : "";
 
+    const outputCost = harvesterOutputUpgradeCost(outputRank);
+    const canOutputUpgrade = canAffordHarvesterOutputUpgrade(harvesterState, state.vessel.inventory);
+    const outputCostText = Object.entries(outputCost).map(([id, amt]) => `${amt} ${MATERIALS[id]?.name ?? id}`).join(", ");
+    const outputRow = outputRank < MAX_HARVESTER_OUTPUT_RANK
+      ? `<div class="recipe-row ${canOutputUpgrade ? "" : "recipe-row-disabled"}" data-harvester-action="output-upgrade">
+           <div class="recipe-name">Tune Output — Rank ${outputRank + 1}</div>
+           <div class="recipe-status">${canOutputUpgrade ? outputCostText : `Need: ${outputCostText}`} — +25% cycles/min</div>
+         </div>`
+      : "";
+
     html = `
       <h2>${def.name} — Tier ${harvesterState.tier}: ${tierDef.name}</h2>
       <p class="reserve-status">${statusLine}</p>
@@ -102,6 +122,7 @@ export function renderHarvesterPanel(
       ${refuelRow}
       ${collectRow}
       ${upgradeRow}
+      ${outputRow}
     `;
   }
 
@@ -117,8 +138,21 @@ export function renderHarvesterPanel(
       else if (action === "refuel") onRefuel();
       else if (action === "collect") onCollect();
       else if (action === "upgrade") onUpgrade();
+      else if (action === "output-upgrade") onOutputUpgrade?.();
     });
   });
+}
+
+export function performUpgradeHarvesterOutput(state: GameState, nodeId: string): GameState {
+  const harvesterState = state.world.harvesters[nodeId];
+  if (!harvesterState || !canAffordHarvesterOutputUpgrade(harvesterState, state.vessel.inventory)) return state;
+  const rank = harvesterState.outputRank ?? 0;
+  const cost = harvesterOutputUpgradeCost(rank);
+  return {
+    ...state,
+    world: { ...state.world, harvesters: { ...state.world.harvesters, [nodeId]: { ...harvesterState, outputRank: rank + 1 } } },
+    vessel: { ...state.vessel, inventory: deductMaterials(state.vessel.inventory, cost) },
+  };
 }
 
 // ---------------------------------------------------------------------------

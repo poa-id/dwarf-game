@@ -8,10 +8,31 @@ import {
   canAffordUpgradeHarvester,
   tickHarvester,
   refuelHarvester,
+  harvesterOutputMultiplier,
+  harvesterOutputUpgradeCost,
   type HarvesterState,
 } from "../harvester";
 
 const rootHarvesterDef = harvesterDefinitionByNodeId("garden_roots")!;
+
+describe("repeatable harvester output upgrades", () => {
+  it("adds 25% throughput per rank", () => {
+    expect(harvesterOutputMultiplier(0)).toBe(1);
+    expect(harvesterOutputMultiplier(4)).toBe(2);
+  });
+
+  it("becomes increasingly expensive as a wood-product sink", () => {
+    expect(harvesterOutputUpgradeCost(4).wood_planks).toBeGreaterThan(harvesterOutputUpgradeCost(0).wood_planks ?? 0);
+  });
+
+  it("actually shortens cycle time through tickHarvester", () => {
+    const base = { ...createFreshHarvesterState(), lastCycleAt: 1, coalBuffer: 20, woodBufferMax: 100 };
+    const tuned = { ...base, outputRank: 4 };
+    const elapsed = harvesterTierDefinition(rootHarvesterDef, 1).cycleMs;
+    expect(tickHarvester(tuned, rootHarvesterDef, 1 + elapsed).woodProduced)
+      .toBeGreaterThan(tickHarvester(base, rootHarvesterDef, 1 + elapsed).woodProduced);
+  });
+});
 
 describe("HARVESTER_DEFINITIONS", () => {
   it("root_harvester exists and attaches to the garden_roots wood node", () => {

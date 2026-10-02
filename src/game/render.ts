@@ -65,7 +65,7 @@ import {
 } from "../ui/gemcuttingPanel";
 import { canAffordCutGem } from "../engine/gemcutting";
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer, performUpgradeDrillOutput } from "../ui/drillPanel";
-import { renderHarvesterPanel, performBuildHarvester, performRefuelHarvester, performCollectHarvesterWood, performUpgradeHarvester } from "../ui/harvesterPanel";
+import { renderHarvesterPanel, performBuildHarvester, performRefuelHarvester, performCollectHarvesterWood, performUpgradeHarvester, performUpgradeHarvesterOutput } from "../ui/harvesterPanel";
 import { renderHarvestCompanionPanel, performBefriendHarvestCompanion } from "../ui/harvestCompanionPanel";
 import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, isNearStockpile } from "../ui/stockpilePanel";
@@ -795,7 +795,7 @@ function updateContextualPanel(): void {
         let s = getState();
         let leveledUp = false;
         for (let i = 0; i < times; i++) {
-          if (!canAffordPlankSaw(s.vessel.inventory, s.world.sawmillWoodBuffer)) break;
+          if (!canAffordPlankSaw(s.vessel.inventory, s.world.sawmillWoodBuffer + (s.world.stockpileOre.wood ?? 0))) break;
           const outcome = performSawPlanks(s);
           s = outcome.newState;
           if (outcome.leveledUp) leveledUp = true;
@@ -991,7 +991,8 @@ function updateContextualPanel(): void {
       () => { setState(performBuildHarvester(getState(), nearWoodNodeForHarvester.id)); render(); },
       () => { setState(performRefuelHarvester(getState(), nearWoodNodeForHarvester.id)); render(); },
       () => { setState(performCollectHarvesterWood(getState(), nearWoodNodeForHarvester.id)); render(); },
-      () => { setState(performUpgradeHarvester(getState(), nearWoodNodeForHarvester.id)); render(); }
+      () => { setState(performUpgradeHarvester(getState(), nearWoodNodeForHarvester.id)); render(); },
+      () => { setState(performUpgradeHarvesterOutput(getState(), nearWoodNodeForHarvester.id)); render(); }
     );
     if (refs.contextualPanel.innerHTML) reapplyPanelHighlight(refs.contextualPanel);
     return;

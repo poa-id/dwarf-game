@@ -1,5 +1,7 @@
 import type { ResourceBag } from "./types";
 import { canAffordMaterials, deductMaterials } from "./types";
+import { drillDefinitionByVeinId, type DrillState } from "./drill";
+import type { HarvesterState } from "./harvester";
 
 /**
  * Narag-Bund's own haul-speed/capacity upgrade track (2026-07-06).
@@ -45,7 +47,7 @@ export const COMPANION_HAUL_TIERS: CompanionHaulTier[] = [
   { tier: 5, name: "Unburdened Beast", haulIntervalMs: 1_000, haulAmountPerTrip: 50, drillHaulCap: 150, upgradeCost: { true_iron: 10, true_copper: 10 }, upgradeInsightCost: 10_000 },
 ];
 
-export const MAX_COMPANION_TRAINING_RANK = 25;
+export const MAX_COMPANION_TRAINING_RANK = 100;
 
 export function companionTrainingCost(rank: number): ResourceBag {
   const nextRank = Math.max(1, rank + 1);
@@ -67,6 +69,73 @@ export function applyCompanionTraining(tier: CompanionHaulTier, rank: number): C
 
 export function canAffordCompanionTraining(rank: number, inventory: ResourceBag): boolean {
   return rank < MAX_COMPANION_TRAINING_RANK && canAffordMaterials(inventory, companionTrainingCost(rank));
+}
+
+export interface MachineHaulResult {
+  stockpile: Record<string, number>;
+  drills: Record<string, DrillState>;
+  harvesters: Record<string, HarvesterState>;
+  lastHaulAt: number;
+  hauled: number;
+}
+
+/**
+ * Generic production logistics: Narag-Bund empties every automated
+ * extractor into the central stockpile. New drill materials join this
+ * route automatically through their DrillDefinition; wood harvesters
+ * use the same budget and deposit raw wood.
+ */
+export function advanceMachineHauling(
+  stockpile: Record<string, number>,
+  drills: Record<string, DrillState>,
+  harvesters: Record<string, HarvesterState>,
+  lastHaulAt: number,
+  now: number,
+  tier: CompanionHaulTier,
+  capacityPerMaterial: number,
+): MachineHaulResult {
+  const elapsed = Math.max(0, now - lastHaulAt);
+  const trips = Math.floor(elapsed / tier.haulIntervalMs);
+  if (trips <= 0) return { stockpile, drills, harvesters, lastHaulAt, hauled: 0 };
+
+  let budget = trips * tier.haulAmountPerTrip;
+  let hauled = 0;
+  let nextStockpile = { ...stockpile };
+  let nextDrills = { ...drills };
+  let nextHarvesters = { ...harvesters };
+
+  for (const [veinId, drill] of Object.entries(drills)) {
+    if (budget <= 0) break;
+    const def = drillDefinitionByVeinId(veinId);
+    if (!def || drill.oreBuffer <= 0) continue;
+    const stored = nextStockpile[def.oreMaterialId] ?? 0;
+    const moved = Math.min(drill.oreBuffer, budget, Math.max(0, capacityPerMaterial - stored));
+    if (moved <= 0) continue;
+    nextStockpile[def.oreMaterialId] = stored + moved;
+    nextDrills[veinId] = { ...drill, oreBuffer: drill.oreBuffer - moved };
+    budget -= moved;
+    hauled += moved;
+  }
+
+  for (const [nodeId, harvester] of Object.entries(harvesters)) {
+    if (budget <= 0) break;
+    if (harvester.woodBuffer <= 0) continue;
+    const stored = nextStockpile.wood ?? 0;
+    const moved = Math.min(harvester.woodBuffer, budget, Math.max(0, capacityPerMaterial - stored));
+    if (moved <= 0) continue;
+    nextStockpile.wood = stored + moved;
+    nextHarvesters[nodeId] = { ...harvester, woodBuffer: harvester.woodBuffer - moved };
+    budget -= moved;
+    hauled += moved;
+  }
+
+  return {
+    stockpile: nextStockpile,
+    drills: nextDrills,
+    harvesters: nextHarvesters,
+    lastHaulAt: lastHaulAt + trips * tier.haulIntervalMs,
+    hauled,
+  };
 }
 
 export function companionHaulTierDef(tier: number): CompanionHaulTier {

@@ -17,7 +17,7 @@ import { tickGarden, growthSpeedMultiplier } from "../engine/garden";
 import { tickSmeltingEngine, SMELTING_ENGINE_DEFINITIONS } from "../engine/smeltingEngine";
 import { TURBINE_SMELT_SPEED_MULTIPLIER } from "../engine/turbine";
 import { stockpileCapacityPerMaterial, type RoomStage } from "../engine/rooms";
-import { companionHaulTierDef, applyCompanionTraining } from "../engine/companion";
+import { companionHaulTierDef, applyCompanionTraining, advanceMachineHauling } from "../engine/companion";
 import { totalGemDropChanceBonus } from "../engine/gemcutting";
 import { harvesterDefinitionByNodeId, tickHarvester } from "../engine/harvester";
 import { ORE_VEINS } from "../engine/hubMap";
@@ -31,12 +31,15 @@ function gameTick(): void {
   let state = getState();
 
   if (isAutoTendingUnlocked(state.world.hearthTier)) {
-    const fuelAvailable = totalHearthFuelValue(state.world.fuelReserve);
+    const reserveFuelValue = totalHearthFuelValue(state.world.fuelReserve);
+    const fuelAvailable = reserveFuelValue + totalHearthFuelValue(state.world.stockpileOre);
     const hasRekindledOnce = state.world.dwarfCount > 0;
     const restorationScore = getRestorationScore(state.world).total;
     const result = tickHearth(state.world.hearth, now, fuelAvailable, hasRekindledOnce, restorationScore);
     if (result.fuelAbsorbed > 0) {
-      const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, result.fuelAbsorbed);
+      const absorbedFromReserve = Math.min(result.fuelAbsorbed, reserveFuelValue);
+      const newReserve = deductFuelValueFromReserve(state.world.fuelReserve, absorbedFromReserve);
+      const newStockpile = deductFuelValueFromReserve(state.world.stockpileOre, result.fuelAbsorbed - absorbedFromReserve) as Record<string, number>;
 
       const rawXp = result.fuelAbsorbed * HEARTHKEEPING_XP_PER_FUEL_VALUE;
       const multipliedXp = applyDwarfCountXpMultiplier(rawXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk));
@@ -56,7 +59,7 @@ function gameTick(): void {
 
       setState({
         ...state,
-        world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve, insightBanked: newInsightBanked },
+        world: { ...state.world, hearth: result.hearth, fuelReserve: newReserve, stockpileOre: newStockpile, insightBanked: newInsightBanked },
         vessel: { ...state.vessel, skills: { ...state.vessel.skills, hearthkeeping: newHearthkeeping } },
       });
       state = getState();
@@ -97,10 +100,10 @@ function gameTick(): void {
     }
   }
 
-  // Narag-Bund hauls coal from fuel reserve to drills (hearthTier >= 2)
+  // Narag-Bund distributes coal from the central stockpile to drills.
   if (state.world.companion.befriended && state.world.hearthTier >= 2) {
     const drillHaul = advanceDrillHauling(
-      state.world.fuelReserve,
+      state.world.stockpileOre,
       state.world.drills,
       state.world.hearthTier,
       applyCompanionTraining(companionHaulTierDef(state.world.companion.tier), state.world.companion.trainingRank ?? 0)
@@ -110,7 +113,7 @@ function gameTick(): void {
         ...state,
         world: {
           ...state.world,
-          fuelReserve: drillHaul.fuelReserve,
+          stockpileOre: drillHaul.fuelReserve as Record<string, number>,
           drills: drillHaul.drills,
         },
       });
@@ -151,7 +154,7 @@ function gameTick(): void {
       const stockpileOre = (newStockpile[def.oreMaterialId] as number | undefined) ?? 0;
       const fuelAvail = def.id === "deepstone_engine"
         ? ((newFuelReserve["hearthsap"] as number | undefined) ?? 0)
-        : ((newFuelReserve["coal"] as number | undefined) ?? 0);
+        : ((newStockpile["coal"] as number | undefined) ?? 0);
 
       const engineSpeedMultiplier = state.world.turbineBuilt ? TURBINE_SMELT_SPEED_MULTIPLIER : 1;
       const result = tickSmeltingEngine(engineState, def, now, stockpileOre, fuelAvail, engineSpeedMultiplier);
@@ -182,7 +185,7 @@ function gameTick(): void {
         if (def.id === "deepstone_engine") {
           newFuelReserve = { ...newFuelReserve, hearthsap: Math.max(0, ((newFuelReserve["hearthsap"] as number | undefined) ?? 0) - fuelConsumed) };
         } else {
-          newFuelReserve = { ...newFuelReserve, coal: Math.max(0, ((newFuelReserve["coal"] as number | undefined) ?? 0) - fuelConsumed) };
+          newStockpile = { ...newStockpile, coal: Math.max(0, ((newStockpile["coal"] as number | undefined) ?? 0) - fuelConsumed) };
         }
         engineChanged = true;
       }
@@ -204,11 +207,6 @@ function gameTick(): void {
   if (drillEntries.length > 0) {
     let newDrills = { ...state.world.drills };
     let newStockpile = { ...state.world.stockpileOre };
-    const stockpileStage = (state.world.roomStates["stockpile_room"] ?? "ruined") as RoomStage;
-    const stockpileActive =
-      (stockpileStage === "cleared" ||
-       stockpileStage === "restored" ||
-       stockpileStage === "masterwork");
     let drillChanged = false;
     const speedMultiplier = drillSpeedMultiplier(state.world.mineshaftDepth);
     const gemDropChanceBonus = totalGemDropChanceBonus(state.world.gemcuttingTier, state.world.cutGemsSpentOnPerk);
@@ -240,32 +238,7 @@ function gameTick(): void {
         }
       }
       if (result.ranCycle || result.drill.lastCycleAt !== drillState.lastCycleAt) {
-        let finalDrill = result.drill;
-        // If stockpile is active and ore was produced, drain ore buffer
-        // into stockpile instead of holding it in the drill buffer -
-        // but only up to the stockpile's own capacity (2026-07-06,
-        // fixed alongside the "capacity upgrades do nothing" bug -
-        // see stockpileCapacityPerMaterial in rooms.ts). Whatever
-        // doesn't fit stays in the drill's own ore buffer, which is
-        // itself capped - so a full stockpile creates a real, visible
-        // bottleneck (the drill stops once ITS buffer fills too),
-        // fixable by upgrading the room or collecting from it, rather
-        // than silently discarding overflow or storing it without limit.
-        if (stockpileActive && result.oreProduced > 0) {
-          const oreMat = def.oreMaterialId;
-          const currentStockpiled = newStockpile[oreMat] ?? 0;
-          const capacity = stockpileCapacityPerMaterial(stockpileStage);
-          const space = Math.max(0, capacity - currentStockpiled);
-          const toStockpile = Math.min(space, result.oreProduced);
-          newStockpile = {
-            ...newStockpile,
-            [oreMat]: currentStockpiled + toStockpile,
-          };
-          // Whatever didn't fit stays in the drill's own ore buffer
-          // (it was already produced there before this drain step).
-          finalDrill = { ...finalDrill, oreBuffer: result.oreProduced - toStockpile };
-        }
-        newDrills = { ...newDrills, [veinId]: finalDrill };
+        newDrills = { ...newDrills, [veinId]: result.drill };
         drillChanged = true;
       }
     }
@@ -324,6 +297,40 @@ function gameTick(): void {
         narrate("level_up");
         state = getState();
       }
+    }
+  }
+
+  // Narag-Bund is the mountain's universal logistics layer: automated
+  // extractors fill local buffers; he moves their output into the
+  // central stockpile, whose consumers draw from it independently.
+  const machineStockpileStage = (state.world.roomStates["stockpile_room"] ?? "ruined") as RoomStage;
+  if (state.world.companion.befriended && machineStockpileStage !== "ruined") {
+    const trainedTier = applyCompanionTraining(
+      companionHaulTierDef(state.world.companion.tier),
+      state.world.companion.trainingRank ?? 0,
+    );
+    const haul = advanceMachineHauling(
+      state.world.stockpileOre,
+      state.world.drills,
+      state.world.harvesters,
+      state.world.companion.lastMachineHaulAt ?? now,
+      now,
+      trainedTier,
+      stockpileCapacityPerMaterial(machineStockpileStage),
+    );
+    if (haul.lastHaulAt !== (state.world.companion.lastMachineHaulAt ?? now)) {
+      setState({
+        ...state,
+        world: {
+          ...state.world,
+          stockpileOre: haul.stockpile,
+          drills: haul.drills,
+          harvesters: haul.harvesters,
+          companion: { ...state.world.companion, lastMachineHaulAt: haul.lastHaulAt },
+        },
+      });
+      state = getState();
+      if (haul.hauled > 0) changed = true;
     }
   }
 

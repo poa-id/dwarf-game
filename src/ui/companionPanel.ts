@@ -34,8 +34,9 @@ export function renderCompanionPanel(state: GameState, container: HTMLElement, o
     ? `Hauling ${haulLabel} to the reserve in ~${secsLeft}s`
     : "Nothing to haul — carry some fuel";
   const drillStatus = world.hearthTier >= 2
-    ? `Hauling coal to drills (Hearth tier ${world.hearthTier})`
-    : "Will haul coal to drills at Hearth tier 2";
+    ? `Supplying drills and hauling machine output to the stockpile`
+    : "Will supply drills at Hearth tier 2; stockpile routes unlock when the room is cleared";
+  const logisticsPerMin = currentTier.haulAmountPerTrip * (60_000 / currentTier.haulIntervalMs);
 
   let upgradeRowHtml = "";
   if (nextTier) {
@@ -69,7 +70,7 @@ export function renderCompanionPanel(state: GameState, container: HTMLElement, o
     <p class="reserve-status">Coal-beetle. Black-head. He stays.</p>
     <p class="reserve-status" style="color:#c87820;">${haulStatus}</p>
     <p class="reserve-status">${drillStatus}</p>
-    <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">${currentTier.name} (tier ${currentTier.tier}) · haul every ${(currentTier.haulIntervalMs / 1000).toFixed(1)}s · ${currentTier.haulAmountPerTrip}/trip · Next: ~${secsLeft}s</p>
+    <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">${currentTier.name} (tier ${currentTier.tier}) · ${logisticsPerMin.toFixed(1)} resources/min · ${currentTier.haulAmountPerTrip}/trip · Next: ~${secsLeft}s</p>
     ${upgradeRowHtml}
     ${trainingRow}
   `;

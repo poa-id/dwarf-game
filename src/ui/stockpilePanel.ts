@@ -57,7 +57,7 @@ export function renderStockpilePanel(
       html += `
         <div class="recipe-row" data-action="collect-stockpile">
           <div class="recipe-name">Collect All</div>
-          <div class="recipe-status">Move stockpile ore to inventory</div>
+          <div class="recipe-status">Move stored materials to inventory</div>
         </div>
       `;
     }
@@ -132,7 +132,7 @@ export function performCollectStockpile(state: GameState): GameState {
   const stockpile = state.world.stockpileOre;
   if (Object.keys(stockpile).length === 0) return state;
 
-  // Add all stockpile ore to personal inventory
+  // Add all stored materials to personal inventory
   let newInventory = { ...state.vessel.inventory };
   for (const [mat, amt] of Object.entries(stockpile)) {
     newInventory = { ...newInventory, [mat]: ((newInventory[mat] as number | undefined) ?? 0) + amt };

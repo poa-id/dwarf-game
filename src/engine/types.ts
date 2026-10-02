@@ -399,6 +399,8 @@ export interface CompanionState {
   tier: number;
   /** Repeatable resource-sink upgrades layered on top of the named tiers. */
   trainingRank?: number;
+  /** Separate route clock for machine buffers -> central stockpile. */
+  lastMachineHaulAt?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -506,10 +508,7 @@ export interface WorldState {
    * Seeds are consumable; must replant after each harvest.
    */
   gardenSlots: import("./garden").PlanterSlot[];
-  /**
-   * Shared ore stockpile — drills drain into this automatically once
-   * the stockpile_room is at "cleared" stage or above.
-   */
+  /** Central material stockpile fed by Narag-Bund's logistics routes. */
   stockpileOre: Record<string, number>;
   /** Timestamp of last merchant visit to the Trade Hall. 0 = never. */
   lastMerchantAt: number;

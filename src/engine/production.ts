@@ -9,7 +9,7 @@
  */
 
 import type { WorldState } from "./types";
-import { DRILL_DEFINITIONS, drillTierDefinition } from "./drill";
+import { DRILL_DEFINITIONS, drillTierDefinition, drillOutputMultiplier, drillSpeedMultiplier } from "./drill";
 
 // ---------------------------------------------------------------------------
 // Ore production
@@ -24,6 +24,9 @@ export interface DrillMetrics {
   isRunning: boolean;
   coalBuffer: number;
   oreBuffer: number;
+  coalBufferMax: number;
+  oreBufferMax: number;
+  outputRank: number;
 }
 
 export function getDrillMetrics(world: WorldState): DrillMetrics[] {
@@ -34,10 +37,10 @@ export function getDrillMetrics(world: WorldState): DrillMetrics[] {
     if (!drillState || drillState.tier === 0) continue;
 
     const tierDef = drillTierDefinition(def, drillState.tier);
-    const cyclesPerMin = 60_000 / tierDef.cycleMs;
+    const cyclesPerMin = (60_000 / tierDef.cycleMs) * drillOutputMultiplier(drillState.outputRank ?? 0) * drillSpeedMultiplier(world.mineshaftDepth);
     const isRunning =
       drillState.coalBuffer >= def.coalPerCycle &&
-      drillState.oreBuffer < 20; // DRILL_ORE_BUFFER_MAX
+      drillState.oreBuffer < (drillState.oreBufferMax ?? 20);
 
     metrics.push({
       veinId: def.veinId,
@@ -48,6 +51,9 @@ export function getDrillMetrics(world: WorldState): DrillMetrics[] {
       isRunning,
       coalBuffer: drillState.coalBuffer,
       oreBuffer: drillState.oreBuffer,
+      coalBufferMax: drillState.coalBufferMax ?? 20,
+      oreBufferMax: drillState.oreBufferMax ?? 20,
+      outputRank: drillState.outputRank ?? 0,
     });
   }
 
