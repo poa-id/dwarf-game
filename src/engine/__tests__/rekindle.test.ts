@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rekindle, calculateRekindleRemembrance, createFreshVessel } from "../rekindle";
+import { rekindle, calculateRekindleRemembrance, createFreshVessel, getRekindleReadiness } from "../rekindle";
 import { createInitialHearth } from "../hearth";
 import { HEARTH_SPAWN_POSITION } from "../hubMap";
 import type { GameState } from "../types";
@@ -123,6 +123,25 @@ describe("calculateRekindleRemembrance", () => {
       lifetimeFuelAtLastRekindle: 0,
     };
     expect(calculateRekindleRemembrance(state.vessel, justClearedWorld)).toBe(9);
+  });
+});
+
+describe("getRekindleReadiness", () => {
+  it("recommends a mature rite and explains the next reward breakpoint", () => {
+    const state = makeStateWithProgress();
+    const readiness = getRekindleReadiness(state.vessel, state.world);
+    expect(readiness.recommendation).toBe("recommended");
+    expect(readiness.remembranceNow).toBe(9);
+    expect(readiness.levelsToNextRemembrance).toBe(5);
+  });
+
+  it("warns the player to wait while the flame is still recovering", () => {
+    const state = makeStateWithProgress();
+    state.world.lifetimeFuelAtLastRekindle = 1_250;
+    const readiness = getRekindleReadiness(state.vessel, state.world);
+    expect(readiness.recommendation).toBe("wait");
+    expect(readiness.fuelProgress).toBe(0.5);
+    expect(readiness.remembranceNow).toBe(5);
   });
 });
 

@@ -1,7 +1,7 @@
 import type { CellKind } from "./palette";
 
 import rockWallUrl from "./tileset-assets/sliced/rock_wall.png";
-import rockFloorUrl from "./tileset-assets/sliced/rock_floor.png";
+import rockFloorUrl from "./tileset-assets/sliced/rock_floor_v2.png";
 import oreBaseUrl from "./tileset-assets/sliced/ore_base.png";
 import oreCopperUrl from "./tileset-assets/sliced/ore_copper.png";
 import oreIronUrl from "./tileset-assets/sliced/ore_iron.png";

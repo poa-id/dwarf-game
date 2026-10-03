@@ -13,7 +13,7 @@ import {
   hearthfireState,
   HEARTH_MAX_HEAT,
 } from "../engine/hearth";
-import { rekindle, REKINDLE_FUEL_THRESHOLD } from "../engine/rekindle";
+import { rekindle, REKINDLE_FUEL_THRESHOLD, getRekindleReadiness } from "../engine/rekindle";
 import type { RekindleResult } from "../engine/rekindle";
 import { getMaterialAmount, MATERIALS } from "../engine/types";
 import type { GameState, MaterialId } from "../engine/types";
@@ -200,12 +200,19 @@ export function renderHearthPanel(
   const canRekindle = state.world.hearth.lifetimeFuel >= REKINDLE_FUEL_THRESHOLD
     && state.world.forgeTier >= 1
     && state.world.hearthTier >= 1;
+  const rekindleReadiness = getRekindleReadiness(state.vessel, state.world);
+  const rekindleGuidance = rekindleReadiness.recommendation === "wait"
+    ? `Wait for the flame to recover · ${Math.floor(rekindleReadiness.fuelProgress * 100)}% · ${rekindleReadiness.remembranceNow}/${rekindleReadiness.remembranceAtFullFuel} Remembrance`
+    : rekindleReadiness.recommendation === "recommended"
+      ? `Recommended now · earn ${rekindleReadiness.remembranceNow} Remembrance`
+      : `Ready · earn ${rekindleReadiness.remembranceNow} Remembrance`;
   const rekindleSection = canRekindle
     ? `
       <div class="recipe-row rekindle-row" data-rekindle="true">
         <div class="recipe-name">Rekindle</div>
-        <div class="recipe-status">Give yourself to the flame. The mountain remembers what you leave behind.</div>
+        <div class="recipe-status">${rekindleGuidance}</div>
       </div>
+      <p class="reserve-status" style="font-size:0.76em;opacity:0.72;">Next +1 Remembrance in ${rekindleReadiness.levelsToNextRemembrance} combined skill level${rekindleReadiness.levelsToNextRemembrance === 1 ? "" : "s"}. The rite resets skills and carried items; the mountain and Stockpile remain.</p>
     `
     : "";
 

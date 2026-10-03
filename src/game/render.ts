@@ -8,6 +8,7 @@ import { xpIntoCurrentLevel, xpNeededForNextLevel } from "../engine/xpCurve";
 import { bestAvailablePickaxe, ROCK_NODES } from "../engine/mining";
 import { PICKAXE_ICONS, AXE_ICONS } from "../render/toolIconManifest";
 import { bestAvailableAxe } from "../engine/woodcraft";
+import { getRekindleReadiness, REKINDLE_FUEL_THRESHOLD } from "../engine/rekindle";
 import { getState, setState, narrate, persist } from "./gameState";
 import {
   nearestOreVein,
@@ -147,8 +148,9 @@ function levelProgressPercent(totalXp: number): number {
 }
 
 function updateStatsPanel(): void {
-  const { skills, inventory } = getState().vessel;
-  const world = getState().world;
+  const currentState = getState();
+  const { skills, inventory } = currentState.vessel;
+  const world = currentState.world;
   const { toolsForged, insightBanked } = world;
 
   // Restoration score — the primary "how alive is this mountain" number.
@@ -177,7 +179,14 @@ function updateStatsPanel(): void {
 
   // Insight display + live rolling rate (falls back to idle estimate)
   const remembrance = world.remembranceBanked ?? 0;
-  refs.statEls.insightDisplay.textContent = `Insight: ${Math.floor(insightBanked)}${remembrance > 0 ? ` · Remembrance: ${remembrance}` : ""}`;
+  const rekindleReadiness = getRekindleReadiness(currentState.vessel, world);
+  const canRekindle = world.hearth.lifetimeFuel >= REKINDLE_FUEL_THRESHOLD
+    && world.forgeTier >= 1
+    && world.hearthTier >= 1;
+  const rekindleNudge = canRekindle && rekindleReadiness.recommendation === "recommended"
+    ? ` · Flame ready: +${rekindleReadiness.remembranceNow}`
+    : "";
+  refs.statEls.insightDisplay.textContent = `Insight: ${Math.floor(insightBanked)}${remembrance > 0 ? ` · Remembrance: ${remembrance}` : ""}${rekindleNudge}`;
   recordInsightSample(insightBanked);
   const liveMin = insightPerMinFromSamples();
   const idleMin = estimatedInsightPerMin(world);

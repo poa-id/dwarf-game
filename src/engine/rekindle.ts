@@ -50,6 +50,36 @@ export function calculateRekindleRemembrance(vessel: VesselState, world: WorldSt
   return Math.round(baseRemembrance * diminishingReturnsScale);
 }
 
+export interface RekindleReadiness {
+  remembranceNow: number;
+  remembranceAtFullFuel: number;
+  fuelProgress: number;
+  levelsToNextRemembrance: number;
+  recommendation: "wait" | "ready" | "recommended";
+}
+
+/** A player-facing explanation of the prestige timing, derived from the
+ * exact reward formula rather than a hidden or arbitrary timer. */
+export function getRekindleReadiness(vessel: VesselState, world: WorldState): RekindleReadiness {
+  const skillCount = Object.keys(vessel.skills).length;
+  const totalLevels = Object.values(vessel.skills).reduce((sum, skill) => sum + skill.level, 0);
+  const gainedLevels = Math.max(0, totalLevels - skillCount);
+  const remembranceAtFullFuel = Math.max(1, 1 + Math.floor(gainedLevels / 5));
+  const fuelGrowth = Math.max(0, world.hearth.lifetimeFuel - world.lifetimeFuelAtLastRekindle);
+  const fuelProgress = Math.min(1, fuelGrowth / REKINDLE_FUEL_THRESHOLD);
+  const remembranceNow = calculateRekindleRemembrance(vessel, world);
+  const remainder = gainedLevels % 5;
+  const levelsToNextRemembrance = remainder === 0 ? 5 : 5 - remainder;
+
+  return {
+    remembranceNow,
+    remembranceAtFullFuel,
+    fuelProgress,
+    levelsToNextRemembrance,
+    recommendation: fuelProgress < 1 ? "wait" : remembranceNow >= 3 ? "recommended" : "ready",
+  };
+}
+
 /** @deprecated Rekindling now awards Remembrance, not Insight. */
 export const calculateRekindleInsight = calculateRekindleRemembrance;
 

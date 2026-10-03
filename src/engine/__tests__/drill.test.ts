@@ -61,6 +61,13 @@ describe("repeatable drill output upgrades", () => {
     const fifth = drillOutputUpgradeCost(copperDrillDef, 4).copper_ingot ?? 0;
     expect(fifth).toBeGreaterThan(first);
     expect(drillOutputUpgradeCost(coalDrillDef, 0).iron_ingot).toBeGreaterThan(0);
+    expect(drillOutputUpgradeCost(coalDrillDef, 9).iron_ingot).toBeLessThan(60);
+  });
+
+  it("makes a developed coal drill capable of feeding the machine economy", () => {
+    const tier = drillTierDefinition(coalDrillDef, 3);
+    const coalPerSecond = tier.orePerCycle / (tier.cycleMs / drillOutputMultiplier(9) / 1_000);
+    expect(coalPerSecond).toBeGreaterThanOrEqual(1.25);
   });
 
   it("actually shortens cycle time through tickDrill", () => {

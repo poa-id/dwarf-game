@@ -90,7 +90,12 @@ export function drillOutputMultiplier(rank: number): number {
 
 export function drillOutputUpgradeCost(def: DrillDefinition, rank: number): ResourceBag {
   const nextRank = Math.max(1, rank + 1);
-  const amount = Math.ceil(8 * Math.pow(1.38, nextRank - 1));
+  // A repeatable idle upgrade has to stay tempting. The old 1.38 curve
+  // reached 106 ingots at rank 10 while still granting only +25%, which
+  // turned the main resource sink into a progression wall. 1.25 keeps
+  // the sink exponential, but lets production compound before costs run
+  // away from the machine they are meant to improve.
+  const amount = Math.ceil(7 * Math.pow(1.25, nextRank - 1));
   const material = def.id === "iron_drill" ? "deepstone_ingot" : def.id === "coal_drill" ? "iron_ingot" : "copper_ingot";
   return { [material]: amount };
 }
@@ -229,10 +234,13 @@ export const DRILL_DEFINITIONS: DrillDefinition[] = [
     coalPerCycle: 0,
     requiresShaftDepth: 1,
     tiers: [
-      { tier: 1, name: "Basic Drill",        cycleMs: 30_000, orePerCycle: 1, upgradeCost: {} },
-      { tier: 2, name: "Sharpened Bits",     cycleMs: 20_000, orePerCycle: 1, upgradeCost: { iron_ingot: 10 } },
-      { tier: 3, name: "Reinforced Housing", cycleMs: 15_000, orePerCycle: 2, upgradeCost: { iron_ingot: 20 } },
-      { tier: 4, name: "Deep Core Drill",    cycleMs: 10_000, orePerCycle: 3, upgradeCost: { iron_ingot: 30, true_iron: 5 } },
+      // Coal is infrastructure fuel, not just another ore. Its drill is
+      // intentionally much more productive than metal drills so that a
+      // developed fuel economy can sustain several consumers at once.
+      { tier: 1, name: "Basic Drill",        cycleMs: 20_000, orePerCycle: 2, upgradeCost: {} },
+      { tier: 2, name: "Sharpened Bits",     cycleMs: 15_000, orePerCycle: 3, upgradeCost: { iron_ingot: 10 } },
+      { tier: 3, name: "Reinforced Housing", cycleMs: 10_000, orePerCycle: 4, upgradeCost: { iron_ingot: 20 } },
+      { tier: 4, name: "Deep Core Drill",    cycleMs: 7_500,  orePerCycle: 6, upgradeCost: { iron_ingot: 30, true_iron: 5 } },
     ],
   },
 ];
