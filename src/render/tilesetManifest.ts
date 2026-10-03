@@ -38,7 +38,7 @@ import planterMatureUrl from "./tileset-assets/sliced/planter_mature.png";
 import planterGemwoodUrl from "./tileset-assets/sliced/planter_gemwood.png";
 import planterFernUrl from "./tileset-assets/sliced/planter_fern.png";
 import planterShroomUrl from "./tileset-assets/sliced/planter_shroom.png";
-import tradePostUrl from "./tileset-assets/sliced/trade_post.png";
+import tradePostUrl from "./tileset-assets/sliced/trade_post_v2.png";
 import drillCoalUrl from "./tileset-assets/sliced/drill_coal.png";
 import mountainConsoleUrl from "./tileset-assets/sliced/mountain_console.png";
 
