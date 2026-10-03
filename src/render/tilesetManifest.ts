@@ -13,9 +13,9 @@ import drillDeepUrl from "./tileset-assets/sliced/drill_deep.png";
 import mineshaftBrokenUrl from "./tileset-assets/sliced/mineshaft_broken.png";
 import mineshaftLitUrl from "./tileset-assets/sliced/mineshaft_lit.png";
 import kilnUrl from "./tileset-assets/sliced/kiln.png";
-import sawmillUrl from "./tileset-assets/sliced/sawmill.png";
+import sawmillUrl from "./tileset-assets/sliced/sawmill_v2.png";
 import turbineUrl from "./tileset-assets/sliced/turbine.png";
-import dwarfUrl from "./tileset-assets/sliced/dwarf.png";
+import dwarfUrl from "./tileset-assets/sliced/dwarf_v2.png";
 import tunnelEdgeUrl from "./tileset-assets/sliced/tunnel_edge.png";
 
 // Multi-tile sprites
@@ -24,8 +24,8 @@ import hearth4x4Url from "./tileset-assets/sliced/hearth_4x4.png";
 import smelterAddonUrl from "./tileset-assets/sliced/smelter_addon.png";
 import gemcutting4x4Url from "./tileset-assets/sliced/gemcutting_4x4.png";
 import torchLitUrl from "./tileset-assets/sliced/torch_lit.png";
-import naragBundUrl from "./tileset-assets/sliced/narag_bund.png";
-import oxenUrl from "./tileset-assets/sliced/oxen.png";
+import naragBundUrl from "./tileset-assets/sliced/narag_bund_v2.png";
+import oxenUrl from "./tileset-assets/sliced/oxen_v2.png";
 import stockpileChestUrl from "./tileset-assets/sliced/stockpile_chest.png";
 import woodNodeUrl from "./tileset-assets/sliced/wood_node.png";
 import woodHarvesterUrl from "./tileset-assets/sliced/wood_harvester.png";
