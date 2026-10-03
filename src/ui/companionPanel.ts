@@ -34,6 +34,8 @@ export function renderCompanionPanel(state: GameState, container: HTMLElement, o
   const logisticsPerMin = currentTier.haulAmountPerTrip * (60_000 / currentTier.haulIntervalMs);
   const logisticsMode = world.companion.logisticsMode ?? "balanced";
   const modeLabel = logisticsMode === "fuel_first" ? "Keep machines fed" : logisticsMode === "outputs_first" ? "Clear outputs first" : "Balanced";
+  const policy = world.companion.logisticsPolicy;
+  const protectedCoal = policy?.reserveMinimums.coal ?? 10;
 
   let upgradeRowHtml = "";
   if (nextTier) {
@@ -68,6 +70,7 @@ export function renderCompanionPanel(state: GameState, container: HTMLElement, o
     <p class="reserve-status" style="color:#c87820;">${haulStatus}</p>
     <p class="reserve-status">${drillStatus}</p>
     <p class="reserve-status" style="font-size:0.68em;opacity:0.55;">${currentTier.name} (tier ${currentTier.tier}) · ${(logisticsPerMin / 60).toFixed(2)} resources/s · ${currentTier.haulAmountPerTrip}/trip · Next: ~${secsLeft}s</p>
+    <p class="reserve-status" style="font-size:0.68em;opacity:0.7;">Console policy: protect ${protectedCoal} coal · ${modeLabel} fallback</p>
     ${upgradeRowHtml}
     ${trainingRow}
     <div class="recipe-row" data-action="cycle-logistics-mode">

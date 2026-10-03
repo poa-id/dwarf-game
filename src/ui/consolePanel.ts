@@ -26,13 +26,14 @@ import {
   forgeStageName,
   smelterStageName,
 } from "../engine/production";
-import { applyCompanionTraining, companionHaulTierDef } from "../engine/companion";
+import { applyCompanionTraining, companionHaulTierDef, normalizeLogisticsPolicy, type LogisticsLane } from "../engine/companion";
 import { stockpileCapacityPerMaterial } from "../engine/rooms";
 
 export function renderConsolePanel(
   state: GameState,
   container: HTMLElement,
-  onAwaken: () => void
+  onAwaken: () => void,
+  onLogisticsChange?: (kind: "reserve" | "lane", key: string, delta: number) => void,
 ): void {
   container.innerHTML = "";
 
@@ -64,6 +65,14 @@ export function renderConsolePanel(
   );
   const logisticsPerMin = haulTier.haulAmountPerTrip * (60_000 / haulTier.haulIntervalMs);
   const logisticsMode = state.world.companion.logisticsMode ?? "balanced";
+  const logisticsPolicy = normalizeLogisticsPolicy(state.world.companion.logisticsPolicy);
+  const laneWeightTotal = Object.values(logisticsPolicy.laneWeights).reduce((sum, value) => sum + value, 0) || 1;
+  const laneLabels: Record<LogisticsLane, string> = {
+    outputs: "Clear machine outputs",
+    extractors: "Refuel drills & harvesters",
+    processors: "Feed smelting processors",
+    hearth: "Supply the Hearth",
+  };
 
   const colorStageName = ["The Dark", "First Ember", "Hearthlight", "True Color"][hearth.colorStage] ?? "Unknown";
 
@@ -107,6 +116,21 @@ export function renderConsolePanel(
       ${rekindleBonus > 0 ? `<div class="reserve-status" style="color: #8accd8;">Mountain memory: +${rekindleBonus}% yield (${state.world.dwarfCount} lives)</div>` : ""}
       ${state.world.companion.befriended ? `<div class="reserve-status" style="color: #c6a15b;">Narag-Bund logistics: ${(logisticsPerMin / 60).toFixed(2)} resources/s · harness rank ${state.world.companion.trainingRank ?? 0} · ${logisticsMode.replace("_", " ")}</div>` : ""}
     </div>
+
+    ${state.world.companion.befriended ? `
+      <div style="margin-bottom:12px;">
+        <div class="reserve-status"><strong>Logistics Allocation</strong></div>
+        <div class="reserve-status">Protected stock stays in storage. Unused route capacity automatically flows to routes that still need it.</div>
+        <div class="recipe-row" data-logistics-kind="reserve" data-logistics-key="coal">
+          <div class="recipe-name">Protected coal</div>
+          <div class="recipe-status"><button class="batch-btn" data-delta="-5">−5</button> ${logisticsPolicy.reserveMinimums.coal ?? 0} kept in Stockpile <button class="batch-btn" data-delta="5">+5</button></div>
+        </div>
+        ${(Object.keys(laneLabels) as LogisticsLane[]).map((lane) => `
+          <div class="recipe-row" data-logistics-kind="lane" data-logistics-key="${lane}">
+            <div class="recipe-name">${laneLabels[lane]}</div>
+            <div class="recipe-status"><button class="batch-btn" data-delta="-5">−5</button> ${Math.round(logisticsPolicy.laneWeights[lane] / laneWeightTotal * 100)}% share <button class="batch-btn" data-delta="5">+5</button></div>
+          </div>`).join("")}
+      </div>` : ""}
 
     <div style="margin-bottom: 12px;">
       <div class="reserve-status"><strong>Hearth</strong></div>
@@ -155,6 +179,15 @@ export function renderConsolePanel(
       return parts ? `<div class="reserve-status" style="opacity:0.75;">${parts}</div>` : "";
     })()}
   `;
+
+  container.querySelectorAll<HTMLButtonElement>("[data-logistics-kind] .batch-btn").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const row = button.closest<HTMLElement>("[data-logistics-kind]");
+      if (!row) return;
+      onLogisticsChange?.(row.dataset.logisticsKind as "reserve" | "lane", row.dataset.logisticsKey ?? "", Number(button.dataset.delta ?? 0));
+    });
+  });
 }
 
 export function performAwakenConsole(state: GameState): GameState {
@@ -162,5 +195,25 @@ export function performAwakenConsole(state: GameState): GameState {
   return {
     ...state,
     world: { ...state.world, consoleAwakened: true },
+  };
+}
+
+export function performAdjustLogisticsPolicy(
+  state: GameState,
+  kind: "reserve" | "lane",
+  key: string,
+  delta: number,
+): GameState {
+  const policy = normalizeLogisticsPolicy(state.world.companion.logisticsPolicy);
+  if (kind === "reserve") {
+    policy.reserveMinimums[key] = Math.max(0, Math.min(10_000, (policy.reserveMinimums[key] ?? 0) + delta));
+  } else if (["outputs", "extractors", "processors", "hearth"].includes(key)) {
+    const lane = key as LogisticsLane;
+    policy.laneWeights[lane] = Math.max(0, Math.min(100, policy.laneWeights[lane] + delta));
+    if (Object.values(policy.laneWeights).every((value) => value === 0)) policy.laneWeights[lane] = 5;
+  }
+  return {
+    ...state,
+    world: { ...state.world, companion: { ...state.world.companion, logisticsPolicy: policy } },
   };
 }

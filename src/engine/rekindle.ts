@@ -86,7 +86,7 @@ export function createInitialWorld(now: number): WorldState {
     forgeTier: 0,
     hearthTier: 0,
     fuelReserve: {},
-    companion: { befriended: false, lastHaulAt: now, tier: 1, trainingRank: 0, lastMachineHaulAt: now, logisticsMode: "balanced" },
+    companion: { befriended: false, lastHaulAt: now, tier: 1, trainingRank: 0, lastMachineHaulAt: now, logisticsMode: "balanced", logisticsPolicy: { reserveMinimums: { coal: 10 }, laneWeights: { outputs: 25, extractors: 30, processors: 30, hearth: 15 } } },
     unlockedMineDepth: 0,
     hearth: createInitialHearth(now),
     insightBanked: 0,

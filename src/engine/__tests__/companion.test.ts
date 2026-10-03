@@ -113,6 +113,32 @@ describe("advanceUnifiedLogistics", () => {
     expect(result.engines.copper_engine.ingotBuffer).toBe(0);
     expect(result.engines.copper_engine.oreBuffer).toBeGreaterThan(0);
   });
+
+  it("protects configured stock and divides throughput between competing consumers", () => {
+    const tier = { ...companionHaulTierDef(1), haulAmountPerTrip: 20 };
+    const drill = { ...createFreshDrillState(), coalBuffer: 0 };
+    const engine = { ...createFreshEngineState(), coalBuffer: 0, oreBuffer: 20 };
+    const result = advanceUnifiedLogistics(
+      { coal: 30 }, {}, { mine_copper: drill }, {}, { copper_engine: engine },
+      1, 1 + tier.haulIntervalMs, tier, 100, "balanced",
+      { reserveMinimums: { coal: 10 }, laneWeights: { outputs: 0, extractors: 50, processors: 50, hearth: 0 } },
+    );
+    expect(result.drills.mine_copper.coalBuffer).toBeGreaterThan(0);
+    expect(result.engines.copper_engine.coalBuffer).toBeGreaterThan(0);
+    expect(result.stockpile.coal).toBeGreaterThanOrEqual(10);
+  });
+
+  it("lets unused route shares flow to a lane that still has work", () => {
+    const tier = { ...companionHaulTierDef(1), haulAmountPerTrip: 10 };
+    const drill = { ...createFreshDrillState(), oreBuffer: 20 };
+    const result = advanceUnifiedLogistics(
+      {}, {}, { mine_copper: drill }, {}, {},
+      1, 1 + tier.haulIntervalMs, tier, 100, "balanced",
+      { reserveMinimums: {}, laneWeights: { outputs: 25, extractors: 25, processors: 25, hearth: 25 } },
+    );
+    expect(result.stockpile.copper_ore).toBe(10);
+    expect(result.moved).toBe(10);
+  });
 });
 
 describe("canAffordCompanionUpgrade / applyCompanionUpgrade", () => {

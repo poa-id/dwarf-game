@@ -410,6 +410,8 @@ export interface CompanionState {
   lastMachineHaulAt?: number;
   /** Player-selected ordering for the single shared logistics queue. */
   logisticsMode?: "balanced" | "fuel_first" | "outputs_first";
+  /** Persistent allocation rules used by the universal logistics router. */
+  logisticsPolicy?: import("./companion").LogisticsPolicy;
 }
 
 // ---------------------------------------------------------------------------

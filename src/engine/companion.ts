@@ -86,6 +86,25 @@ export interface MachineHaulResult {
 }
 
 export type LogisticsMode = "balanced" | "fuel_first" | "outputs_first";
+export type LogisticsLane = "outputs" | "extractors" | "processors" | "hearth";
+export interface LogisticsPolicy {
+  /** Material held back in the central Stockpile before any consumer may draw it. */
+  reserveMinimums: Record<string, number>;
+  /** Share of Narag-Bund's carrying budget assigned to each route family. */
+  laneWeights: Record<LogisticsLane, number>;
+}
+
+export const DEFAULT_LOGISTICS_POLICY: LogisticsPolicy = {
+  reserveMinimums: { coal: 10 },
+  laneWeights: { outputs: 25, extractors: 30, processors: 30, hearth: 15 },
+};
+
+export function normalizeLogisticsPolicy(policy?: LogisticsPolicy): LogisticsPolicy {
+  return {
+    reserveMinimums: { ...DEFAULT_LOGISTICS_POLICY.reserveMinimums, ...(policy?.reserveMinimums ?? {}) },
+    laneWeights: { ...DEFAULT_LOGISTICS_POLICY.laneWeights, ...(policy?.laneWeights ?? {}) },
+  };
+}
 
 export interface UnifiedLogisticsResult {
   stockpile: Record<string, number>;
@@ -113,6 +132,7 @@ export function advanceUnifiedLogistics(
   tier: CompanionHaulTier,
   capacityPerMaterial: number,
   mode: LogisticsMode = "balanced",
+  policy?: LogisticsPolicy,
 ): UnifiedLogisticsResult {
   const trips = Math.floor(Math.max(0, now - lastHaulAt) / tier.haulIntervalMs);
   if (trips <= 0) return { stockpile, fuelReserve, drills, harvesters, engines, lastHaulAt, moved: 0 };
@@ -124,13 +144,21 @@ export function advanceUnifiedLogistics(
   const nextDrills = { ...drills };
   const nextHarvesters = { ...harvesters };
   const nextEngines = { ...engines };
+  const activePolicy = policy
+    ? normalizeLogisticsPolicy(policy)
+    : { reserveMinimums: {}, laneWeights: { ...DEFAULT_LOGISTICS_POLICY.laneWeights } };
+  let laneBudget = Number.POSITIVE_INFINITY;
 
   const transfer = (available: number, space: number): number => {
-    const amount = Math.min(Math.max(0, available), Math.max(0, space), budget);
+    const amount = Math.min(Math.max(0, available), Math.max(0, space), budget, laneBudget);
     budget -= amount;
+    laneBudget -= amount;
     moved += amount;
     return amount;
   };
+
+  const stockAvailable = (materialId: string): number =>
+    Math.max(0, (nextStockpile[materialId] ?? 0) - (activePolicy.reserveMinimums[materialId] ?? 0));
 
   const collectOutputs = () => {
     for (const [veinId, drill] of Object.entries(nextDrills)) {
@@ -182,7 +210,7 @@ export function advanceUnifiedLogistics(
       const def = drillDefinitionByVeinId(veinId);
       if (!def || def.coalPerCycle <= 0) continue;
       const target = drill.coalBufferMax ?? 20;
-      const amount = transfer(nextStockpile.coal ?? 0, target - drill.coalBuffer);
+      const amount = transfer(stockAvailable("coal"), target - drill.coalBuffer);
       if (amount > 0) {
         nextStockpile.coal = (nextStockpile.coal ?? 0) - amount;
         nextDrills[veinId] = { ...drill, coalBuffer: drill.coalBuffer + amount };
@@ -191,7 +219,7 @@ export function advanceUnifiedLogistics(
     for (const [nodeId, harvester] of Object.entries(nextHarvesters)) {
       if (budget <= 0) return;
       const target = harvester.coalBufferMax ?? 20;
-      const amount = transfer(nextStockpile.coal ?? 0, target - harvester.coalBuffer);
+      const amount = transfer(stockAvailable("coal"), target - harvester.coalBuffer);
       if (amount > 0) {
         nextStockpile.coal = (nextStockpile.coal ?? 0) - amount;
         nextHarvesters[nodeId] = { ...harvester, coalBuffer: harvester.coalBuffer + amount };
@@ -204,14 +232,14 @@ export function advanceUnifiedLogistics(
       if (budget <= 0) return;
       let engine = nextEngines[def.id];
       if (!engine) continue;
-      let amount = transfer(nextStockpile[def.oreMaterialId] ?? 0, (engine.oreBufferMax ?? 20) - engine.oreBuffer);
+      let amount = transfer(stockAvailable(def.oreMaterialId), (engine.oreBufferMax ?? 20) - engine.oreBuffer);
       if (amount > 0) {
         nextStockpile[def.oreMaterialId] = (nextStockpile[def.oreMaterialId] ?? 0) - amount;
         engine = { ...engine, oreBuffer: engine.oreBuffer + amount };
       }
       const fuelId = def.fuelMaterialId ?? "coal";
       const fuelBuffer = fuelId === "hearthsap" ? engine.hearthsapBuffer : engine.coalBuffer;
-      amount = transfer(nextStockpile[fuelId] ?? 0, engine.coalBufferMax - fuelBuffer);
+      amount = transfer(stockAvailable(fuelId), engine.coalBufferMax - fuelBuffer);
       if (amount > 0) {
         nextStockpile[fuelId] = (nextStockpile[fuelId] ?? 0) - amount;
         engine = fuelId === "hearthsap"
@@ -228,7 +256,7 @@ export function advanceUnifiedLogistics(
     let reserveUnits = fuels.reduce((sum, id) => sum + (nextFuelReserve[id] ?? 0), 0);
     for (const fuelId of fuels) {
       if (budget <= 0 || reserveUnits >= reserveTarget) return;
-      const amount = transfer(nextStockpile[fuelId] ?? 0, reserveTarget - reserveUnits);
+      const amount = transfer(stockAvailable(fuelId), reserveTarget - reserveUnits);
       if (amount > 0) {
         nextStockpile[fuelId] = (nextStockpile[fuelId] ?? 0) - amount;
         nextFuelReserve[fuelId] = (nextFuelReserve[fuelId] ?? 0) + amount;
@@ -237,12 +265,43 @@ export function advanceUnifiedLogistics(
     }
   };
 
-  if (mode === "outputs_first") {
-    collectOutputs(); fuelExtractors(); feedEngines(); feedHearth();
-  } else if (mode === "fuel_first") {
-    fuelExtractors(); feedEngines(); feedHearth(); collectOutputs();
+  const lanes: Record<LogisticsLane, () => void> = {
+    outputs: collectOutputs,
+    extractors: fuelExtractors,
+    processors: feedEngines,
+    hearth: feedHearth,
+  };
+  const order: LogisticsLane[] = mode === "outputs_first"
+    ? ["outputs", "extractors", "processors", "hearth"]
+    : mode === "fuel_first"
+      ? ["extractors", "processors", "hearth", "outputs"]
+      : ["extractors", "outputs", "processors", "hearth"];
+
+  // First pass guarantees each lane its configured share. Fractional
+  // transfers are already supported throughout the resource model.
+  if (!policy) {
+    // Compatibility path for callers/saves predating allocation policies.
+    laneBudget = Number.POSITIVE_INFINITY;
+    for (const lane of order) lanes[lane]();
   } else {
-    fuelExtractors(); collectOutputs(); feedEngines(); feedHearth();
+    const startingBudget = budget;
+    const weightTotal = Object.values(activePolicy.laneWeights).reduce((sum, value) => sum + Math.max(0, value), 0) || 1;
+    const hungryLanes: LogisticsLane[] = [];
+    for (const lane of order) {
+      laneBudget = startingBudget * Math.max(0, activePolicy.laneWeights[lane]) / weightTotal;
+      lanes[lane]();
+      if (laneBudget <= 0.000001) hungryLanes.push(lane);
+    }
+    // Idle lanes yield their unused share. Only lanes that exhausted their
+    // first allocation compete for it, retaining the configured ratio.
+    const hungryWeight = hungryLanes.reduce((sum, lane) => sum + Math.max(0, activePolicy.laneWeights[lane]), 0);
+    const overflowBudget = budget;
+    if (overflowBudget > 0 && hungryWeight > 0) {
+      for (const lane of hungryLanes) {
+        laneBudget = overflowBudget * Math.max(0, activePolicy.laneWeights[lane]) / hungryWeight;
+        lanes[lane]();
+      }
+    }
   }
 
   return {

@@ -227,6 +227,7 @@ function gameTick(): void {
       trainedTier,
       stockpileCapacityPerMaterial(machineStockpileStage, state.world.stockpileExpansionRank ?? 0),
       state.world.companion.logisticsMode ?? "balanced",
+      state.world.companion.logisticsPolicy,
     );
     if (haul.lastHaulAt !== (state.world.companion.lastMachineHaulAt ?? now)) {
       setState({

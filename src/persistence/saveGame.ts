@@ -113,6 +113,12 @@ function backfillMissingFields(state: any): any {
     }
     if (state.world.companion.trainingRank === undefined) state.world.companion.trainingRank = 0;
     if (state.world.companion.logisticsMode === undefined) state.world.companion.logisticsMode = "balanced";
+    if (state.world.companion.logisticsPolicy === undefined) {
+      state.world.companion.logisticsPolicy = {
+        reserveMinimums: { coal: 10 },
+        laneWeights: { outputs: 25, extractors: 30, processors: 30, hearth: 15 },
+      };
+    }
     if (state.world.companion.lastMachineHaulAt === undefined) state.world.companion.lastMachineHaulAt = Date.now();
     if (state.world.toolsForged === undefined) {
       // Old saves predate smithed tools entirely - backfill at 0/0

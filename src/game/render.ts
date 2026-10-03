@@ -67,7 +67,7 @@ import { canAffordCutGem } from "../engine/gemcutting";
 import { renderDrillSection, performBuildDrill, performRefuelDrill, performCollectDrillOre, performUpgradeDrill, performUpgradeDrillBuffer, performUpgradeDrillOutput } from "../ui/drillPanel";
 import { renderHarvesterPanel, performBuildHarvester, performRefuelHarvester, performCollectHarvesterWood, performUpgradeHarvester, performUpgradeHarvesterOutput } from "../ui/harvesterPanel";
 import { renderHarvestCompanionPanel, performBefriendHarvestCompanion, performUpgradeGardenTending } from "../ui/harvestCompanionPanel";
-import { renderConsolePanel, performAwakenConsole } from "../ui/consolePanel";
+import { renderConsolePanel, performAwakenConsole, performAdjustLogisticsPolicy } from "../ui/consolePanel";
 import { renderStockpilePanel, performAdvanceStockpileRoom, performCollectStockpile, performDepositStockpile, performExpandStockpile, isNearStockpile } from "../ui/stockpilePanel";
 import { renderGardenPanel, performPlantSeed, performHarvestSlot, performUnlockPlanter } from "../ui/gardenPanel";
 import { renderTradeHallPanel, performAdvanceTradeHall, performTrade, isNearTradeHall } from "../ui/tradeHallPanel";
@@ -520,7 +520,11 @@ function updateContextualPanel(): void {
         setState(performAwakenConsole(getState()));
         if (!wasAwakened) narrate("console_awakened");
         render();
-      }
+      },
+      (kind, key, delta) => {
+        setState(performAdjustLogisticsPolicy(getState(), kind, key, delta));
+        render();
+      },
     );
     reapplyPanelHighlight(refs.contextualPanel);
     return;
