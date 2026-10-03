@@ -10,6 +10,10 @@
 
 import type { WorldState } from "./types";
 import { DRILL_DEFINITIONS, drillTierDefinition, drillOutputMultiplier, drillSpeedMultiplier } from "./drill";
+import { HARVESTER_DEFINITIONS, harvesterOutputMultiplier, harvesterTierDefinition } from "./harvester";
+import { SMELTING_ENGINE_DEFINITIONS, engineOutputMultiplier, engineTierDef } from "./smeltingEngine";
+import { TURBINE_SMELT_SPEED_MULTIPLIER } from "./turbine";
+import { applyCompanionTraining, companionHaulTierDef } from "./companion";
 
 // ---------------------------------------------------------------------------
 // Ore production
@@ -64,6 +68,63 @@ export function totalOrePerMin(world: WorldState): number {
   return getDrillMetrics(world).reduce((sum, d) => sum + d.orePerMin, 0);
 }
 
+export interface AutomationFlowMetrics {
+  extractionPerMin: number;
+  processingPerMin: number;
+  logisticsPerMin: number;
+  machineCoalProducedPerMin: number;
+  machineCoalDemandPerMin: number;
+  stoppedExtractors: number;
+  stoppedProcessors: number;
+}
+
+/** One readout for the three independent legs of the idle economy. */
+export function getAutomationFlowMetrics(world: WorldState): AutomationFlowMetrics {
+  const drills = getDrillMetrics(world);
+  let extractionPerMin = drills.reduce((sum, drill) => sum + drill.orePerMin, 0);
+  let machineCoalProducedPerMin = drills
+    .filter((drill) => drill.veinId === "mine_coal")
+    .reduce((sum, drill) => sum + drill.orePerMin, 0);
+  let machineCoalDemandPerMin = drills.reduce((sum, drill) => sum + drill.coalPerMin, 0);
+  let stoppedExtractors = drills.filter((drill) => !drill.isRunning).length;
+
+  for (const def of HARVESTER_DEFINITIONS) {
+    const state = world.harvesters[def.nodeId];
+    if (!state) continue;
+    const tier = harvesterTierDefinition(def, state.tier);
+    const cyclesPerMin = 60_000 / tier.cycleMs * harvesterOutputMultiplier(state.outputRank ?? 0);
+    const running = state.coalBuffer >= def.coalPerCycle && state.woodBuffer < state.woodBufferMax;
+    if (running) {
+      extractionPerMin += cyclesPerMin * tier.woodPerCycle;
+      machineCoalDemandPerMin += cyclesPerMin * def.coalPerCycle;
+    } else stoppedExtractors++;
+  }
+
+  let processingPerMin = 0;
+  let stoppedProcessors = 0;
+  for (const def of SMELTING_ENGINE_DEFINITIONS) {
+    const state = world.smeltingEngines[def.id];
+    if (!state) continue;
+    const tier = engineTierDef(def, state.tier);
+    const speed = engineOutputMultiplier(state.outputRank ?? 0) * (world.turbineBuilt ? TURBINE_SMELT_SPEED_MULTIPLIER : 1);
+    const cyclesPerMin = 60_000 / tier.cycleMs * speed;
+    const fuel = def.fuelMaterialId === "hearthsap" ? state.hearthsapBuffer : state.coalBuffer;
+    const running = state.oreBuffer >= def.orePerCycle
+      && fuel >= (def.fuelPerCycle ?? def.coalPerCycle)
+      && state.ingotBuffer + tier.ingotsPerCycle <= state.ingotBufferMax;
+    if (running) {
+      processingPerMin += cyclesPerMin * tier.ingotsPerCycle;
+      if (!def.fuelMaterialId) machineCoalDemandPerMin += cyclesPerMin * def.coalPerCycle;
+    } else stoppedProcessors++;
+  }
+
+  const haulTier = world.companion;
+  const tier = haulTier.befriended ? companionHaulTierDef(haulTier.tier) : null;
+  const trained = tier ? applyCompanionTraining(tier, haulTier.trainingRank ?? 0) : null;
+  const logisticsPerMin = trained ? trained.haulAmountPerTrip * 60_000 / trained.haulIntervalMs : 0;
+  return { extractionPerMin, processingPerMin, logisticsPerMin, machineCoalProducedPerMin, machineCoalDemandPerMin, stoppedExtractors, stoppedProcessors };
+}
+
 // ---------------------------------------------------------------------------
 // Hearth heat
 // ---------------------------------------------------------------------------
@@ -96,14 +157,14 @@ export function getHearthMetrics(world: WorldState): HearthMetrics {
 
 /**
  * Estimated Insight per minute based on current drill output.
- * Each ore produced → smithed → grants XP → grants ~5% as Insight.
+ * Each ore produced → smithed → grants XP → grants ~10% as Insight.
  * This is an estimate (smelting is manual + probabilistic), not exact.
  * Used for display only — not used in any engine calculation.
  */
 export function estimatedInsightPerMin(world: WorldState): number {
-  // Rough: 1 ore → ~10 XP when smelted (copper_ingot baseXp) → 0.5 Insight
+  // Rough: 1 ore → ~10 XP when smelted (copper_ingot baseXp) → 1 Insight
   const oreMin = totalOrePerMin(world);
-  const INSIGHT_PER_ORE_ESTIMATE = 0.5;
+  const INSIGHT_PER_ORE_ESTIMATE = 1;
   return oreMin * INSIGHT_PER_ORE_ESTIMATE;
 }
 

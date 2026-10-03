@@ -107,10 +107,10 @@ describe("attemptMineStrike", () => {
   });
 
   it("reports leveledUp correctly when xp crosses a level boundary", () => {
-    const almostLevel2: SkillState = { id: "mining", level: 1, xp: 40 };
+    const almostLevel2: SkillState = { id: "mining", level: 1, xp: 26 };
     const result = attemptMineStrike(copperVein, almostLevel2, 0, fresh(), 0.1);
     expect(result.newLevel).toBe(1);
-    const closer: SkillState = { id: "mining", level: 1, xp: 45 };
+    const closer: SkillState = { id: "mining", level: 1, xp: 30 };
     const result2 = attemptMineStrike(copperVein, closer, 0, fresh(), 0.1);
     expect(result2.leveledUp).toBe(true);
     expect(result2.newLevel).toBe(2);

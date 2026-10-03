@@ -26,8 +26,8 @@ export const MAX_GARDEN_TENDING_RANK = 100;
 export function gardenTendingUpgradeCost(rank: number): ResourceBag {
   const next = Math.max(1, rank + 1);
   const cost: ResourceBag = {
-    wood_planks: Math.ceil(5 * Math.pow(1.34, next - 1)),
-    hearthsap: Math.ceil(Math.pow(1.2, next - 1)),
+    wood_planks: Math.ceil(5 * Math.pow(1.24, next - 1)),
+    hearthsap: Math.ceil(Math.pow(1.14, next - 1)),
   };
   if (next >= 15) cost[next >= 35 ? "echo_amethyst" : next >= 25 ? "echo_garnet" : "echo_quartz"] = Math.ceil((next - 14) / 7);
   return cost;

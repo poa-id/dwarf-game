@@ -43,17 +43,17 @@ export class TileCache {
     }
     await Promise.all([...uniqueAssetUrls].map((url) => this.loadImage(url)));
 
-    // Pre-tint every (asset, tint) pair up front too, so render() never
-    // does synchronous tinting work mid-frame.
+    // Pre-grade every asset up front, so render() never does synchronous
+    // image processing mid-frame.
     for (const def of Object.values(TILE_MANIFEST)) {
-      if (def.tint) {
+      if (def.assetUrl) {
         this.getTintedCanvas(def);
       }
     }
   }
 
   private tintCacheKey(def: TileDefinition): string {
-    return `${def.assetUrl}::${def.tint ?? ""}`;
+    return `${def.assetUrl}::${def.tint ?? ""}::${def.exposure ?? 1}`;
   }
 
   /**
@@ -65,8 +65,7 @@ export class TileCache {
   getDrawable(def: TileDefinition): HTMLCanvasElement | HTMLImageElement | null {
     const base = this.baseImages.get(def.assetUrl);
     if (!base) return null;
-    if (!def.tint) return base;
-    return this.getTintedCanvas(def) ?? null;
+    return this.getTintedCanvas(def) ?? base;
   }
 
   private getTintedCanvas(def: TileDefinition): HTMLCanvasElement | null {
@@ -75,7 +74,7 @@ export class TileCache {
     if (cached) return cached;
 
     const base = this.baseImages.get(def.assetUrl);
-    if (!base || !def.tint) return null;
+    if (!base) return null;
 
     const canvas = document.createElement("canvas");
     // Use the actual loaded image dimensions, not always NATIVE_TILE_SIZE -
@@ -87,12 +86,19 @@ export class TileCache {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
+    // A restrained shared cave-light grade removes the impression that
+    // adjacent sprites were painted under unrelated lights. Exposure is
+    // the only per-asset correction; hue and saturation remain global.
+    ctx.filter = `brightness(${def.exposure ?? 1}) saturate(0.92) sepia(0.08)`;
     ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = "multiply";
-    ctx.fillStyle = def.tint;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = "destination-in";
-    ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
+    ctx.filter = "none";
+    if (def.tint) {
+      ctx.globalCompositeOperation = "multiply";
+      ctx.fillStyle = def.tint;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
+    }
 
     this.tintedCanvases.set(key, canvas);
     return canvas;

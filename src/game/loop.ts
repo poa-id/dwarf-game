@@ -109,7 +109,10 @@ function gameTick(): void {
       }
       if (result.ranCycle) {
         newEngines = { ...newEngines, [engineId]: result.engine };
-        passiveSmithingRawXp += result.ingotsProduced * 10;
+        const xpPerIngot = def.ingotMaterialId === "deepstone_ingot" ? 60
+          : def.ingotMaterialId === "iron_ingot" ? 22
+            : 10;
+        passiveSmithingRawXp += result.ingotsProduced * xpPerIngot;
         engineChanged = true;
       }
     }

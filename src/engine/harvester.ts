@@ -55,7 +55,7 @@ export function harvesterOutputMultiplier(rank: number): number {
 
 export function harvesterOutputUpgradeCost(rank: number): ResourceBag {
   const nextRank = Math.max(1, rank + 1);
-  return { wood_planks: Math.ceil(6 * Math.pow(1.38, nextRank - 1)) };
+  return { wood_planks: Math.ceil(6 * Math.pow(1.25, nextRank - 1)) };
 }
 
 export function canAffordHarvesterOutputUpgrade(harvester: HarvesterState, inventory: ResourceBag): boolean {
@@ -91,10 +91,10 @@ export const HARVESTER_DEFINITIONS: HarvesterDefinition[] = [
     buildCost: { copper_ingot: 15, wood_planks: 3, iron_ingot: 5 },
     coalPerCycle: 1,
     tiers: [
-      { tier: 1, name: "Basic Harvester",     cycleMs: 30_000, woodPerCycle: 1, upgradeCost: {} },
-      { tier: 2, name: "Sharpened Blades",    cycleMs: 20_000, woodPerCycle: 1, upgradeCost: { iron_ingot: 10 } },
-      { tier: 3, name: "Reinforced Housing",  cycleMs: 15_000, woodPerCycle: 2, upgradeCost: { iron_ingot: 20 } },
-      { tier: 4, name: "Deep Root Harvester", cycleMs: 10_000, woodPerCycle: 3, upgradeCost: { iron_ingot: 30, deepstone_ingot: 5 } },
+      { tier: 1, name: "Basic Harvester",     cycleMs: 25_000, woodPerCycle: 2, upgradeCost: {} },
+      { tier: 2, name: "Sharpened Blades",    cycleMs: 18_000, woodPerCycle: 2, upgradeCost: { iron_ingot: 10 } },
+      { tier: 3, name: "Reinforced Housing",  cycleMs: 12_000, woodPerCycle: 3, upgradeCost: { iron_ingot: 20 } },
+      { tier: 4, name: "Deep Root Harvester", cycleMs: 8_000,  woodPerCycle: 5, upgradeCost: { iron_ingot: 30, deepstone_ingot: 5 } },
     ],
   },
 ];

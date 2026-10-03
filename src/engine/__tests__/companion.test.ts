@@ -14,11 +14,11 @@ import { createFreshHarvesterState } from "../harvester";
 import { createFreshEngineState } from "../smeltingEngine";
 
 describe("companionHaulTierDef / nextCompanionHaulTier", () => {
-  it("tier 1 is his original base rate - not a locked/unupgraded state", () => {
+  it("tier 1 is a useful base conveyor, not a locked/unupgraded state", () => {
     const tier1 = companionHaulTierDef(1);
-    expect(tier1.haulIntervalMs).toBe(5_000);
-    expect(tier1.haulAmountPerTrip).toBe(2);
-    expect(tier1.drillHaulCap).toBe(8);
+    expect(tier1.haulIntervalMs).toBe(4_000);
+    expect(tier1.haulAmountPerTrip).toBe(4);
+    expect(tier1.drillHaulCap).toBe(10);
     expect(tier1.upgradeInsightCost).toBe(0);
   });
 
@@ -57,11 +57,11 @@ describe("advanceMachineHauling", () => {
       tier,
       100,
     );
-    expect(result.hauled).toBe(4);
+    expect(result.hauled).toBe(6);
     expect(result.stockpile.copper_ore).toBe(3);
-    expect(result.stockpile.wood).toBe(1);
+    expect(result.stockpile.wood).toBe(3);
     expect(result.drills.mine_copper.oreBuffer).toBe(0);
-    expect(result.harvesters.garden_roots.woodBuffer).toBe(2);
+    expect(result.harvesters.garden_roots.woodBuffer).toBe(0);
   });
 
   it("respects per-resource stockpile capacity", () => {
@@ -83,13 +83,13 @@ describe("advanceMachineHauling", () => {
 
 describe("advanceUnifiedLogistics", () => {
   it("shares one budget between refueling and collecting outputs", () => {
-    const tier = companionHaulTierDef(1); // 2 units per trip
+    const tier = companionHaulTierDef(1); // 4 units per trip
     const drill = { ...createFreshDrillState(), coalBuffer: 0, oreBuffer: 5 };
     const result = advanceUnifiedLogistics(
       { coal: 10 }, {}, { mine_copper: drill }, {}, {}, 1, 1 + tier.haulIntervalMs, tier, 100, "balanced",
     );
-    expect(result.moved).toBe(2);
-    expect(result.drills.mine_copper.coalBuffer).toBe(2);
+    expect(result.moved).toBe(4);
+    expect(result.drills.mine_copper.coalBuffer).toBe(4);
     expect(result.drills.mine_copper.oreBuffer).toBe(5);
   });
 

@@ -55,10 +55,10 @@ export const SMELTING_ENGINE_DEFINITIONS: SmeltingEngineDef[] = [
     coalPerCycle: 1,
     buildCost: { copper_ingot: 30, iron_ingot: 5, wood_planks: 4 }, // 2026-07-06: was 20 raw wood - see drill.ts's copper_drill comment for the ratio
     tiers: [
-      { tier: 1, name: "Slow Bellows",      cycleMs: 60_000, ingotsPerCycle: 1, upgradeCost: {} },
-      { tier: 2, name: "Steady Bellows",    cycleMs: 40_000, ingotsPerCycle: 1, upgradeCost: { copper_ingot: 20 } },
-      { tier: 3, name: "Driven Bellows",    cycleMs: 25_000, ingotsPerCycle: 1, upgradeCost: { copper_ingot: 40, iron_ingot: 5 } },
-      { tier: 4, name: "Masterwork Forge",  cycleMs: 15_000, ingotsPerCycle: 2, upgradeCost: { iron_ingot: 20, true_copper: 2 } },
+      { tier: 1, name: "Slow Bellows",      cycleMs: 40_000, ingotsPerCycle: 1, upgradeCost: {} },
+      { tier: 2, name: "Steady Bellows",    cycleMs: 25_000, ingotsPerCycle: 1, upgradeCost: { copper_ingot: 20 } },
+      { tier: 3, name: "Driven Bellows",    cycleMs: 15_000, ingotsPerCycle: 1, upgradeCost: { copper_ingot: 40, iron_ingot: 5 } },
+      { tier: 4, name: "Masterwork Forge",  cycleMs: 10_000, ingotsPerCycle: 2, upgradeCost: { iron_ingot: 20, true_copper: 2 } },
     ],
   },
   {
@@ -70,10 +70,10 @@ export const SMELTING_ENGINE_DEFINITIONS: SmeltingEngineDef[] = [
     coalPerCycle: 2,
     buildCost: { iron_ingot: 20, copper_ingot: 10, wood_planks: 3 }, // 2026-07-06: was 15 raw wood
     tiers: [
-      { tier: 1, name: "Cold Crucible",     cycleMs: 90_000, ingotsPerCycle: 1, upgradeCost: {} },
-      { tier: 2, name: "Warm Crucible",     cycleMs: 60_000, ingotsPerCycle: 1, upgradeCost: { iron_ingot: 15 } },
-      { tier: 3, name: "Hot Crucible",      cycleMs: 40_000, ingotsPerCycle: 1, upgradeCost: { iron_ingot: 30, true_iron: 1 } },
-      { tier: 4, name: "True Furnace",      cycleMs: 25_000, ingotsPerCycle: 2, upgradeCost: { true_iron: 3, deepstone_ingot: 5 } },
+      { tier: 1, name: "Cold Crucible",     cycleMs: 60_000, ingotsPerCycle: 1, upgradeCost: {} },
+      { tier: 2, name: "Warm Crucible",     cycleMs: 40_000, ingotsPerCycle: 1, upgradeCost: { iron_ingot: 15 } },
+      { tier: 3, name: "Hot Crucible",      cycleMs: 25_000, ingotsPerCycle: 1, upgradeCost: { iron_ingot: 30, true_iron: 1 } },
+      { tier: 4, name: "True Furnace",      cycleMs: 15_000, ingotsPerCycle: 2, upgradeCost: { true_iron: 3, deepstone_ingot: 5 } },
     ],
   },
   {
@@ -87,9 +87,9 @@ export const SMELTING_ENGINE_DEFINITIONS: SmeltingEngineDef[] = [
     fuelPerCycle: 1,
     buildCost: { deepstone_ingot: 10, iron_ingot: 20, ironwood: 5 },
     tiers: [
-      { tier: 1, name: "Deep Crucible",     cycleMs: 120_000, ingotsPerCycle: 1, upgradeCost: {} },
-      { tier: 2, name: "Heated Deep Forge", cycleMs:  80_000, ingotsPerCycle: 1, upgradeCost: { deepstone_ingot: 8 } },
-      { tier: 3, name: "Grand Deep Forge",  cycleMs:  50_000, ingotsPerCycle: 2, upgradeCost: { deepstone_ingot: 15, true_iron: 2 } },
+      { tier: 1, name: "Deep Crucible",     cycleMs: 90_000, ingotsPerCycle: 1, upgradeCost: {} },
+      { tier: 2, name: "Heated Deep Forge", cycleMs: 60_000, ingotsPerCycle: 1, upgradeCost: { deepstone_ingot: 8 } },
+      { tier: 3, name: "Grand Deep Forge",  cycleMs: 35_000, ingotsPerCycle: 2, upgradeCost: { deepstone_ingot: 15, true_iron: 2 } },
     ],
   },
 ];
@@ -132,7 +132,7 @@ export function engineOutputMultiplier(rank: number): number {
 }
 
 export function engineOutputUpgradeCost(def: SmeltingEngineDef, rank: number): Record<string, number> {
-  return { [def.ingotMaterialId]: Math.ceil(10 * Math.pow(1.4, Math.max(0, rank))) };
+  return { [def.ingotMaterialId]: Math.ceil(9 * Math.pow(1.24, Math.max(0, rank))) };
 }
 
 export function engineDefById(id: string): SmeltingEngineDef | undefined {

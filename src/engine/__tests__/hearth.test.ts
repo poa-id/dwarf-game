@@ -280,7 +280,7 @@ describe("nextHaulMaterial (added 2026-06-23, extracted from advanceCompanionHau
     const preview = nextHaulMaterial(inv);
     const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS);
     expect(preview).toBe("coal");
-    expect(result.fuelReserve.coal).toBe(2); // confirms coal was what actually got hauled
+    expect(result.fuelReserve.coal).toBe(HAUL_AMOUNT_PER_TRIP); // confirms coal was what actually got hauled
   });
 });
 
@@ -318,7 +318,7 @@ describe("advanceCompanionHauling", () => {
   it("hauls multiple trips worth if a large time gap elapsed (offline catch-up)", () => {
     const inv: ResourceBag = { coal: 10 };
     const result = advanceCompanionHauling(inv, {}, 0, HAUL_INTERVAL_MS * 3);
-    expect(result.fuelReserve.coal).toBe(HAUL_AMOUNT_PER_TRIP * 3);
+    expect(result.fuelReserve.coal).toBe(Math.min(10, HAUL_AMOUNT_PER_TRIP * 3));
   });
 
   it("picks whichever fuel material is currently held in greater quantity", () => {
@@ -388,7 +388,7 @@ describe("advanceDrillHauling with companion tiers (2026-07-06)", () => {
       mine_copper: { tier: 1, coalBuffer: 0, oreBuffer: 0, lastCycleAt: 0, coalBufferMax: 20, oreBufferMax: 20, bufferTier: 0 },
     };
     const result = advanceDrillHauling({ coal: 1000 }, drills, 2, companionHaulTierDef(1));
-    expect(result.drills.mine_copper.coalBuffer).toBeLessThanOrEqual(8);
+    expect(result.drills.mine_copper.coalBuffer).toBeLessThanOrEqual(companionHaulTierDef(1).drillHaulCap);
   });
 
   it("a higher tier hauls noticeably more coal per trip to drills that need it", async () => {

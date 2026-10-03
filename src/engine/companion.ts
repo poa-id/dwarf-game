@@ -41,11 +41,11 @@ export interface CompanionHaulTier {
 }
 
 export const COMPANION_HAUL_TIERS: CompanionHaulTier[] = [
-  { tier: 1, name: "Coal-Beetle", haulIntervalMs: 5_000, haulAmountPerTrip: 2, drillHaulCap: 8, upgradeCost: {}, upgradeInsightCost: 0 },
-  { tier: 2, name: "Laden Beetle", haulIntervalMs: 4_000, haulAmountPerTrip: 5, drillHaulCap: 16, upgradeCost: { iron_ingot: 20, copper_ingot: 10 }, upgradeInsightCost: 500 },
-  { tier: 3, name: "Armored Hauler", haulIntervalMs: 3_500, haulAmountPerTrip: 8, drillHaulCap: 25, upgradeCost: { iron_ingot: 40, deepstone_ingot: 10 }, upgradeInsightCost: 1_500 },
-  { tier: 4, name: "Tireless Hauler", haulIntervalMs: 2_000, haulAmountPerTrip: 20, drillHaulCap: 60, upgradeCost: { deepstone_ingot: 30, true_iron: 5 }, upgradeInsightCost: 4_000 },
-  { tier: 5, name: "Unburdened Beast", haulIntervalMs: 1_000, haulAmountPerTrip: 50, drillHaulCap: 150, upgradeCost: { true_iron: 10, true_copper: 10 }, upgradeInsightCost: 10_000 },
+  { tier: 1, name: "Coal-Beetle", haulIntervalMs: 4_000, haulAmountPerTrip: 4, drillHaulCap: 10, upgradeCost: {}, upgradeInsightCost: 0 },
+  { tier: 2, name: "Laden Beetle", haulIntervalMs: 3_000, haulAmountPerTrip: 8, drillHaulCap: 20, upgradeCost: { iron_ingot: 20, copper_ingot: 10 }, upgradeInsightCost: 500 },
+  { tier: 3, name: "Armored Hauler", haulIntervalMs: 2_500, haulAmountPerTrip: 15, drillHaulCap: 35, upgradeCost: { iron_ingot: 40, deepstone_ingot: 10 }, upgradeInsightCost: 1_500 },
+  { tier: 4, name: "Tireless Hauler", haulIntervalMs: 1_500, haulAmountPerTrip: 30, drillHaulCap: 75, upgradeCost: { deepstone_ingot: 30, true_iron: 5 }, upgradeInsightCost: 4_000 },
+  { tier: 5, name: "Unburdened Beast", haulIntervalMs: 750, haulAmountPerTrip: 60, drillHaulCap: 160, upgradeCost: { true_iron: 10, true_copper: 10 }, upgradeInsightCost: 10_000 },
 ];
 
 export const MAX_COMPANION_TRAINING_RANK = 100;
@@ -53,8 +53,8 @@ export const MAX_COMPANION_TRAINING_RANK = 100;
 export function companionTrainingCost(rank: number): ResourceBag {
   const nextRank = Math.max(1, rank + 1);
   const cost: ResourceBag = {
-    coal: Math.ceil(20 * Math.pow(1.42, nextRank - 1)),
-    copper_ingot: Math.ceil(2 * Math.pow(1.32, nextRank - 1)),
+    coal: Math.ceil(16 * Math.pow(1.27, nextRank - 1)),
+    copper_ingot: Math.ceil(2 * Math.pow(1.24, nextRank - 1)),
   };
   if (nextRank >= 10) {
     const echoId = nextRank >= 30 ? "echo_amethyst" : nextRank >= 20 ? "echo_garnet" : "echo_quartz";

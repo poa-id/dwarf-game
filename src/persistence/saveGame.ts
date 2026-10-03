@@ -1,5 +1,6 @@
 import type { GameState } from "../engine/types";
 import { createInitialGameState } from "../engine/rekindle";
+import { levelForXp } from "../engine/xpCurve";
 
 /**
  * Save/load via localStorage. GameState is plain JSON-serializable data
@@ -199,6 +200,14 @@ function backfillMissingFields(state: any): any {
     // Old saves predate the Tinkering skill entirely - backfill at
     // level 1, same fresh-skill default any new dwarf gets.
     state.vessel.skills.tinkering = { id: "tinkering", level: 1, xp: 0 };
+  }
+  // Levels are a projection of XP, never an independent source of truth.
+  // Recompute on every load so balance-curve changes benefit existing
+  // saves immediately without deleting XP or waiting for another action.
+  if (state.vessel?.skills) {
+    for (const skill of Object.values(state.vessel.skills) as any[]) {
+      skill.level = levelForXp(Math.max(0, skill.xp ?? 0));
+    }
   }
   return state;
 }

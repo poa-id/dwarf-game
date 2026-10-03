@@ -13,7 +13,9 @@ import {
   createFreshPlanterSlot,
   type PlanterSlot,
 } from "../engine/garden";
-import { levelForXp, applyDwarfCountXpMultiplier } from "../engine/xpCurve";
+import { levelForXp, applyDwarfCountXpMultiplier, insightFromXp, archiveInsightBonus } from "../engine/xpCurve";
+import { xpPerkBonus } from "../engine/smelter";
+import { legacyXpBonus } from "../engine/legacies";
 
 export function performPlantSeed(state: GameState, slotIndex: number, plantId: string): GameState {
   const slots = state.world.gardenSlots;
@@ -27,12 +29,12 @@ export function performPlantSeed(state: GameState, slotIndex: number, plantId: s
 
   const newSlots = [...slots];
   newSlots[slotIndex] = { ...slot, plantId, stage: 0, stageStartedAt: Date.now() };
-  const rawXp = applyDwarfCountXpMultiplier(def.herbloreXp, 1);
-  const herbloreXp = (state.vessel.skills.herblore?.xp ?? 0) + rawXp;
+  const gainedXp = applyDwarfCountXpMultiplier(def.herbloreXp, state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk) + legacyXpBonus(state.world));
+  const herbloreXp = (state.vessel.skills.herblore?.xp ?? 0) + gainedXp;
 
   return {
     ...state,
-    world: { ...state.world, gardenSlots: newSlots },
+    world: { ...state.world, gardenSlots: newSlots, insightBanked: state.world.insightBanked + insightFromXp(gainedXp) * archiveInsightBonus(state.world.roomStates) },
     vessel: {
       ...state.vessel,
       inventory: deductMaterials(state.vessel.inventory, { [def.seedMaterialId]: 1 }),
@@ -53,14 +55,14 @@ export function performHarvestSlot(state: GameState, slotIndex: number): GameSta
     inv = addMaterial(inv, def.secondaryMaterialId, def.secondaryAmount);
   }
 
-  const rawXp = Math.round(def.herbloreXp * 1.5);
-  const herbloreXp = (state.vessel.skills.herblore?.xp ?? 0) + rawXp;
+  const gainedXp = applyDwarfCountXpMultiplier(Math.round(def.herbloreXp * 1.5), state.world.dwarfCount, xpPerkBonus(state.world.trueMetalSpentOnXpPerk) + legacyXpBonus(state.world));
+  const herbloreXp = (state.vessel.skills.herblore?.xp ?? 0) + gainedXp;
   const newSlots = [...slots];
   newSlots[slotIndex] = { ...slot, plantId: null, stage: 0, stageStartedAt: 0 };
 
   return {
     ...state,
-    world: { ...state.world, gardenSlots: newSlots },
+    world: { ...state.world, gardenSlots: newSlots, insightBanked: state.world.insightBanked + insightFromXp(gainedXp) * archiveInsightBonus(state.world.roomStates) },
     vessel: {
       ...state.vessel,
       inventory: inv,

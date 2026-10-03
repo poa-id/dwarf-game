@@ -15,8 +15,14 @@
  * tweaking a hardcoded 99-row table.
  */
 
-const BASE_XP = 50;
-const EXPONENT = 2.1; // >2 = superlinear difficulty curve, but gentler than exponential
+// Tuned from 50 / 2.1 after a full gate audit. The previous curve made
+// Mining 8 cost 8,282 XP (more than a thousand successful starter-node
+// actions) and level 20 cost 160,844 XP. That was MMORPG pacing inside
+// an idle game whose interesting decisions begin when systems connect.
+// Mastery still grows super-linearly, but the first automation loop now
+// arrives before repetition exhausts the player.
+const BASE_XP = 35;
+const EXPONENT = 1.8;
 const MAX_LEVEL = 99; // a nod to the influence, not a hard requirement
 
 /** XP required to go from level n to level n+1. */
@@ -117,14 +123,14 @@ export function applyDwarfCountXpMultiplier(
  * should never be fully gated behind one specific, occasional action.
  *
  * Per explicit project direction: every XP-granting action across
- * every skill ALSO grants Insight, as 5% of that action's XP - using
+ * every skill ALSO grants Insight, now as 10% of that action's XP - using
  * the ALREADY-MULTIPLIED xp value (post dwarfCount/True-metal-perk
  * bonus), so Insight scales up right alongside however fast the
  * player is currently leveling, consistent with "Insight is a
  * synonym for experience."
  *
  * Deliberately returns a FRACTIONAL value, not rounded - most common
- * actions grant well under 20 XP, and 5% of that rounds to 0 for many
+ * actions grant under 10 XP, and rounding would distort many
  * of the cheapest, most frequent actions (copper strikes, charcoal
  * burns, copper smelts) - which would silently grant nothing despite
  * the explicit ask that EVERY action contributes. WorldState.insightBanked
@@ -139,7 +145,12 @@ export function applyDwarfCountXpMultiplier(
  * not be made redundant by the per-action trickle.
  */
 export function insightFromXp(multipliedXp: number): number {
-  return multipliedXp * 0.05;
+  // Raised from 5% after Remembrance became the exclusive prestige
+  // currency. Infrastructure prices were originally tuned around a
+  // rekindle Insight windfall that no longer exists; 10% lets ordinary
+  // work and automation fund the mountain while keeping the two
+  // currencies conceptually clean.
+  return multipliedXp * 0.10;
 }
 
 /**

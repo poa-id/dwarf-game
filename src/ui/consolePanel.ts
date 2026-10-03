@@ -25,9 +25,11 @@ import {
   totalOrePerMin,
   forgeStageName,
   smelterStageName,
+  getAutomationFlowMetrics,
 } from "../engine/production";
 import { applyCompanionTraining, companionHaulTierDef, normalizeLogisticsPolicy, type LogisticsLane } from "../engine/companion";
 import { stockpileCapacityPerMaterial } from "../engine/rooms";
+import { MATERIALS } from "../engine/types";
 
 export function renderConsolePanel(
   state: GameState,
@@ -58,6 +60,7 @@ export function renderConsolePanel(
   const restoration = getRestorationScore(state.world);
   const oreMin = totalOrePerMin(state.world);
   const insightMin = estimatedInsightPerMin(state.world);
+  const flow = getAutomationFlowMetrics(state.world);
   const rekindleBonus = Math.round(state.world.rekindleMultiplier * 100);
   const haulTier = applyCompanionTraining(
     companionHaulTierDef(state.world.companion.tier),
@@ -113,6 +116,8 @@ export function renderConsolePanel(
     <div style="margin-bottom: 12px;">
       <div class="reserve-status"><strong>Production</strong></div>
       <div class="reserve-status">${oreMin > 0 ? `${(oreMin / 60).toFixed(2)} ore/s` : "No idle production"} · ${insightMin > 0 ? `~${(insightMin / 60).toFixed(2)} insight/s` : "mine manually for insight"}</div>
+      <div class="reserve-status" style="font-size:0.78em;opacity:0.82;">Extract ${(flow.extractionPerMin / 60).toFixed(2)}/s · haul ${(flow.logisticsPerMin / 60).toFixed(2)}/s · refine ${(flow.processingPerMin / 60).toFixed(2)}/s</div>
+      <div class="reserve-status" style="font-size:0.78em;color:${flow.machineCoalProducedPerMin >= flow.machineCoalDemandPerMin ? "#8fb36b" : "#c87820"};">Machine coal ${(flow.machineCoalProducedPerMin / 60).toFixed(2)}/s in · ${(flow.machineCoalDemandPerMin / 60).toFixed(2)}/s demand${flow.stoppedExtractors + flow.stoppedProcessors > 0 ? ` · ${flow.stoppedExtractors + flow.stoppedProcessors} stopped` : ""}</div>
       ${rekindleBonus > 0 ? `<div class="reserve-status" style="color: #8accd8;">Mountain memory: +${rekindleBonus}% yield (${state.world.dwarfCount} lives)</div>` : ""}
       ${state.world.companion.befriended ? `<div class="reserve-status" style="color: #c6a15b;">Narag-Bund logistics: ${(logisticsPerMin / 60).toFixed(2)} resources/s · harness rank ${state.world.companion.trainingRank ?? 0} · ${logisticsMode.replace("_", " ")}</div>` : ""}
     </div>
@@ -151,10 +156,12 @@ export function renderConsolePanel(
     ${(() => {
       const stockpileStage = state.world.roomStates["stockpile_room"] ?? "ruined";
       if (stockpileStage === "ruined") return "";
-      const entries = Object.entries(state.world.stockpileOre).filter(([, v]) => v > 0);
+      const entries = Object.entries(state.world.stockpileOre)
+        .filter(([, v]) => v > 0)
+        .sort(([a], [b]) => (MATERIALS[a]?.name ?? a).localeCompare(MATERIALS[b]?.name ?? b));
       const capacity = stockpileCapacityPerMaterial(stockpileStage, state.world.stockpileExpansionRank ?? 0);
       const contents = entries.length > 0
-        ? entries.map(([mat, amt]) => `${amt} ${mat.replace("_ore","").replace("_"," ")}`).join(", ")
+        ? entries.map(([mat, amt]) => `${amt} ${MATERIALS[mat]?.name ?? mat.replaceAll("_", " ")}`).join(" · ")
         : "empty";
       return `
         <div style="margin-bottom: 4px;">

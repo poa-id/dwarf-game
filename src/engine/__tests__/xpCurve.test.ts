@@ -124,9 +124,9 @@ describe("applyDwarfCountXpMultiplier", () => {
 });
 
 describe("insightFromXp (added 2026-06-23 - fixes a real gap: LORE.md always described Insight as earned from everyday actions AND rekindling, but only rekindling was ever implemented)", () => {
-  it("is exactly 5% of the given (already-multiplied) XP value", () => {
-    expect(insightFromXp(100)).toBe(5);
-    expect(insightFromXp(20)).toBe(1);
+  it("is exactly 10% of the given (already-multiplied) XP value", () => {
+    expect(insightFromXp(100)).toBe(10);
+    expect(insightFromXp(20)).toBe(2);
   });
 
   it("is 0 for 0 XP", () => {
@@ -134,10 +134,10 @@ describe("insightFromXp (added 2026-06-23 - fixes a real gap: LORE.md always des
   });
 
   it("is DELIBERATELY fractional, not rounded - most common actions grant well under 20 XP, and rounding would silently grant 0 Insight for many of the cheapest, most frequent actions", () => {
-    // 8 XP (e.g. a copper_vein strike) * 0.05 = 0.4 - would round to 0,
+    // 8 XP (e.g. a copper_vein strike) * 0.10 = 0.8 - would round to 1,
     // but the explicit ask was that EVERY action contributes something
     const result = insightFromXp(8);
-    expect(result).toBeCloseTo(0.4, 6);
+    expect(result).toBeCloseTo(0.8, 6);
     expect(Number.isInteger(result)).toBe(false);
   });
 

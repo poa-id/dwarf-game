@@ -115,7 +115,7 @@ describe("tickHarvester", () => {
 
   it("stops with reason 'wood_buffer_full' when the wood buffer is capped", () => {
     const tier1 = harvesterTierDefinition(rootHarvesterDef, 1);
-    const started: HarvesterState = { ...createFreshHarvesterState(), lastCycleAt: 1, coalBuffer: 100, woodBuffer: 19, woodBufferMax: 20 };
+    const started: HarvesterState = { ...createFreshHarvesterState(), lastCycleAt: 1, coalBuffer: 100, woodBuffer: 18, woodBufferMax: 20 };
     const result = tickHarvester(started, rootHarvesterDef, 1 + tier1.cycleMs * 5);
     expect(result.stoppedReason).toBe("wood_buffer_full");
     expect(result.harvester.woodBuffer).toBe(20);

@@ -67,6 +67,8 @@ export interface TileDefinition {
    * instead of a flat character.
    */
   tint?: string;
+  /** Per-sprite exposure correction applied before the shared warm grade. */
+  exposure?: number;
   /**
    * For multi-tile sprites: how many grid cells this sprite spans in
    * each dimension. Defaults to { cols: 1, rows: 1 } when absent.
@@ -89,18 +91,18 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   ore_coal: { assetUrl: oreCoalUrl, tileSpan: { cols: 3, rows: 3 } },
   ore_exhausted: { assetUrl: rockFloorUrl },
   wood_exhausted: { assetUrl: rockFloorUrl },
-  dwarf: { assetUrl: dwarfUrl },
+  dwarf: { assetUrl: dwarfUrl, exposure: 0.9 },
   // Real 4x4 sprites (added 2026-06-30). tileSpan tells TilesetRenderer
   // to draw at 4x the normal cell size, anchored at the top-left cell.
-  hearth: { assetUrl: hearth4x4Url, tileSpan: { cols: 6, rows: 6 } },
-  forge: { assetUrl: forge4x4Url, tileSpan: { cols: 7, rows: 7 } },
+  hearth: { assetUrl: hearth4x4Url, exposure: 1.08, tileSpan: { cols: 6, rows: 6 } },
+  forge: { assetUrl: forge4x4Url, exposure: 1.15, tileSpan: { cols: 7, rows: 7 } },
   forge_broken: { assetUrl: forge4x4Url, tint: "#5a4a3a", tileSpan: { cols: 7, rows: 7 } },
-  kiln: { assetUrl: kilnUrl, tileSpan: { cols: 3, rows: 3 } },
-  sawmill: { assetUrl: sawmillUrl, tileSpan: { cols: 3, rows: 3 } },
-  turbine: { assetUrl: turbineUrl, tileSpan: { cols: 3, rows: 3 } },
+  kiln: { assetUrl: kilnUrl, exposure: 1.06, tileSpan: { cols: 3, rows: 3 } },
+  sawmill: { assetUrl: sawmillUrl, exposure: 0.9, tileSpan: { cols: 3, rows: 3 } },
+  turbine: { assetUrl: turbineUrl, exposure: 0.94, tileSpan: { cols: 3, rows: 3 } },
   // Smelter add-on: 2x2 sprite sitting below the Forge.
   smelter: { assetUrl: smelterAddonUrl, tileSpan: { cols: 3, rows: 3 } },
-  gemcutting: { assetUrl: gemcutting4x4Url, tileSpan: { cols: 6, rows: 6 } },
+  gemcutting: { assetUrl: gemcutting4x4Url, exposure: 1.15, tileSpan: { cols: 6, rows: 6 } },
   // Unbuilt marker: same sprite but heavily tinted dark/cold so it reads as
   // 'the bench is here but cold and unused' rather than the active station.
   gemcutting_unbuilt: { assetUrl: gemcutting4x4Url, tint: "#3a3450", tileSpan: { cols: 6, rows: 6 } },
@@ -108,27 +110,27 @@ export const TILE_MANIFEST: Record<CellKind, TileDefinition> = {
   tunnel_edge: { assetUrl: tunnelEdgeUrl },
   torch_broken: { assetUrl: oreBaseUrl, tint: "#6a6a6a" },
   torch_lit: { assetUrl: torchLitUrl },
-  companion: { assetUrl: naragBundUrl, tileSpan: { cols: 4, rows: 4 } },
-  harvest_companion: { assetUrl: oxenUrl, tileSpan: { cols: 3, rows: 3 } },
-  stockpile_chest: { assetUrl: stockpileChestUrl, tileSpan: { cols: 6, rows: 7 } },
+  companion: { assetUrl: naragBundUrl, exposure: 0.98, tileSpan: { cols: 4, rows: 4 } },
+  harvest_companion: { assetUrl: oxenUrl, exposure: 0.86, tileSpan: { cols: 3, rows: 3 } },
+  stockpile_chest: { assetUrl: stockpileChestUrl, exposure: 1.2, tileSpan: { cols: 6, rows: 7 } },
   drill_copper: { assetUrl: drillUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_iron: { assetUrl: drillIronUrl, tileSpan: { cols: 3, rows: 3 } },
   drill_deep: { assetUrl: drillDeepUrl, tileSpan: { cols: 3, rows: 3 } },
   mineshaft_broken: { assetUrl: mineshaftBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
   mineshaft_lit: { assetUrl: mineshaftLitUrl, tileSpan: { cols: 3, rows: 3 } },
-  mountain_console: { assetUrl: mountainConsoleUrl, tileSpan: { cols: 3, rows: 3 } },
-  wood_node: { assetUrl: woodNodeUrl, tileSpan: { cols: 3, rows: 3 } },
+  mountain_console: { assetUrl: mountainConsoleUrl, exposure: 1.22, tileSpan: { cols: 3, rows: 3 } },
+  wood_node: { assetUrl: woodNodeUrl, exposure: 1.1, tileSpan: { cols: 3, rows: 3 } },
   wood_harvester: { assetUrl: woodHarvesterUrl, tileSpan: { cols: 3, rows: 3 } },
   grove_entrance: { assetUrl: groveEntranceUrl, tileSpan: { cols: 4, rows: 4 } },
   planter_broken: { assetUrl: planterBrokenUrl, tileSpan: { cols: 3, rows: 3 } },
-  planter_empty: { assetUrl: planterEmptyUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_empty: { assetUrl: planterEmptyUrl, exposure: 1.15, tileSpan: { cols: 3, rows: 3 } },
   planter_sprout: { assetUrl: planterSproutUrl, tileSpan: { cols: 3, rows: 3 } },
   planter_growing: { assetUrl: planterGrowingUrl, tileSpan: { cols: 3, rows: 3 } },
-  planter_mature: { assetUrl: planterMatureUrl, tileSpan: { cols: 3, rows: 3 } },
+  planter_mature: { assetUrl: planterMatureUrl, exposure: 1.12, tileSpan: { cols: 3, rows: 3 } },
   planter_gemwood: { assetUrl: planterGemwoodUrl, tileSpan: { cols: 3, rows: 3 } },
-  planter_fern: { assetUrl: planterFernUrl, tileSpan: { cols: 3, rows: 3 } },
-  planter_shroom: { assetUrl: planterShroomUrl, tileSpan: { cols: 3, rows: 3 } },
-  trade_post: { assetUrl: tradePostUrl, tileSpan: { cols: 5, rows: 5 } },
+  planter_fern: { assetUrl: planterFernUrl, exposure: 1.1, tileSpan: { cols: 3, rows: 3 } },
+  planter_shroom: { assetUrl: planterShroomUrl, exposure: 1.1, tileSpan: { cols: 3, rows: 3 } },
+  trade_post: { assetUrl: tradePostUrl, exposure: 0.95, tileSpan: { cols: 5, rows: 5 } },
   drill_coal: { assetUrl: drillCoalUrl, tileSpan: { cols: 3, rows: 3 } },
 };
 

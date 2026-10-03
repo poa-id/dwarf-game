@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { saveGame, loadGame, clearSave, CURRENT_SAVE_VERSION } from "../saveGame";
 import { createInitialGameState } from "../../engine/rekindle";
+import { levelForXp } from "../../engine/xpCurve";
 
 // vitest's default environment may not have a real localStorage - if
 // this fails to run, check vite.config / vitest config for
@@ -36,7 +37,7 @@ describe("saveGame / loadGame round trip", () => {
     const result = loadGame(2000);
 
     expect(result.isFreshState).toBe(false);
-    expect(result.state.vessel.skills.mining.level).toBe(15);
+    expect(result.state.vessel.skills.mining.level).toBe(levelForXp(12345));
     expect(result.state.vessel.skills.mining.xp).toBe(12345);
     expect(result.state.vessel.inventory.copper_ore).toBe(7);
     expect(result.state.vessel.inventory.coal).toBe(3);
